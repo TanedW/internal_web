@@ -1,9 +1,10 @@
-// firebaseConfig.js
+// Import function ที่จำเป็น
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// เพิ่ม import auth เพื่อใช้งาน Login
+// เพิ่ม import auth และ provider สำหรับ Google
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getAnalytics } from "firebase/analytics";
 
+// ดึงค่าจาก .env มาใช้ (Vercel จะเติมค่าให้เองตอน Build)
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -14,19 +15,21 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
+// 1. Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// ตรวจสอบว่ารันบน Browser ถึงจะเรียก Analytics (ป้องกัน Error ตอน Build บน Server)
-let analytics;
-if (typeof window !== "undefined") {
-  analytics = getAnalytics(app);
-}
-
-// Setup Auth และ Provider
+// 2. Setup Google Auth
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
-googleProvider.addScope("email");
+googleProvider.addScope("email"); // ขอสิทธิ์เข้าถึง email
 
-// Export ออกไปใช้ที่หน้า Login
-export { app, auth, googleProvider, analytics };
+// 3. Setup Analytics (ใส่เงื่อนไขป้องกัน Error ตอนรันบน Server Side)
+let analytics;
+if (typeof window !== "undefined") {
+  // เช็คว่ารันบน Browser ถึงจะเรียก Analytics
+  // analytics = getAnalytics(app); 
+  // หมายเหตุ: ถ้ายังไม่ได้เปิด Analytics ใน Console อาจจะ comment บรรทัดบนไว้ก่อนได้ครับ
+}
+
+// 4. Export ออกไปใช้ที่หน้า Login
+export { auth, googleProvider, analytics };

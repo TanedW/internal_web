@@ -1,39 +1,52 @@
 'use client';
 
-import { signIn } from "next-auth/react";
+// 1. เปลี่ยน import จาก next-auth เป็น next/navigation และ firebase
+import { useRouter } from "next/navigation"; 
+import { signInWithPopup } from "firebase/auth";
+// ⚠️ ตรวจสอบ path ให้ตรงกับตำแหน่งไฟล์ firebaseConfig.js ของคุณ (เช่น ../firebaseConfig หรือ @/firebaseConfig)
+import { auth, googleProvider } from "../../firebaseConfig"; 
 
 export default function Login() {
+  const router = useRouter(); // สร้าง router เพื่อใช้เปลี่ยนหน้า
+
   const handleGoogleLogin = async () => {
-    await signIn("google", { callbackUrl: "/manage" });
+    try {
+      // 2. เรียก Popup ของ Google ผ่าน Firebase
+      const result = await signInWithPopup(auth, googleProvider);
+      
+      // ถ้าสำเร็จ
+      console.log("Login Success:", result.user);
+      // เปลี่ยนไปหน้า /manage (หรือหน้าที่คุณต้องการ)
+      router.push("/manage"); 
+      
+    } catch (error) {
+      // ถ้ามี Error
+      console.error("Login Error:", error);
+      alert("เข้าสู่ระบบไม่สำเร็จ: " + error.message);
+    }
   };
 
   return (
-    // --- ปรับปรุงส่วนพื้นหลัง ---
-    // ใช้ bg-gradient-to-br เพื่อสร้างสีพื้นหลังแบบไล่ระดับ ดูมีมิติ ไม่โล่ง
+    // --- ส่วน UI คงเดิมตามที่คุณออกแบบไว้ สวยแล้วครับ ---
     <div className="min-h-screen flex items-center justify-center p-4 font-sans bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       
-      {/* หมายเหตุ: ในโปรเจกต์จริง ควรย้าย link/script เหล่านี้ไปที่ไฟล์ layout.js หรือติดตั้งผ่าน npm */}
+      {/* หมายเหตุ: ในระยะยาวควรย้าย CDN พวกนี้ไปที่ app/layout.js ครับ */}
       <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
       <script src="https://cdn.tailwindcss.com"></script>
 
-    
       <div className="card bg-base-100 w-full max-w-md shadow-2xl rounded-3xl border border-white/50 relative overflow-hidden">
         
-        {/* (Optional) เพิ่มแสงฟุ้งๆ ด้านบนการ์ด */}
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-purple-600 opacity-80"></div>
 
         <div className="card-body px-8 py-10">
           
           <div className="text-center mb-10">
-            {/* (Optional) เพิ่มไอคอนเล็กๆ ด้านบน */}
             <div className="mb-4 inline-flex items-center justify-center w-12 h-12 rounded-full bg-indigo-100 text-indigo-600">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
               </svg>
             </div>
 
-            {/* --- ปรับปรุงหัวข้อ --- */}
-            {/* ใช้ text-transparent bg-clip-text bg-gradient-to-r เพื่อทำตัวหนังสือไล่สี */}
             <h2 className="text-4xl font-black tracking-tight text-black">
               ยินดีต้อนรับ
             </h2>
