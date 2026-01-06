@@ -34,7 +34,7 @@ export default function Login() {
 
             {/* --- ปรับปรุงหัวข้อ --- */}
             {/* ใช้ text-transparent bg-clip-text bg-gradient-to-r เพื่อทำตัวหนังสือไล่สี */}
-            <h2 className="text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-violet-600">
+            <h2 className="text-4xl font-black tracking-tight text-black">
               ยินดีต้อนรับ
             </h2>
             <p className="text-base text-base-content/70 mt-3 font-medium">
