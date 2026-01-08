@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithPopup } from "firebase/auth";
+<<<<<<< Updated upstream
 import { auth, googleProvider } from "../../firebaseConfig";
 
 export default function Login() {
