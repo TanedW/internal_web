@@ -1,68 +1,172 @@
 'use client';
 
-// 1. เปลี่ยน import จาก next-auth เป็น next/navigation และ firebase
-import { useRouter } from "next/navigation"; 
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { signInWithPopup } from "firebase/auth";
-// ⚠️ ตรวจสอบ path ให้ตรงกับตำแหน่งไฟล์ firebaseConfig.js ของคุณ (เช่น ../firebaseConfig หรือ @/firebaseConfig)
-import { auth, googleProvider } from "../../firebaseConfig"; 
+import { auth, googleProvider } from "../../firebaseConfig";
 
 export default function Login() {
-  const router = useRouter(); // สร้าง router เพื่อใช้เปลี่ยนหน้า
+  const router = useRouter();
+  
+  const [isLoading, setIsLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(""); 
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    setErrorMsg(""); 
+    
     try {
-      // 2. เรียก Popup ของ Google ผ่าน Firebase
       const result = await signInWithPopup(auth, googleProvider);
-      
-      // ถ้าสำเร็จ
       console.log("Login Success:", result.user);
-      // เปลี่ยนไปหน้า /manage (หรือหน้าที่คุณต้องการ)
-      router.push("/manage"); 
-      
+      router.push("/manage");
     } catch (error) {
-      // ถ้ามี Error
       console.error("Login Error:", error);
-      alert("เข้าสู่ระบบไม่สำเร็จ: " + error.message);
+      setErrorMsg("เข้าสู่ระบบไม่สำเร็จ: " + (error.message || "Unknown error"));
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    // --- ส่วน UI คงเดิมตามที่คุณออกแบบไว้ สวยแล้วครับ ---
-    <div className="min-h-screen flex items-center justify-center p-4 font-sans bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      
-      {/* หมายเหตุ: ในระยะยาวควรย้าย CDN พวกนี้ไปที่ app/layout.js ครับ */}
-      <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
-      <script src="https://cdn.tailwindcss.com"></script>
+    <div className="min-h-screen w-full bg-[#F8FAFC] flex items-center justify-center p-0 md:p-6 lg:p-12 font-sans selection:bg-amber-200 overflow-x-hidden">
+      {/* Google Font: Kanit */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@200;300;400;500;600;700&display=swap');
+        body { font-family: 'Kanit', sans-serif; }
+      `}</style>
 
-      <div className="card bg-base-100 w-full max-w-md shadow-2xl rounded-3xl border border-white/50 relative overflow-hidden">
+      {/* --- Main Responsive Container --- */}
+      <div 
+        className={`
+          relative w-full max-w-6xl bg-white 
+          min-h-screen md:min-h-[550px] 
+          md:rounded-[3.5rem] md:shadow-[0_30px_100px_rgba(15,23,42,0.12)] 
+          overflow-hidden flex flex-col md:flex-row 
+          transition-all duration-1000 ease-out transform
+          ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 md:translate-y-16'}
+        `}
+      >
         
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-purple-600 opacity-80"></div>
-
-        <div className="card-body px-8 py-10">
+        {/* --- LEFT SIDE: Desktop Only (PC) --- */}
+        <div className="hidden md:flex relative w-[45%] bg-[#0F172A] flex-col justify-between p-16 overflow-hidden">
+          {/* Background Effects */}
+          <div className="absolute top-[-15%] left-[-15%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px]"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] bg-amber-500/10 rounded-full blur-[100px]"></div>
           
-          <div className="text-center mb-10">
-            <div className="mb-4 inline-flex items-center justify-center w-12 h-12 rounded-full bg-indigo-100 text-indigo-600">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-              </svg>
+          <div className="relative z-10">
+            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-2xl text-[12px] font-semibold tracking-[0.25em] text-amber-400 uppercase mb-14">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+              Internal Web
             </div>
-
-            <h2 className="text-4xl font-black tracking-tight text-black">
-              ยินดีต้อนรับ
-            </h2>
-            <p className="text-base text-base-content/70 mt-3 font-medium">
-              กรุณาเข้าสู่ระบบเพื่อใช้งานต่อ
+            
+            <h1 className="text-6xl lg:text-7xl font-bold text-white leading-[0.9] tracking-tighter mb-10">
+              TRAFFY<br/>
+              <span className="text-transparent bg-clip-text bg-gradient-to-br from-amber-200 via-[#C4A484] to-amber-100">
+                FONDUE
+              </span>
+            </h1>
+            
+            <p className="text-slate-400 text-lg font-light leading-relaxed max-w-xs border-l-[4px] border-slate-700 pl-6">
+              ระบบบริหารจัดการข้อมูลภายใน<br/>
+              สำหรับเจ้าหน้าที่และผู้ดูแลระบบ
             </p>
           </div>
+        </div>
 
-          <button 
-            onClick={handleGoogleLogin}
-            className="btn bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 hover:border-gray-400 shadow-sm w-full h-12 text-base font-bold normal-case rounded-xl flex gap-3 transition-all"
-          >
-            <svg aria-label="Google logo" width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><g><path d="m0 0H512V512H0" fill="#fff"></path><path fill="#34a853" d="M153 292c30 82 118 95 171 60h62v48A192 192 0 0190 341"></path><path fill="#4285f4" d="m386 400a140 175 0 0053-179H260v74h102q-7 37-38 57"></path><path fill="#fbbc02" d="m90 341a208 200 0 010-171l63 49q-12 37 0 73"></path><path fill="#ea4335" d="m153 219c22-69 116-109 179-50l55-54c-78-75-230-72-297 55"></path></g></svg>
-            <span className="flex-1">Sign in with Google</span>
-          </button>
+        {/* ========================================= */}
+        {/* === MOBILE HEADER: ดีไซน์ใหม่ (โค้งมน) === */}
+        {/* ========================================= */}
+        <div className="md:hidden w-full h-[45vh] bg-[#0F172A] relative flex flex-col items-center justify-center px-6 overflow-hidden shrink-0 rounded-b-[3rem] shadow-xl z-10">
+            {/* Background Gradient */}
+            <div className="absolute inset-0 bg-gradient-to-b from-[#1E293B] to-[#0F172A]"></div>
+            
+            {/* Spotlight Effect (แสงส่องจากมุมขวาบน) */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 blur-[80px] rounded-full pointer-events-none"></div>
+
+            {/* Grid Pattern */}
+            <div className="absolute inset-0 opacity-[0.07]" 
+                 style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '24px 24px' }}>
+            </div>
+            
+            <div className="relative z-10 flex flex-col items-center pb-8">
+                
+                <h1 className="text-4xl font-bold text-white tracking-tighter uppercase drop-shadow-2xl">
+                    Login
+                </h1><br></br>
+                <div className="inline-block px-4 py-1.5 mb-3 border border-white/10 rounded-full bg-white/5 backdrop-blur-sm">
+                <span className="text-[11px] text-amber-400 tracking-[0.2em] uppercase font-bold">
+                  Internal Web
+                </span>
+              </div>
+            </div>
+        </div>
+
+        {/* --- RIGHT SIDE / LOGIN AREA --- */}
+        <div className="relative w-full md:w-[55%] bg-white flex flex-col items-center flex-grow">
           
+          {/* Logo Container (Floating with Shadow) */}
+          <div className="relative md:mt-16 -mt-16 z-20">
+              <div className="w-28 h-28 md:w-36 md:h-36 bg-[#724829] rounded-[2rem] md:rounded-[2.5rem] p-1 shadow-[0_20px_50px_rgba(116,68,40,0.25)] border-[6px] md:border-[8px] border-white flex items-center justify-center transform hover:rotate-2 transition-transform duration-500 ring-1 ring-slate-100">
+                  <div className="w-full h-full bg-[#724829] rounded-[1.5rem] flex items-center justify-center p-0 border border-white/10">
+                      <img 
+                      src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQy1-fxSLVOtHD1tWWgQ9B27x90x3p_ZO06cg&s" 
+                      alt="Traffy Fondue Logo" 
+                      className="w-full h-full object-contain "
+                      />
+                  </div>
+              </div>
+          </div>
+
+          {/* Content Container */}
+          <div className="relative z-10 w-full max-w-sm flex flex-col items-center px-8 mt-2 md:mt-8 pb-32 md:pb-0 justify-center">
+            
+            {/* Greeting Header */}
+            <div className="text-center mb-8 md:mb-10 w-full flex flex-col items-center">
+              <h2 className="text-2xl md:text-4xl font-bold text-slate-900 mb-3 tracking-tight">Welcome Back</h2>
+              
+              {/* --- Secure Badge (Unified) --- */}
+              <div className="flex flex-col items-center gap-3 mt-1">
+               
+                <p className="text-slate-500 text-sm font-light">
+                    ระบบบริหารจัดการข้อมูลสำหรับเจ้าหน้าที่
+                </p>
+              </div>
+            </div>
+
+            {/* Google Login Action */}
+            <div className="w-full space-y-6">
+              {errorMsg && (
+                <div className="bg-red-50 text-red-500 text-xs py-3 px-4 rounded-xl border border-red-100 flex items-center gap-2 animate-bounce">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  {errorMsg}
+                </div>
+              )}
+
+              <button 
+                onClick={handleGoogleLogin}
+                disabled={isLoading}
+                className="bg-white text-slate-700 border border-slate-200 w-full flex items-center justify-center gap-3 py-3.5 rounded-xl hover:bg-slate-50 hover:border-[#8B5E3C]/30 transition-all font-medium shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:shadow-md h-12 md:h-14 active:scale-95 group relative overflow-hidden"
+              >
+                {isLoading ? (
+                   <div className="flex items-center gap-2">
+                      <span className="w-5 h-5 border-2 border-slate-300 border-t-[#8B5E3C] rounded-full animate-spin"></span>
+                      <span className="text-slate-500 text-sm">กำลังเชื่อมต่อ...</span>
+                   </div>
+                ) : (
+                  <>
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G" className="w-5 h-5" />
+                    <span className="text-sm md:text-base font-medium text-slate-600 group-hover:text-[#8B5E3C] transition-colors">Sign in with Google</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
