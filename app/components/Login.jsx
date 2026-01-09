@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithPopup } from "firebase/auth";
-<<<<<<< Updated upstream
 import { auth, googleProvider } from "../../firebaseConfig";
 
 export default function Login() {
@@ -24,6 +23,39 @@ export default function Login() {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       console.log("Login Success:", result.user);
+
+      const user = result._tokenResponse;
+
+      const userData = {
+        email: user.email,
+        first_name: user.firstName,
+        last_name: user.lastName,
+        access_token: user.oauthAccessToken,
+      };
+
+      console.log("User Data:", userData);
+
+      try {
+        const DB_API = process.env.NEXT_PUBLIC_DB_LOGIN_API_URL; 
+        const response = await fetch(DB_API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(userData),
+        });
+
+        if (response.ok) {
+          const responseData = await response.json();
+          console.log("API Response:", responseData);
+          // You can add more logic here to handle the response data
+        } else {
+          console.error("API Error:", response.status, response.statusText);
+          setErrorMsg("API Error: " + response.statusText);
+        }
+      } catch (apiError) {
+        console.error("API Call Error:", apiError);
+        setErrorMsg("An error occurred while calling the API.");
+      }
+
       router.push("/manage");
     } catch (error) {
       console.error("Login Error:", error);
