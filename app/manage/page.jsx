@@ -197,7 +197,10 @@ export default function Manage() {
                             </div>
 
                             <div className="card-actions justify-end pt-2">
-                                <button type="submit" className="btn btn-primary w-full shadow-lg shadow-primary/20 text-base font-bold">
+                                <button 
+                                    type="submit" 
+                                    className="btn btn-success w-full shadow-lg shadow-success/20 text-base font-bold !text-white"
+                                >
                                     บันทึกข้อมูล
                                 </button>
                             </div>
@@ -206,13 +209,13 @@ export default function Manage() {
                 </div>
             </div>
 
-            {/* --- CARD 2: TABLE (แก้ไขให้เหมือนรูปต้นฉบับ) --- */}
+            {/* --- CARD 2: TABLE --- */}
             <div className="md:col-span-12 lg:col-span-8">
                 <div className="card bg-white w-full shadow-lg shadow-slate-100 border border-slate-100 mb-4 lg:mb-0">
                     <div className="card-body p-0"> 
                         <div className="w-full">
                             <table className="table w-full">
-                                {/* Header: ปรับ spacing ให้พอดี */}
+                                {/* Header */}
                                 <thead className="bg-slate-50 border-b border-slate-100">
                                     <tr>
                                         <th className="py-5 pl-5 text-slate-400 font-bold text-xs uppercase tracking-wider text-left">EMAIL ACCOUNT</th>
@@ -223,21 +226,19 @@ export default function Manage() {
                                     {allowedEmails.map((item) => (
                                         <tr key={item.id} className="border-b border-slate-50 last:border-none hover:bg-slate-50/50 transition-colors">
                                             
-                                            {/* Column 1: Email + Badge Outline */}
+                                            {/* Column 1: Email + Badge */}
                                             <td className="py-4 pl-5 align-top">
                                                 <div className="flex flex-col items-start gap-1">
-                                                    {/* แก้ไข: ใช้ break-words แทน break-all เพื่อไม่ให้ตัดคำกลาง email */}
                                                     <span className="font-bold text-slate-800 text-base break-words leading-tight">
                                                         {item.email}
                                                     </span>
-                                                    {/* แก้ไข: Badge เป็นพื้นขาว ขอบดำ ตามรูปเป๊ะๆ */}
                                                     <span className="mt-1 px-3 py-0.5 rounded-full border border-slate-800 text-slate-800 text-xs font-medium bg-white">
                                                         Active
                                                     </span>
                                                 </div>
                                             </td>
                                             
-                                            {/* Column 2: Trash Icon (Right Aligned) */}
+                                            {/* Column 2: Trash Icon */}
                                             <td className="py-4 pr-5 align-middle text-right">
                                                 <button onClick={() => handleDeleteEmail(item.id)} className="btn btn-square btn-sm btn-ghost text-slate-800 hover:text-red-600 hover:bg-red-50 transition-all">
                                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
