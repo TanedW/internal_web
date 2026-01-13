@@ -46,6 +46,7 @@ export default function Login() {
         if (response.ok) {
           const responseData = await response.json();
           console.log("API Response:", responseData);
+          localStorage.setItem("current_admin_id", JSON.stringify(responseData.admin_id));
           
           router.push("/manage"); 
         } else {
