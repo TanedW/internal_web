@@ -46,17 +46,27 @@ export default function Login() {
         if (response.ok) {
           const responseData = await response.json();
           console.log("API Response:", responseData);
-          // You can add more logic here to handle the response data
+          
+          router.push("/manage"); 
         } else {
-          console.error("API Error:", response.status, response.statusText);
-          setErrorMsg("API Error: " + response.statusText);
+          // อ่านข้อความ Error จาก Backend
+          const errorData = await response.json(); 
+          console.log("API Error:", response.status, errorData.message);
+          
+          // แสดงข้อความภาษาไทย
+          if (response.status === 403) {
+             setErrorMsg("อีเมลนี้ไม่มีสิทธิ์เข้าใช้งานระบบ (Not Authorized)");
+          } else {
+             setErrorMsg("API Error: " + (errorData.message || response.statusText));
+          }
         }
       } catch (apiError) {
         console.error("API Call Error:", apiError);
         setErrorMsg("An error occurred while calling the API.");
       }
+      
+      // 🗑️ ลบส่วนที่เคยอยู่ตรงนี้ออก (if response.ok ...) เพราะ response อยู่นอก scope
 
-      router.push("/manage");
     } catch (error) {
       console.error("Login Error:", error);
       setErrorMsg("เข้าสู่ระบบไม่สำเร็จ: " + (error.message || "Unknown error"));
