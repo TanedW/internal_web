@@ -288,12 +288,11 @@ export default function Manage() {
         {/* --- DESKTOP GRID VIEW --- */}
         <div className="hidden lg:grid grid-cols-4 gap-6">
             
-            {/* Card 1: Add New (Redesigned & Enhanced) */}
+            {/* Card 1: Add New */}
             <div 
                 className="group relative flex flex-col items-center justify-center p-8 border-2 border-dashed border-indigo-300 bg-white hover:border-indigo-600 hover:bg-indigo-50 transition-all duration-300 min-h-[280px] cursor-pointer rounded-2xl shadow-md hover:shadow-xl hover:shadow-indigo-200/50 hover:-translate-y-2"
                 onClick={() => document.getElementById('add_admin_modal').showModal()}
             >
-                {/* เพิ่มขนาดวงกลมและเงาให้ชัดขึ้น */}
                 <div className="w-20 h-20 rounded-full bg-indigo-600 text-white flex items-center justify-center mb-5 shadow-lg shadow-indigo-300 group-hover:scale-110 group-hover:rotate-90 transition-all duration-300">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" />
@@ -303,43 +302,55 @@ export default function Manage() {
                 <p className="text-indigo-500/80 text-sm mt-2 text-center px-4 font-medium">Click to invite new admin</p>
             </div>
 
-            {/* User Cards Loop */}
-            {filteredEmails.map((item) => (
-                <div key={item.admin_id} className="relative bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all border border-slate-100 flex flex-col items-center text-center min-h-[280px]">
-                    
-                    {/* Delete Button (RED) */}
-                    <button 
-                        onClick={() => handleDeleteEmail(item.admin_id)}
-                        className="absolute top-4 right-4 !text-red-500 hover:bg-red-50 rounded-full p-2 transition-colors z-10"
-                        title="Remove user"
-                        style={{ color: '#ef4444' }} 
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                    </button>
+            {/* User Cards Loop (MODIFIED WITH CONSOLE.LOG) */}
+            {filteredEmails.map((item) => {
+                // 🛠️ DEBUGGING: ปริ้นท์ข้อมูล item ของแต่ละคนออกมาดูที่ Console
+                // console.log("👉 User Data:", item);
 
-                    <div className="w-24 h-24 rounded-full bg-slate-100 mb-5 overflow-hidden ring-4 ring-slate-50">
-                        <img 
-                            src={getAvatarUrl(item.email)} 
-                            alt="Avatar" 
-                            className="w-full h-full object-cover"
-                        />
+                // ต้องมี return เพราะเราใส่ปีกกา {} ครอบ arrow function แล้ว
+                return (
+                    <div key={item.admin_id} className="relative bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all border border-slate-100 flex flex-col items-center text-center min-h-[280px]">
+                        
+                        {/* (Optional) Uncomment บรรทัดล่างนี้ถ้าอยากเห็นข้อมูล JSON บนหน้าจอเลย */}
+                        {/* <div className="absolute top-0 left-0 bg-black/80 text-white text-[10px] w-full h-20 overflow-auto z-50 text-left p-2">{JSON.stringify(item, null, 2)}</div> */}
+
+                        <button 
+                            onClick={() => handleDeleteEmail(item.admin_id)}
+                            className="absolute top-4 right-4 !text-red-500 hover:bg-red-50 rounded-full p-2 transition-colors z-10"
+                            title="Remove user"
+                            style={{ color: '#ef4444' }} 
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                        </button>
+
+                        <div className="w-24 h-24 rounded-full bg-slate-100 mb-5 overflow-hidden ring-4 ring-slate-50">
+                            <img 
+                                src={item.profile_url || getAvatarUrl(item.email)} 
+                                alt="Avatar" 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                    e.currentTarget.onerror = null; 
+                                    e.currentTarget.src = getAvatarUrl(item.email);
+                                }}
+                            />
+                        </div>
+                        
+                        <h3 className="font-bold text-slate-800 text-lg mb-1 truncate w-full px-2" title={item.email}>
+                            {item.email}
+                        </h3>
+                        
+                        <p className="text-blue-600 font-medium text-sm mb-4">Admin Member</p>
+                        
+                        <div className="mt-auto pt-4 border-t border-slate-50 w-full flex justify-center">
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-green-600 border border-green-100">
+                                  Active
+                              </span>
+                        </div>
                     </div>
-                    
-                    <h3 className="font-bold text-slate-800 text-lg mb-1 truncate w-full px-2" title={item.email}>
-                        {item.email}
-                    </h3>
-                    
-                    <p className="text-blue-600 font-medium text-sm mb-4">Admin Member</p>
-                    
-                    <div className="mt-auto pt-4 border-t border-slate-50 w-full flex justify-center">
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-green-600 border border-green-100">
-                              Active
-                          </span>
-                    </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
 
         {/* --- MOBILE LIST VIEW --- */}
@@ -353,7 +364,15 @@ export default function Manage() {
                     <div className="flex items-center gap-4 overflow-hidden">
                         <div className="relative">
                             <div className="w-12 h-12 rounded-full bg-slate-100 overflow-hidden">
-                                <img src={getAvatarUrl(item.email)} alt="Avatar" className="w-full h-full object-cover"/>
+                                <img 
+                                    src={item.profile_url || getAvatarUrl(item.email)} 
+                                    alt="Avatar" 
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        e.currentTarget.onerror = null; 
+                                        e.currentTarget.src = getAvatarUrl(item.email);
+                                    }}
+                                />
                             </div>
                             <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
                         </div>
@@ -385,7 +404,6 @@ export default function Manage() {
 
       {/* --- ADD ADMIN MODAL (POPUP FIXED MOBILE) --- */}
       <dialog id="add_admin_modal" className="modal modal-bottom sm:modal-middle">
-        {/* ลด Padding บนมือถือเหลือ p-5 */}
         <div className="modal-box bg-white p-5 lg:p-8">
             <div className="flex justify-between items-center mb-6">
                <h3 className="font-bold text-xl text-slate-800">Add Team Member</h3>
