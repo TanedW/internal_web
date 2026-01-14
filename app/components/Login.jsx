@@ -31,6 +31,7 @@ export default function Login() {
         first_name: user.firstName,
         last_name: user.lastName,
         access_token: user.oauthAccessToken,
+        profile_url: user.photoUrl,
       };
 
       console.log("User Data:", userData);
