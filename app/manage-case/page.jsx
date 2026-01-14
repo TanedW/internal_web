@@ -29,6 +29,9 @@ export default function ManageCase() {
   const [newImageFile, setNewImageFile] = useState(null);
   const [reason, setReason] = useState("");
 
+  // Helper function for Avatar
+  const getAvatarUrl = (seed) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) { setUser(currentUser); setLoading(false); } 
@@ -85,30 +88,26 @@ export default function ManageCase() {
   if (loading) return <div className="min-h-screen flex justify-center items-center bg-slate-50"><span className="loading loading-spinner loading-lg text-primary"></span></div>;
 
   return (
-    <div className="min-h-screen bg-slate-50/50 font-sans pb-24 pt-20 lg:pt-0 lg:pb-0">
+    <div className="min-h-screen bg-[#F4F6F8] font-sans pb-24 lg:pb-0">
       <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
       <script src="https://cdn.tailwindcss.com"></script>
 
-      {/* =========================================
-          PART 1: MOBILE TOP BAR
-         ========================================= */}
+      {/* ================= NAVBAR MOBILE ================= */}
+      
+      {/* Mobile Top Bar */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-sm z-50 px-4 flex justify-between items-center border-b border-gray-100 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="avatar">
                   <div className="w-9 h-9 rounded-full ring ring-offset-2 ring-indigo-50">
-                      <img src={user?.photoURL || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} alt="User" className="rounded-full object-cover"/>
+                      <img src={user?.photoURL || getAvatarUrl("Admin")} alt="User"/>
                   </div>
               </div>
               <div className="flex flex-col justify-center">
-                  <span className="font-bold text-slate-800 text-sm truncate max-w-[160px] leading-tight">
-                      {user?.displayName || "Admin User"}
-                  </span>
-                  <span className="text-[10px] text-indigo-500 font-bold uppercase tracking-wider">
-                      SYSTEM ADMIN
-                  </span>
+                  <span className="font-bold text-slate-800 text-sm truncate max-w-[160px]">{user?.displayName || "Admin User"}</span>
+                  <span className="text-[10px] text-indigo-500 font-bold uppercase">SYSTEM ADMIN</span>
               </div>
             </div>
-            
+            {/* ปุ่ม Logout สีแดง */}
             <button onClick={handleLogout} className="btn btn-ghost btn-circle btn-sm hover:bg-red-50">
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-500">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -118,79 +117,78 @@ export default function ManageCase() {
             </button>
       </div>
 
-      {/* =========================================
-          PART 2: MOBILE BOTTOM BAR (แก้ไขสีตัวหนังสือ)
-         ========================================= */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.1)]">
-          <div className="flex w-full h-20">
-            
-            {/* 1. ปุ่มซ้าย: Email (Inactive -> พื้นขาว ตัวหนังสือดำ) */}
-            <Link 
-                href="/manage" 
-                className="flex-1 flex flex-col items-center justify-center gap-1.5 bg-white text-slate-800 active:bg-gray-50 transition-colors duration-300"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect width="20" height="16" x="2" y="4" rx="2"></rect>
-                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
-                </svg>
-                <span className="text-xs font-bold tracking-wide">จัดการ Email</span>
+      {/* Mobile Bottom Bar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.1)] bg-white">
+          <div className="flex w-full h-16 border-t border-gray-100">
+            {/* Email (Inactive) */}
+            <Link href="/manage" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+                <span className="text-[10px] font-bold">Email</span>
             </Link>
             
-            {/* 2. ปุ่มขวา: Case (Active -> พื้นดำ ตัวหนังสือขาว) */}
-            <Link 
-                href="/manage-case" 
-                className="flex-1 flex flex-col items-center justify-center gap-1.5 bg-[#0F172A] !text-white shadow-inner active:opacity-90 transition-colors duration-300"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
-                    <line x1="3" y1="9" x2="21" y2="9"></line>
-                    <line x1="9" y1="21" x2="9" y2="9"></line>
-                </svg>
-                <span className="text-xs font-bold tracking-wide">จัดการ Case</span>
+            {/* Case (Active) */}
+            <Link href="/manage-case" className="flex-1 flex flex-col items-center justify-center gap-1 text-indigo-600 bg-indigo-50/50">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                <span className="text-[10px] font-bold">Case</span>
             </Link>
-
           </div>
       </div>
 
-      {/* =========================================
-          PART 3: DESKTOP NAVBAR
-         ========================================= */}
-      <div className="hidden lg:block sticky top-0 z-40">
-        <div className="navbar bg-white/90 backdrop-blur-md px-6 shadow-sm border-b border-gray-100">
+      {/* ================= NAVBAR DESKTOP ================= */}
+      <div className="hidden lg:block sticky top-0 z-40 font-sans">
+        <div className="navbar bg-white/95 backdrop-blur-xl px-6 lg:px-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border-b border-slate-50/50 transition-all py-3">
+            
             <div className="navbar-start">
-            <div className="flex items-center gap-3">
-                <div className="avatar">
-                    <div className="w-10 h-10 rounded-full ring ring-indigo-500 ring-offset-base-100 ring-offset-2">
-                        <img src={user?.photoURL || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} alt="User"/>
+                <div className="flex items-center gap-3 group cursor-default">
+                    <div className="avatar">
+                        <div className="w-11 h-11 rounded-full ring-[3px] ring-primary/20 ring-offset-[3px] ring-offset-white transition-all group-hover:ring-primary/40">
+                            <img src={user?.photoURL || getAvatarUrl("Admin")} alt="User" className="object-cover"/>
+                        </div>
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="font-extrabold text-slate-800 text-[15px] tracking-tight leading-tight">{user?.displayName || "Admin"}</span>
+                        <span className="text-[11px] font-bold text-primary/70 uppercase tracking-wider">System Admin</span>
                     </div>
                 </div>
-                <div className="flex flex-col">
-                    <span className="font-bold text-slate-700 text-sm">{user?.displayName || "Admin"}</span>
-                    <span className="text-xs text-slate-400">System Admin</span>
-                </div>
             </div>
-            </div>
+            
             <div className="navbar-center">
-            <ul className="menu menu-horizontal px-1 gap-2">
-                <li><Link href="/manage" className="font-medium text-slate-500 hover:text-indigo-600 rounded-lg transition-all">จัดการ Email</Link></li>
-                <li><Link href="/manage-case" className="font-bold text-indigo-600 bg-indigo-50 rounded-lg transition-all">จัดการ Case</Link></li>
-            </ul>
+                <ul className="menu menu-horizontal px-1 gap-2 font-medium text-sm bg-slate-50/80 p-1.5 rounded-full border border-slate-100/50">
+                    <li>
+                        <Link href="/manage" className="text-slate-500 hover:text-slate-900 hover:bg-white/60 rounded-full px-5 py-2 transition-all">
+                            จัดการ Email
+                        </Link>
+                    </li>
+                    <li>
+                        {/* Active State for Case Page */}
+                        <Link href="/manage-case" className="!bg-white !text-primary shadow-sm shadow-slate-200/50 rounded-full px-5 py-2 font-bold transition-all transform hover:-translate-y-0.5">
+                            จัดการ Case
+                        </Link>
+                    </li>
+                </ul>
             </div>
+            
             <div className="navbar-end">
-             <button onClick={handleLogout} className="btn btn-ghost btn-sm gap-2 hover:bg-red-50 group transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-500 group-hover:text-red-700">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                    <polyline points="16 17 21 12 16 7"></polyline>
-                    <line x1="21" y1="12" x2="9" y2="12"></line>
-                </svg>
-                <span className="text-red-500 font-bold group-hover:text-red-700">Logout</span>
-            </button>
+                <button 
+                    onClick={handleLogout} 
+                    className="group flex items-center gap-2.5 px-4 py-2 rounded-xl hover:bg-red-50 transition-all duration-200"
+                >
+                    <div className="p-1.5 bg-red-100/50 rounded-lg group-hover:bg-red-100 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-500 transition-transform group-hover:translate-x-0.5">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </div>
+                    <span className="text-red-600 font-bold tracking-wide text-[15px]">Logout</span>
+                </button>
             </div>
         </div>
       </div>
 
+
       {/* ================= MAIN CONTENT ================= */}
-      <div className="container mx-auto px-4 mt-8 lg:mt-12 max-w-5xl animate-fade-in">
+      <div className="container mx-auto px-4 mt-20 lg:mt-12 max-w-5xl animate-fade-in">
         
         {/* Header Text */}
         <div className="text-center mb-8">
