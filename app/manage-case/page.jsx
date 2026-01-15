@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link"; 
 import { 
   LogOut, 
   LayoutDashboard, 
@@ -14,16 +13,18 @@ import {
   AlertCircle, 
   UploadCloud, 
   ArrowLeft, 
-  ArrowRight 
+  ArrowRight,
+  X,
+  Menu as MenuIcon 
 } from "lucide-react"; 
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "../../firebaseConfig"; // ตรวจสอบ path ให้ถูกต้องตามโปรเจคของคุณ
+import { auth } from "../../firebaseConfig"; // ตรวจสอบ path ให้ถูกต้อง
 
 // Mock Data
 const MOCK_CASES = [
     { 
       id: "CASE-001", 
-      title: "Printer Network Connection Failed",
+      title: "Printer Network Connection Failed", 
       department: "IT Support", 
       assignee: "John Doe",
       date: "2023-10-25",
@@ -32,7 +33,7 @@ const MOCK_CASES = [
     },
     { 
       id: "CASE-002", 
-      title: "New Employee Onboarding Request",
+      title: "New Employee Onboarding Request", 
       department: "HR Department", 
       assignee: "Jane Smith",
       date: "2023-10-24",
@@ -41,7 +42,7 @@ const MOCK_CASES = [
     },
     { 
       id: "CASE-003", 
-      title: "Monthly Tax Report Error",
+      title: "Monthly Tax Report Error", 
       department: "Accounting", 
       assignee: "Robert Brown",
       date: "2023-10-20",
@@ -96,7 +97,6 @@ export default function ManageCase() {
     if (!searchId.trim()) {
         setInputError(true);
         inputRef.current?.focus();
-        // ลบ timeout เดิมออกเพื่อให้ error ค้างไว้จนกว่าจะพิมพ์ใหม่ หรือจัดการตาม logic ด้านล่าง
         return;
     }
 
@@ -104,7 +104,7 @@ export default function ManageCase() {
     setCurrentCase(null);
     setNewImageFile(null); 
     setReason("");
-    setWizardStep(1); // Reset step เมื่อค้นหาใหม่
+    setWizardStep(1); 
     setIsSuccess(false);
 
     setTimeout(() => {
@@ -140,12 +140,37 @@ export default function ManageCase() {
   if (loading) return <div className="min-h-screen flex justify-center items-center bg-slate-50"><span className="loading loading-spinner loading-lg text-primary"></span></div>;
 
  return (
-    <div className="min-h-screen bg-[#F4F6F8] font-sans pb-24 lg:pb-0">
+    <div className="min-h-screen bg-[#F4F6F8] font-sans pb-32 lg:pb-0">
       <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
       <script src="https://cdn.tailwindcss.com"></script>
 
-      {/* ================= NAVBAR MOBILE ================= */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-sm z-50 px-4 flex justify-between items-center border-b border-gray-100 shadow-sm">
+      {/* ================= NAVBAR MOBILE (FULL WIDTH BOTTOM) ================= */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+          <div className="flex justify-between items-center px-6 py-3 pb-safe">
+            
+            {/* 1. ปุ่ม Email (Inactive) */}
+            <a href="/manage" className="flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all duration-300">
+                <LayoutDashboard size={22} strokeWidth={2} />
+                <span className="text-[10px] font-medium">Email</span>
+            </a>
+
+            {/* 2. ปุ่ม Case (Active - หน้าปัจจุบัน) */}
+            <a href="/manage-case" className="flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-full bg-slate-900 !text-white shadow-lg shadow-slate-900/20 transition-all duration-300 transform scale-105">
+                <FileText size={22} strokeWidth={2.5} />
+                <span className="text-[10px] font-bold tracking-wide">Case</span>
+            </a>
+
+            {/* 3. ปุ่ม Menu (Inactive) */}
+            <a href="/manage-richmenu" className="flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all duration-300">
+                <MenuIcon size={22} strokeWidth={2} />
+                <span className="text-[10px] font-medium">Menu</span>
+            </a>
+
+          </div>
+      </div>
+
+      {/* ================= NAVBAR MOBILE TOP ================= */}
+       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-sm z-50 px-4 flex justify-between items-center border-b border-gray-100 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="avatar">
                   <div className="w-9 h-9 rounded-full ring ring-offset-2 ring-indigo-50">
@@ -162,18 +187,6 @@ export default function ManageCase() {
             </button>
       </div>
 
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.1)] bg-white">
-          <div className="flex w-full h-16 border-t border-gray-100">
-            <a href="/manage" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50">
-                <LayoutDashboard size={24} />
-                <span className="text-[10px] font-bold">Email</span>
-            </a>
-            <a href="/manage-case" className="flex-1 flex flex-col items-center justify-center gap-1 text-indigo-600 bg-indigo-50/50">
-                <FileText size={24} />
-                <span className="text-[10px] font-bold">Case</span>
-            </a>
-          </div>
-      </div>
 
       {/* ================= NAVBAR DESKTOP ================= */}
       <div className="hidden lg:block sticky top-0 z-40 font-sans">
@@ -193,15 +206,25 @@ export default function ManageCase() {
             </div>
             
             <div className="navbar-center">
-                <ul className="menu menu-horizontal px-1 gap-2 font-medium text-sm bg-slate-50/80 p-1.5 rounded-full border border-slate-100/50">
+                <ul className="menu menu-horizontal px-1 gap-3">
+                    {/* เมนู Email (ไม่ได้เลือก -> สีขาว ตัวหนังสือดำ) */}
                     <li>
-                        <a href="/manage" className="text-slate-500 hover:text-slate-900 hover:bg-white/60 rounded-full px-5 py-2 transition-all block">
+                        <a href="/manage" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">
                             จัดการ Email
                         </a>
                     </li>
+                    
+                    {/* เมนู Case (เลือกอยู่ -> สีดำ ตัวหนังสือขาว) */}
                     <li>
-                        <a href="/manage-case" className="!bg-white !text-primary shadow-sm shadow-slate-200/50 rounded-full px-5 py-2 font-bold transition-all transform hover:-translate-y-0.5 block">
+                        <a href="/manage-case" className="!bg-slate-900 !text-white shadow-lg shadow-slate-400/50 rounded-full px-6 py-2.5 font-bold hover:!bg-slate-800 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
                             จัดการ Case
+                        </a>
+                    </li>
+
+                     {/* เมนู Menu (ไม่ได้เลือก -> สีขาว ตัวหนังสือดำ) */}
+                      <li>
+                        <a href="/manage-richmenu" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">
+                            จัดการ Menu
                         </a>
                     </li>
                 </ul>
@@ -221,25 +244,19 @@ export default function ManageCase() {
       {/* ================= MAIN CONTENT: WIZARD UI ================= */}
       <div className="container mx-auto px-4 mt-20 lg:mt-12 max-w-4xl">
         
-        {/* --- Header & Search (CLEAN VERSION) --- */}
+        {/* --- Header & Search --- */}
         <div className="flex flex-col items-center text-center mb-12 space-y-8">
-            
-            {/* Title Section */}
             <div className="space-y-3 max-w-2xl">
-              
                 <p className="text-slate-500 text-lg max-w-lg mx-auto leading-relaxed">
                     ค้นหา Case ID เพื่อแก้ไขข้อมูล
                 </p>
             </div>
 
-            {/* Modern Search Bar */}
             <div className="w-full max-w-xl relative mx-auto z-10">
                 <form 
                     onSubmit={handleSearch} 
                     className={`relative group transition-all duration-200 ${inputError ? '-translate-x-1' : 'translate-x-0'}`}
                 >
-                    
-                    {/* Background Glow Effect */}
                     <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
                     
                     <div className={`
@@ -249,13 +266,10 @@ export default function ManageCase() {
                             : 'border-slate-100 focus-within:shadow-[0_8px_30px_rgba(99,102,241,0.15)] focus-within:border-indigo-500/30 focus-within:ring-4 focus-within:ring-indigo-500/10'
                         }
                     `}>
-                        
-                        {/* Search Icon */}
                         <div className={`pl-4 pr-3 transition-colors ${inputError ? 'text-red-400' : 'text-slate-400 group-focus-within:text-indigo-500'}`}>
                             {inputError ? <AlertCircle size={24} strokeWidth={2.5} /> : <Search size={24} strokeWidth={2.5} />}
                         </div>
 
-                        {/* Input Field */}
                         <input
                             ref={inputRef}
                             type="text"
@@ -269,18 +283,16 @@ export default function ManageCase() {
                             disabled={isSearching}
                         />
 
-                        {/* Clear Button */}
                         {searchId && !isSearching && (
                             <button 
                                 type="button" 
                                 onClick={() => setSearchId("")}
                                 className="p-2 text-slate-300 hover:text-slate-500 hover:bg-slate-100 rounded-full mr-1 transition-all"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                                <X size={16} strokeWidth={3} />
                             </button>
                         )}
 
-                        {/* Action Button */}
                         <button 
                             type="submit" 
                             disabled={isSearching}
@@ -303,7 +315,6 @@ export default function ManageCase() {
                     </div>
                 </form>
 
-                {/* Error Message (Standard Tailwind) */}
                 {inputError && (
                     <div className="absolute top-full left-0 right-0 mt-3 text-center">
                         <span className="bg-red-50 text-red-500 text-xs font-bold px-3 py-1.5 rounded-full border border-red-100 inline-flex items-center gap-1 animate-pulse">
@@ -311,20 +322,6 @@ export default function ManageCase() {
                         </span>
                     </div>
                 )}
-
-                {/* Quick Hints */}
-                <div className="mt-6 flex flex-wrap justify-center gap-2 text-xs font-bold text-slate-400">
-                    <span className="uppercase tracking-wider mr-1 opacity-50">Suggested:</span>
-                    {['CASE-001', 'CASE-002', 'CASE-003'].map(tag => (
-                        <button 
-                            key={tag}
-                            onClick={() => setSearchId(tag)}
-                            className="bg-white border border-slate-200 px-3 py-1 rounded-lg hover:border-indigo-300 hover:text-indigo-600 hover:shadow-sm transition-all cursor-pointer"
-                        >
-                            {tag}
-                        </button>
-                    ))}
-                </div>
             </div>
         </div>
 
@@ -349,7 +346,7 @@ export default function ManageCase() {
                                             ? 'border-indigo-500 text-indigo-600 shadow-lg shadow-indigo-200 scale-110' 
                                             : 'border-slate-200 text-slate-300'}`}
                                     >
-                                            {step}
+                                                {step}
                                     </div>
                                     <span className={`absolute top-14 text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${wizardStep >= step ? 'text-indigo-600' : 'text-slate-300'}`}>
                                         {step === 1 ? 'Review' : step === 2 ? 'Upload' : 'Reason'}
@@ -419,7 +416,7 @@ export default function ManageCase() {
                                 </div>
                             )}
 
-                            {/* STEP 2: Upload Image (Updated UI) */}
+                            {/* STEP 2: Upload Image */}
                             {wizardStep === 2 && (
                                 <div className="w-full max-w-xl mx-auto animate-fade-in">
                                     <div className="text-center mb-8">
@@ -449,7 +446,6 @@ export default function ManageCase() {
                                         />
                                         
                                         {newImageFile ? (
-                                            // State: เมื่อเลือกไฟล์แล้ว
                                             <div className="flex flex-col items-center animate-bounce-short z-10">
                                                 <div className="w-20 h-20 bg-white text-green-500 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-green-100 border border-green-100">
                                                     <CheckCircle2 size={40} strokeWidth={3} />
@@ -465,7 +461,6 @@ export default function ManageCase() {
                                                 </p>
                                             </div>
                                         ) : (
-                                            // State: ยังไม่เลือกไฟล์
                                             <div className="flex flex-col items-center z-10 p-6 transition-transform duration-300 group-hover:scale-105">
                                                 <div className="w-20 h-20 bg-white rounded-2xl mb-6 flex items-center justify-center shadow-sm border border-slate-100 group-hover:shadow-md group-hover:text-indigo-600 group-hover:border-indigo-100 transition-all text-slate-300">
                                                     <UploadCloud size={40} strokeWidth={1.5} />
@@ -485,8 +480,6 @@ export default function ManageCase() {
                                                 </div>
                                             </div>
                                         )}
-
-                                        {/* Background Decoration (Optional) */}
                                         {!newImageFile && (
                                             <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-20 pointer-events-none"></div>
                                         )}
@@ -517,42 +510,52 @@ export default function ManageCase() {
                     )}
                 </div>
 
-                {/* Footer Buttons */}
+                {/* --- FOOTER BUTTONS --- */}
                 {!isSuccess && (
                     <div className="flex justify-between items-center mt-12 pt-8 border-t border-slate-100">
-                        <button 
-                            disabled={wizardStep === 1} 
-                            onClick={() => setWizardStep(p => p - 1)} 
-                            className="px-6 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-100 disabled:opacity-0 disabled:pointer-events-none transition-all flex items-center gap-2"
-                        >
-                            <ArrowLeft size={18}/> ย้อนกลับ
-                        </button>
+                        {/* ปุ่มซ้ายมือ */}
+                        {wizardStep === 1 ? (
+                            <button 
+                                onClick={resetForm} 
+                                className="group px-6 py-3 bg-white border-2 border-red-100 text-red-500 rounded-full font-bold hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md"
+                            >
+                                <div className="p-1 bg-red-100 rounded-full group-hover:bg-red-200 transition-colors">
+                                    <X size={16} strokeWidth={3} />
+                                </div>
+                                ยกเลิก
+                            </button>
+                        ) : (
+                            <button 
+                                onClick={() => setWizardStep(p => p - 1)} 
+                                className="px-6 py-3 bg-slate-100 text-slate-600 rounded-full font-bold hover:bg-slate-200 hover:text-slate-800 transition-all duration-200 flex items-center gap-2"
+                            >
+                                <ArrowLeft size={20}/> ย้อนกลับ
+                            </button>
+                        )}
 
+                        {/* ปุ่มขวามือ */}
                         {wizardStep < 3 ? (
                             <button 
                                 onClick={() => setWizardStep(p => p + 1)} 
-                                disabled={wizardStep === 2 && !newImageFile} // Lock step 2 if no file
-                                className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-200 flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
+                                disabled={wizardStep === 2 && !newImageFile} 
+                                className="px-8 py-3 bg-indigo-600 text-white rounded-full font-bold hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200 hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                             >
-                                ถัดไป <ArrowRight size={18}/>
+                                ถัดไป <ArrowRight size={20} strokeWidth={2.5}/>
                             </button>
                         ) : (
                             <button 
                                 onClick={handleUpdateImage} 
                                 disabled={!reason.trim()}
-                                className="px-10 py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 disabled:opacity-50 shadow-lg shadow-green-200 flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
+                                className="px-10 py-3 bg-emerald-500 text-white rounded-full font-bold hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-200 hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
                             >
-                                <CheckCircle2 size={20}/> บันทึกข้อมูล
+                                <CheckCircle2 size={20} strokeWidth={2.5}/> บันทึกข้อมูล
                             </button>
                         )}
                     </div>
                 )}
            </div>
         ) : (
-             // Empty State (Before search) - now part of the design flow, minimal content here
-             <div className="text-center py-24 opacity-40">
-                {/* Optional placeholder if needed, or keep empty to emphasize search */}
-             </div>
+             <div className="text-center py-24 opacity-40"></div>
         )}
 
       </div>

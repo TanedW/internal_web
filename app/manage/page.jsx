@@ -147,11 +147,36 @@ export default function Manage() {
   if (loading) return <div className="min-h-screen flex justify-center items-center"><span className="loading loading-spinner text-primary"></span></div>;
 
   return (
-    <div className="min-h-screen bg-[#F4F6F8] font-sans pb-24 lg:pb-10">
+    <div className="min-h-screen bg-[#F4F6F8] font-sans pb-32 lg:pb-10">
       <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
       <script src="https://cdn.tailwindcss.com"></script>
 
-      {/* ================= NAVBAR MOBILE ================= */}
+      {/* ================= NAVBAR MOBILE (FULL WIDTH BOTTOM) ================= */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+          <div className="flex justify-between items-center px-6 py-3 pb-safe">
+            
+            {/* 1. ปุ่ม Email (Active - หน้าปัจจุบัน) */}
+            <Link href="/manage" className="flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-full bg-slate-900 !text-white shadow-lg shadow-slate-900/20 transition-all duration-300 transform scale-105">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2-2L2 7"></path></svg>
+                <span className="text-[10px] font-bold tracking-wide">Email</span>
+            </Link>
+
+            {/* 2. ปุ่ม Case (Inactive) */}
+            <Link href="/manage-case" className="flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                <span className="text-[10px] font-medium">Case</span>
+            </Link>
+
+             {/* 3. ปุ่ม Menu (Inactive) */}
+            <Link href="/manage-richmenu" className="flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+                <span className="text-[10px] font-medium">Menu</span>
+            </Link>
+
+          </div>
+      </div>
+
+       {/* ================= NAVBAR MOBILE TOP ================= */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-sm z-50 px-4 flex justify-between items-center border-b border-gray-100 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="avatar">
@@ -173,19 +198,6 @@ export default function Manage() {
             </button>
       </div>
 
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.1)] bg-white">
-          <div className="flex w-full h-16 border-t border-gray-100">
-            <Link href="/manage" className="flex-1 flex flex-col items-center justify-center gap-1 text-indigo-600 bg-indigo-50/50">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
-                <span className="text-[10px] font-bold">Email</span>
-            </Link>
-            <Link href="/manage-case" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
-                <span className="text-[10px] font-bold">Case</span>
-            </Link>
-          </div>
-      </div>
-
       {/* ================= NAVBAR DESKTOP ================= */}
       <div className="hidden lg:block sticky top-0 z-40 font-sans">
         <div className="navbar bg-white/95 backdrop-blur-xl px-6 lg:px-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border-b border-slate-50/50 transition-all py-3">
@@ -203,16 +215,27 @@ export default function Manage() {
                 </div>
             </div>
             
+            {/* --- แก้ไขส่วน Navbar Center ตามที่ขอ --- */}
             <div className="navbar-center">
-                <ul className="menu menu-horizontal px-1 gap-2 font-medium text-sm bg-slate-50/80 p-1.5 rounded-full border border-slate-100/50">
+                <ul className="menu menu-horizontal px-1 gap-3">
+                    {/* เมนู Email (หน้านี้ Active -> สีดำ ตัวหนังสือขาว) */}
                     <li>
-                        <Link href="/manage" className="!bg-white !text-primary shadow-sm shadow-slate-200/50 rounded-full px-5 py-2 font-bold transition-all transform hover:-translate-y-0.5">
+                        <Link href="/manage" className="!bg-slate-900 !text-white shadow-lg shadow-slate-300 rounded-full px-6 py-2.5 font-bold hover:!bg-slate-800 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
                             จัดการ Email
                         </Link>
                     </li>
+                    
+                    {/* เมนู Case (Inactive -> สีขาว ตัวหนังสือดำ) */}
                     <li>
-                        <Link href="/manage-case" className="text-slate-500 hover:text-slate-900 hover:bg-white/60 rounded-full px-5 py-2 transition-all">
+                        <Link href="/manage-case" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">
                             จัดการ Case
+                        </Link>
+                    </li>
+
+                     {/* เมนู Menu (Inactive -> สีขาว ตัวหนังสือดำ) */}
+                    <li>
+                        <Link href="/manage-richmenu" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">
+                            จัดการ Menu
                         </Link>
                     </li>
                 </ul>
