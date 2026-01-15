@@ -18,38 +18,7 @@ import {
   Menu as MenuIcon 
 } from "lucide-react"; 
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "../../firebaseConfig"; // ตรวจสอบ path ให้ถูกต้อง
-
-// Mock Data
-const MOCK_CASES = [
-    { 
-      id: "CASE-001", 
-      title: "Printer Network Connection Failed", 
-      department: "IT Support", 
-      assignee: "John Doe",
-      date: "2023-10-25",
-      image: "https://api.dicebear.com/7.x/shapes/svg?seed=IT", 
-      status: "Open" 
-    },
-    { 
-      id: "CASE-002", 
-      title: "New Employee Onboarding Request", 
-      department: "HR Department", 
-      assignee: "Jane Smith",
-      date: "2023-10-24",
-      image: "https://api.dicebear.com/7.x/shapes/svg?seed=HR", 
-      status: "In Progress" 
-    },
-    { 
-      id: "CASE-003", 
-      title: "Monthly Tax Report Error", 
-      department: "Accounting", 
-      assignee: "Robert Brown",
-      date: "2023-10-20",
-      image: "https://api.dicebear.com/7.x/shapes/svg?seed=ACC", 
-      status: "Closed" 
-    },
-];
+import { auth } from "../../firebaseConfig"; 
 
 export default function ManageCase() {
   const router = useRouter();
@@ -92,7 +61,8 @@ export default function ManageCase() {
     }
   };
 
-  const handleSearch = (e) => {
+  // --- ส่วนที่แก้ไข: เชื่อมต่อ API ---
+  const handleSearch = async (e) => {
     e?.preventDefault(); 
     if (!searchId.trim()) {
         setInputError(true);
@@ -107,15 +77,49 @@ export default function ManageCase() {
     setWizardStep(1); 
     setIsSuccess(false);
 
-    setTimeout(() => {
-        const found = MOCK_CASES.find(c => c.id.toLowerCase() === searchId.trim().toLowerCase());
-        if (found) {
-            setCurrentCase(found);
-        } else {
-            alert("ไม่พบข้อมูล Case ID นี้");
+    try {
+        // เรียกใช้ API ผ่าน Env Variable
+        const apiUrl = process.env.NEXT_PUBLIC_DB_SEARCH_CASE_API_URL;
+        if (!apiUrl) {
+            throw new Error("API URL not configured");
         }
+
+        const response = await fetch(`${apiUrl}?id=${searchId.trim()}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.found) {
+            const apiData = result.data;
+
+            // Map ข้อมูลจาก API เข้าสู่ State ของ UI
+            // หมายเหตุ: เนื่องจาก API search_case.js ปัจจุบัน return แค่ cover_image_url กับ id
+            // field อื่นๆ (title, department) จึงต้องใส่ค่า Default ไว้ก่อน จนกว่าจะแก้ SQL ให้ดึงมาเพิ่ม
+            setCurrentCase({
+                id: searchId.trim().toUpperCase(),
+                uuid: apiData.issue_cases_id, // เก็บ UUID จริงไว้ใช้ตอน update
+                title: "Case Details Found", // API ปัจจุบันยังไม่ส่ง Title มา
+                department: "General",       // API ปัจจุบันยังไม่ส่ง Department มา
+                assignee: "System",
+                date: new Date().toISOString().split('T')[0],
+                // ใช้รูปจาก cover_image_url หรือรูปแรกใน array images
+                image: apiData.cover_image_url || (apiData.images && apiData.images.length > 0 ? apiData.images[0].url : "https://via.placeholder.com/150"),
+                status: "Active"
+            });
+        } else {
+            alert(result.message || "ไม่พบข้อมูล Case ID นี้");
+        }
+
+    } catch (error) {
+        console.error("Search Error:", error);
+        alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    } finally {
         setIsSearching(false);
-    }, 800);
+    }
   };
 
   const handleUpdateImage = (e) => {
@@ -124,7 +128,10 @@ export default function ManageCase() {
         alert("กรุณาอัปโหลดรูปภาพและระบุเหตุผล"); 
         return; 
     }
-    // จำลองการบันทึกสำเร็จ
+    
+    // ตรงนี้จะเป็นจุดที่ต้องเชื่อม API สำหรับ Update ในอนาคต
+    // โดยใช้ currentCase.uuid เพื่อระบุแถวใน DB
+    
     setIsSuccess(true);
   };
 
@@ -144,32 +151,27 @@ export default function ManageCase() {
       <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
       <script src="https://cdn.tailwindcss.com"></script>
 
+      {/* ... (ส่วน Navbar Mobile และ Desktop คงเดิม ไม่มีการเปลี่ยนแปลง) ... */}
+      
       {/* ================= NAVBAR MOBILE (FULL WIDTH BOTTOM) ================= */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
           <div className="flex justify-between items-center px-6 py-3 pb-safe">
-            
-            {/* 1. ปุ่ม Email (Inactive) */}
             <a href="/manage" className="flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all duration-300">
                 <LayoutDashboard size={22} strokeWidth={2} />
                 <span className="text-[10px] font-medium">Email</span>
             </a>
-
-            {/* 2. ปุ่ม Case (Active - หน้าปัจจุบัน) */}
             <a href="/manage-case" className="flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-full bg-slate-900 !text-white shadow-lg shadow-slate-900/20 transition-all duration-300 transform scale-105">
                 <FileText size={22} strokeWidth={2.5} />
                 <span className="text-[10px] font-bold tracking-wide">Case</span>
             </a>
-
-            {/* 3. ปุ่ม Menu (Inactive) */}
             <a href="/manage-richmenu" className="flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all duration-300">
                 <MenuIcon size={22} strokeWidth={2} />
                 <span className="text-[10px] font-medium">Menu</span>
             </a>
-
           </div>
       </div>
 
-      {/* ================= NAVBAR MOBILE TOP ================= */}
+       {/* ================= NAVBAR MOBILE TOP ================= */}
        <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-sm z-50 px-4 flex justify-between items-center border-b border-gray-100 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="avatar">
@@ -186,7 +188,6 @@ export default function ManageCase() {
                 <LogOut size={22} className="text-red-500" />
             </button>
       </div>
-
 
       {/* ================= NAVBAR DESKTOP ================= */}
       <div className="hidden lg:block sticky top-0 z-40 font-sans">
@@ -207,21 +208,16 @@ export default function ManageCase() {
             
             <div className="navbar-center">
                 <ul className="menu menu-horizontal px-1 gap-3">
-                    {/* เมนู Email (ไม่ได้เลือก -> สีขาว ตัวหนังสือดำ) */}
                     <li>
                         <a href="/manage" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">
                             จัดการ Email
                         </a>
                     </li>
-                    
-                    {/* เมนู Case (เลือกอยู่ -> สีดำ ตัวหนังสือขาว) */}
                     <li>
                         <a href="/manage-case" className="!bg-slate-900 !text-white shadow-lg shadow-slate-400/50 rounded-full px-6 py-2.5 font-bold hover:!bg-slate-800 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
                             จัดการ Case
                         </a>
                     </li>
-
-                     {/* เมนู Menu (ไม่ได้เลือก -> สีขาว ตัวหนังสือดำ) */}
                       <li>
                         <a href="/manage-richmenu" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">
                             จัดการ Menu
@@ -240,6 +236,7 @@ export default function ManageCase() {
             </div>
         </div>
       </div>
+
 
       {/* ================= MAIN CONTENT: WIZARD UI ================= */}
       <div className="container mx-auto px-4 mt-20 lg:mt-12 max-w-4xl">
@@ -388,14 +385,20 @@ export default function ManageCase() {
                                     
                                     <div className="bg-slate-50 p-6 lg:p-8 rounded-3xl border border-slate-200 flex flex-col md:flex-row gap-8 items-center md:items-start">
                                         <div className="w-full md:w-1/3 shrink-0">
-                                            <div className="aspect-square rounded-2xl overflow-hidden shadow-md border border-white">
-                                                <img src={currentCase.image} className="w-full h-full object-cover" alt="Case" />
+                                            <div className="aspect-square rounded-2xl overflow-hidden shadow-md border border-white bg-slate-200">
+                                                {/* ปรับปรุงการแสดงรูปภาพให้รองรับกรณี URL ว่าง */}
+                                                <img 
+                                                    src={currentCase.image} 
+                                                    className="w-full h-full object-cover" 
+                                                    alt="Case"
+                                                    onError={(e) => { e.target.src = "https://via.placeholder.com/150?text=No+Image"; }}
+                                                />
                                             </div>
                                         </div>
                                         <div className="w-full md:w-2/3 space-y-4">
                                             <div>
-                                                <span className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wide bg-red-100 text-red-600`}>{currentCase.status}</span>
-                                                <h4 className="text-2xl font-bold text-slate-800 mt-2">{currentCase.title || "No Title"}</h4>
+                                                <span className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wide bg-indigo-100 text-indigo-600`}>{currentCase.status}</span>
+                                                <h4 className="text-2xl font-bold text-slate-800 mt-2">{currentCase.title || "No Title Available"}</h4>
                                             </div>
                                             <div className="grid grid-cols-2 gap-4 border-t border-slate-200 pt-4">
                                                 <div>
@@ -416,7 +419,7 @@ export default function ManageCase() {
                                 </div>
                             )}
 
-                            {/* STEP 2: Upload Image */}
+                            {/* STEP 2: Upload Image (คงเดิม) */}
                             {wizardStep === 2 && (
                                 <div className="w-full max-w-xl mx-auto animate-fade-in">
                                     <div className="text-center mb-8">
@@ -487,7 +490,7 @@ export default function ManageCase() {
                                 </div>
                             )}
 
-                            {/* STEP 3: Reason */}
+                            {/* STEP 3: Reason (คงเดิม) */}
                             {wizardStep === 3 && (
                                 <div className="w-full max-w-xl text-center animate-fade-in">
                                     <h3 className="text-xl font-bold text-slate-800 mb-1">Step 3: สรุปผล (Reason)</h3>
@@ -510,10 +513,9 @@ export default function ManageCase() {
                     )}
                 </div>
 
-                {/* --- FOOTER BUTTONS --- */}
+                {/* --- FOOTER BUTTONS (คงเดิม) --- */}
                 {!isSuccess && (
                     <div className="flex justify-between items-center mt-12 pt-8 border-t border-slate-100">
-                        {/* ปุ่มซ้ายมือ */}
                         {wizardStep === 1 ? (
                             <button 
                                 onClick={resetForm} 
@@ -533,7 +535,6 @@ export default function ManageCase() {
                             </button>
                         )}
 
-                        {/* ปุ่มขวามือ */}
                         {wizardStep < 3 ? (
                             <button 
                                 onClick={() => setWizardStep(p => p + 1)} 
