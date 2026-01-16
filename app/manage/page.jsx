@@ -15,14 +15,16 @@ export default function Manage() {
   const [allowedEmails, setAllowedEmails] = useState([]); 
   const [filteredEmails, setFilteredEmails] = useState([]); 
   const [searchTerm, setSearchTerm] = useState(""); 
+  
+  // ✅ State สำหรับเก็บสิทธิ์ (เริ่มที่ false เพื่อความปลอดภัย)
+  const [canDelete, setCanDelete] = useState(false);
 
   const [newEmail, setNewEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 1. กำหนด API URL
   const API_URL = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
 
-  // 2. Helper Functions
+  // Helper: ดึง ID ตัวเองจาก LocalStorage
   const getCurrentAdminId = () => {
     if (typeof window !== "undefined") {
       const storedId = localStorage.getItem("current_admin_id");
@@ -37,12 +39,31 @@ export default function Manage() {
   // --- API Functions ---
   const fetchAdmins = async () => {
     if (!API_URL) return;
+    
+    const currentAdminId = getCurrentAdminId();
+
     try {
-      const res = await fetch(API_URL);
+      // ✅ ส่ง requester_id ไปด้วย เพื่อถามสิทธิ์
+      const url = currentAdminId 
+        ? `${API_URL}?requester_id=${currentAdminId}` 
+        : API_URL;
+
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to fetch admins");
-      const data = await res.json();
+      
+      const jsonResponse = await res.json();
+      
+      // ✅ รองรับ Format ใหม่: { data: [...], meta: { can_delete: true/false } }
+      // หรือรองรับ Format เก่า (เผื่อ Backend ยังไม่อัปเดต) ที่ส่ง Array มาตรงๆ
+      const data = Array.isArray(jsonResponse) ? jsonResponse : (jsonResponse.data || []);
+      const meta = jsonResponse.meta || {};
+
       setAllowedEmails(data);
       setFilteredEmails(data);
+      
+      // ✅ อัปเดตสิทธิ์การลบ
+      setCanDelete(!!meta.can_delete); 
+
     } catch (error) {
       console.error("Error loading admins:", error);
     }
@@ -61,14 +82,13 @@ export default function Manage() {
     return () => unsubscribe();
   }, [router, API_URL]);
 
-  // --- Logic การค้นหา ---
+  // Logic การค้นหา
   useEffect(() => {
     const results = allowedEmails.filter(item =>
       item.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredEmails(results);
   }, [searchTerm, allowedEmails]);
-
 
   const handleLogout = async () => {
     try {
@@ -135,6 +155,13 @@ export default function Manage() {
         });
 
         const result = await res.json();
+
+        // ✅ ดักจับ Error 403 Forbidden
+        if (res.status === 403) {
+            alert("⛔ Access Denied: คุณไม่มีสิทธิ์ลบข้อมูลผู้ดูแลระบบ");
+            return;
+        }
+
         if (!res.ok) throw new Error(result.message || "Failed to delete admin");
 
         fetchAdmins();
@@ -151,7 +178,7 @@ export default function Manage() {
       <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
       <script src="https://cdn.tailwindcss.com"></script>
 
-      {/* ================= NAVBAR MOBILE ================= */}
+   {/* ================= NAVBAR MOBILE ================= */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.1)] bg-white">
         <div className="flex w-full h-16 border-t border-gray-100">
             {/* Active State (Email) -> ใช้ bg-slate-200 (เทาเข้มขึ้น) */}
@@ -193,6 +220,7 @@ export default function Manage() {
                 </svg>
             </button>
       </div>
+
 
       {/* ================= NAVBAR DESKTOP ================= */}
       <div className="hidden lg:block sticky top-0 z-40 font-sans">
@@ -320,16 +348,19 @@ export default function Manage() {
                 return (
                     <div key={item.admin_id} className="relative bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all border border-slate-100 flex flex-col items-center text-center min-h-[280px]">
                         
-                        <button 
-                            onClick={() => handleDeleteEmail(item.admin_id)}
-                            className="absolute top-4 right-4 !text-red-500 hover:bg-red-50 rounded-full p-2 transition-colors z-10"
-                            title="Remove user"
-                            style={{ color: '#ef4444' }} 
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                            </svg>
-                        </button>
+                        {/* ✅ ซ่อนปุ่มลบ ถ้า canDelete = false */}
+                        {canDelete && (
+                            <button 
+                                onClick={() => handleDeleteEmail(item.admin_id)}
+                                className="absolute top-4 right-4 !text-red-500 hover:bg-red-50 rounded-full p-2 transition-colors z-10"
+                                title="Remove user"
+                                style={{ color: '#ef4444' }} 
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                            </button>
+                        )}
 
                         <div className="w-24 h-24 rounded-full bg-slate-100 mb-5 overflow-hidden ring-4 ring-slate-50">
                             <img 
@@ -393,15 +424,18 @@ export default function Manage() {
                         </div>
                     </div>
 
-                    <button 
-                        onClick={() => handleDeleteEmail(item.admin_id)}
-                        className="btn btn-ghost btn-circle btn-sm !text-red-500 hover:bg-red-50"
-                        style={{ color: '#ef4444' }}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </button>
+                    {/* ✅ ซ่อนปุ่มลบ Mobile ถ้า canDelete = false */}
+                    {canDelete && (
+                        <button 
+                            onClick={() => handleDeleteEmail(item.admin_id)}
+                            className="btn btn-ghost btn-circle btn-sm !text-red-500 hover:bg-red-50"
+                            style={{ color: '#ef4444' }}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    )}
                  </div>
              ))}
         </div>
