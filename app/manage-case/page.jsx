@@ -13,7 +13,8 @@ import {
   ArrowLeft, 
   ArrowRight,
   X,
-  ImageIcon 
+  ImageIcon,
+  Play // [ADDED] เพิ่มไอคอน Play
 } from "lucide-react"; 
 import Link from 'next/link';
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -33,7 +34,7 @@ export default function ManageCase() {
   // --- State สำหรับ Wizard UI (ขั้นตอน 1-3) ---
   const [wizardStep, setWizardStep] = useState(1);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false); // Loading ตอนกดบันทึก
+  const [isSubmitting, setIsSubmitting] = useState(false); 
 
   // --- State สำหรับการแก้ไขรูปภาพ ---
   const [selectedImageToReplace, setSelectedImageToReplace] = useState(null);
@@ -42,7 +43,7 @@ export default function ManageCase() {
 
   const inputRef = useRef(null);
   
-  // Helper: Avatar (ใช้ Dicebear)
+  // Helper: Avatar 
   const getAvatarUrl = (seed) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
 
   // --- 1. Authentication Check ---
@@ -52,7 +53,7 @@ export default function ManageCase() {
         setUser(currentUser); 
         setLoading(false); 
       } else { 
-        router.push("/"); // ถ้าไม่ได้ login ให้ดีดกลับหน้าแรก
+        router.push("/"); 
       }
     });
     return () => unsubscribe();
@@ -76,7 +77,6 @@ export default function ManageCase() {
         return;
     }
 
-    // [UPDATED] ดึง API URL จาก Env
     const apiUrl = process.env.NEXT_PUBLIC_DB_SEARCH_CASE_API_URL;
     if (!apiUrl) {
         alert("Configuration Error: NEXT_PUBLIC_DB_SEARCH_CASE_API_URL not found.");
@@ -92,7 +92,6 @@ export default function ManageCase() {
     setSelectedImageToReplace(null);
 
     try {
-        // [UPDATED] ใช้ apiUrl จาก Env
         const response = await fetch(`${apiUrl}?id=${searchId.trim()}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
@@ -105,39 +104,38 @@ export default function ManageCase() {
             let allImagesCombined = [];
             
             // --- Logic การแปลง Data จาก DB ให้เป็น UI Format ---
-            // เราดึงรูปจาก "timeline" ที่มีค่า photo ไม่เป็น null
             if (apiData.timeline && Array.isArray(apiData.timeline)) {
                 apiData.timeline.forEach((item, index) => {
                     if(item.photo) {
                         allImagesCombined.push({
-                            id: item.id, // ใช้ ID จริงจาก voice_attachment เพื่อใช้อ้างอิงตอนอัปเดต
+                            id: item.id, 
+                            // [UPDATED] เช็คว่าเป็น Video หรือ Image (viewed 1 = Video)
+                            mediaType: item.viewed === 1 ? 'video' : 'image',
                             type: item.viewed === 1 ? `Video (${index+1})` : `Evidence Image (${index+1})`,
                             url: item.photo,
-                            status: item.status, // เก็บสถานะของรูปนั้นๆ ไว้โชว์
+                            status: item.status, 
                             timestamp: item.updated_on
                         });
                     }
                 });
             }
 
-            // ถ้าไม่มีรูปเลย
             if (allImagesCombined.length === 0) {
                 alert("Case นี้ไม่มีรูปภาพประกอบ");
             }
 
-            // แปลงวันที่ให้สวยงาม
             const caseDate = apiData.timestamp 
                 ? new Date(apiData.timestamp).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })
                 : "ไม่ระบุวันที่";
 
             setCurrentCase({
-                id: apiData.ticket_id,     // เช่น TKT-2026...
-                dbId: apiData.id,          // ID (int) ของตารางหลัก เผื่อต้องใช้
+                id: apiData.ticket_id,     
+                dbId: apiData.id,          
                 title: apiData.problem_type || "แจ้งปัญหาทั่วไป", 
-                department: apiData.address || "ไม่ระบุพิกัด", // ใช้ที่อยู่แสดงแทนหน่วยงาน
+                department: apiData.address || "ไม่ระบุพิกัด", 
                 assignee: "System",
                 date: caseDate,
-                allImages: allImagesCombined, // รูปทั้งหมดที่ดึงมาได้
+                allImages: allImagesCombined, 
                 status: apiData.status
             });
         } else {
@@ -156,7 +154,6 @@ export default function ManageCase() {
   const handleUpdateImage = async (e) => {
     e.preventDefault();
     
-    // Validation
     if (!selectedImageToReplace) {
         alert("กรุณาเลือกรูปภาพที่ต้องการแก้ไขในขั้นตอนที่ 1");
         setWizardStep(1);
@@ -172,16 +169,13 @@ export default function ManageCase() {
     try {
         const formData = new FormData();
         formData.append('file', newImageFile);
-        formData.append('attachmentId', selectedImageToReplace.id); // ส่ง ID ของรูปที่จะแก้
+        formData.append('attachmentId', selectedImageToReplace.id); 
         formData.append('ticketId', currentCase.id);
         formData.append('reason', reason);
-        // formData.append('updatedBy', user?.email); // ส่งคนแก้ไปด้วย
 
-        // เรียก API update_image (POST)
-        // หมายเหตุ: ถ้ามี Env สำหรับ Update ก็สามารถเปลี่ยนตรงนี้ได้เช่นกัน
         const response = await fetch('/api/cases/update_image', {
             method: 'POST',
-            body: formData, // fetch จะจัดการ Content-Type: multipart/form-data ให้เอง
+            body: formData, 
         });
 
         const result = await response.json();
@@ -200,7 +194,6 @@ export default function ManageCase() {
     }
   };
 
-  // Reset ฟอร์มเมื่อทำรายการเสร็จ
   const resetForm = () => {
     setSearchId("");
     setCurrentCase(null);
@@ -441,6 +434,8 @@ export default function ManageCase() {
                                             <ImageIcon size={20} className="text-indigo-500"/> 
                                             รูปภาพประกอบในระบบ:
                                         </h4>
+
+                                        <br />
                                         
                                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                             {currentCase.allImages.map((img) => {
@@ -457,20 +452,38 @@ export default function ManageCase() {
                                                             }
                                                         `}
                                                     >
-                                                        {/* กรอบรูป */}
-                                                        <div className="aspect-video w-full bg-slate-200">
-                                                            <img 
-                                                                src={img.url} 
-                                                                className={`w-full h-full object-cover transition-opacity ${isSelected ? 'opacity-100' : 'opacity-90 group-hover:opacity-100'}`}
-                                                                alt={img.type}
-                                                                onError={(e) => { e.target.src = "https://via.placeholder.com/300?text=Error"; }}
-                                                            />
+                                                        {/* [UPDATED] กรอบแสดงผล (แยก Video/Image) */}
+                                                        <div className="aspect-video w-full bg-slate-200 flex items-center justify-center bg-slate-900/5">
+                                                            {img.mediaType === 'video' ? (
+                                                                <div className="relative w-full h-full">
+                                                                    <video 
+                                                                        src={img.url} 
+                                                                        className={`w-full h-full object-cover transition-opacity ${isSelected ? 'opacity-100' : 'opacity-90'}`}
+                                                                        muted 
+                                                                        playsInline
+                                                                        preload="metadata"
+                                                                    />
+                                                                    {/* Play Icon Overlay */}
+                                                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                                        <div className="bg-black/30 rounded-full p-2 backdrop-blur-sm">
+                                                                            <Play className="w-6 h-6 text-white fill-white" />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <img 
+                                                                    src={img.url} 
+                                                                    className={`w-full h-full object-cover transition-opacity ${isSelected ? 'opacity-100' : 'opacity-90 group-hover:opacity-100'}`}
+                                                                    alt={img.type}
+                                                                    onError={(e) => { e.target.src = "https://via.placeholder.com/300?text=Error"; }}
+                                                                />
+                                                            )}
                                                         </div>
                                                         
                                                         <span className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] font-bold px-2 py-1 rounded-full backdrop-blur-sm truncate max-w-[90%]">
                                                             {img.type}
                                                         </span>
-
+                                                        
                                                         {isSelected && (
                                                             <div className="absolute top-2 right-2 bg-indigo-500 text-white rounded-full p-1.5 shadow-sm animate-[bounceIn_0.3s_ease-out]">
                                                                 <CheckCircle2 size={18} strokeWidth={3} />
@@ -482,8 +495,12 @@ export default function ManageCase() {
                                                         )}
                                                     </div>
                                                 )
+                                                
                                             })}
                                         </div>
+
+                                        <br />
+                                        
                                         <p className={`text-center text-sm mt-6 font-medium transition-all ${selectedImageToReplace ? 'text-indigo-600' : 'text-slate-400'}`}>
                                             {selectedImageToReplace 
                                                 ? <><CheckCircle2 size={16} className="inline mr-1"/> คุณเลือกแก้ไข: <span className="font-bold">{selectedImageToReplace.type}</span></> 
@@ -502,19 +519,28 @@ export default function ManageCase() {
                                         <p className="text-slate-500">เลือกไฟล์รูปภาพเพื่อแทนที่รูปเดิม</p>
                                     </div>
 
-                                    {/* --- ส่วนแสดงรูปเก่า --- */}
+                                    {/* --- ส่วนแสดงรูป/วิดีโอเก่า --- */}
                                     {selectedImageToReplace && (
                                         <div className="mb-8 w-fit mx-auto flex flex-col items-center p-5 bg-orange-50 rounded-3xl border border-orange-100 text-orange-700/70 shadow-sm">
                                             <p className="text-xs font-bold mb-3 flex items-center gap-1 uppercase tracking-wider">
-                                                <AlertCircle size={14}/> กำลังแก้ไขรูปภาพเดิม:
+                                                <AlertCircle size={14}/> กำลังแก้ไขไฟล์เดิม:
                                             </p>
                                             
                                             <div className="relative h-48 min-w-[200px] rounded-2xl overflow-hidden border-2 border-orange-200 shadow-sm bg-white flex items-center justify-center">
-                                                <img 
-                                                    src={selectedImageToReplace.url} 
-                                                    className="h-full w-auto object-contain" 
-                                                    alt="Replacing" 
-                                                />
+                                                {/* [UPDATED] เช็คว่าเป็น Video หรือ Image ในหน้า Preview */}
+                                                {selectedImageToReplace.mediaType === 'video' ? (
+                                                     <video 
+                                                        src={selectedImageToReplace.url} 
+                                                        className="h-full w-auto object-contain"
+                                                        controls
+                                                     />
+                                                ) : (
+                                                    <img 
+                                                        src={selectedImageToReplace.url} 
+                                                        className="h-full w-auto object-contain" 
+                                                        alt="Replacing" 
+                                                    />
+                                                )}
                                             </div>
                                             <p className="text-sm font-bold mt-3 bg-orange-100 px-3 py-1 rounded-full">{selectedImageToReplace.type}</p>
                                         </div>
@@ -528,8 +554,9 @@ export default function ManageCase() {
                                             <div className="flex flex-col items-center w-full animate-fade-in z-10">
                                                 
                                                 <div className="relative h-56 w-auto rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 shadow-sm flex items-center justify-center mb-4">
+                                                    {/* [UPDATED] SSR Safe check */}
                                                     <img 
-                                                        src={URL.createObjectURL(newImageFile)} 
+                                                        src={typeof window !== 'undefined' ? URL.createObjectURL(newImageFile) : ''} 
                                                         className="h-full w-auto object-contain" 
                                                         alt="Preview" 
                                                     />
@@ -565,8 +592,9 @@ export default function ManageCase() {
                                         <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col items-center">
                                             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">รูปภาพใหม่ที่จะใช้งาน</p>
                                             <div className="relative rounded-lg overflow-hidden shadow-md border border-slate-200 h-48 w-auto">
+                                                {/* [UPDATED] SSR Safe check */}
                                                 <img 
-                                                    src={URL.createObjectURL(newImageFile)} 
+                                                    src={typeof window !== 'undefined' ? URL.createObjectURL(newImageFile) : ''} 
                                                     alt="New Preview" 
                                                     className="h-full w-auto object-contain bg-white"
                                                 />
