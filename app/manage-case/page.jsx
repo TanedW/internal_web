@@ -130,7 +130,6 @@ export default function ManageCase() {
                 : "General";
 
             // --- [UPDATED] แปลงวันที่จาก created_at ---
-            // ถ้ามี apiData.created_at ให้ใช้และจัดรูปแบบเป็น YYYY-MM-DD (หรือจะใช้ .toLocaleDateString('th-TH') ก็ได้)
             const caseDate = apiData.created_at 
                 ? new Date(apiData.created_at).toISOString().split('T')[0] 
                 : new Date().toISOString().split('T')[0];
@@ -139,7 +138,7 @@ export default function ManageCase() {
                 id: searchId.trim().toUpperCase(),
                 uuid: apiData.issue_cases_id,
                 title: "Case Details Found", 
-                department: departmentNames, // ใช้ค่าที่ map มาแล้ว
+                department: departmentNames, 
                 assignee: "System",
                 date: caseDate,
                 allImages: allImagesCombined,
@@ -347,7 +346,7 @@ export default function ManageCase() {
                             {[1, 2, 3].map((step) => (
                                 <div key={step} className="relative flex flex-col items-center flex-1">
                                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg border-4 transition-all duration-300 z-10 bg-white ${wizardStep >= step ? 'border-indigo-500 text-indigo-600 shadow-lg shadow-indigo-200 scale-110' : 'border-slate-200 text-slate-300'}`}>
-                                        {step}
+                                            {step}
                                     </div>
                                     <span className={`absolute top-14 text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${wizardStep >= step ? 'text-indigo-600' : 'text-slate-300'}`}>
                                         {step === 1 ? 'Select' : step === 2 ? 'Upload' : 'Reason'}
@@ -472,25 +471,49 @@ export default function ManageCase() {
                                         <p className="text-slate-500">เลือกไฟล์รูปภาพเพื่อแทนที่รูปเดิม</p>
                                     </div>
 
+                                    {/* --- ส่วนแสดงรูปเก่า --- */}
                                     {selectedImageToReplace && (
-                                        <div className="mb-6 flex flex-col items-center p-4 bg-orange-50 rounded-2xl border border-orange-100 text-orange-700/70">
-                                            <p className="text-xs font-bold mb-2 flex items-center gap-1 uppercase tracking-wider"><AlertCircle size={14}/> กำลังแก้ไขรูปภาพนี้:</p>
-                                            <div className="w-32 rounded-lg overflow-hidden border-2 border-orange-200 shadow-sm relative grayscale-[30%] opacity-80">
-                                                <img src={selectedImageToReplace.url} className="w-full h-auto block" alt="Replacing" />
-                                            </div>
-                                             <p className="text-xs font-bold mt-2">{selectedImageToReplace.type}</p>
+        
+                                        <div className="mb-8 w-fit mx-auto flex flex-col items-center p-5 bg-orange-50 rounded-3xl border border-orange-100 text-orange-700/70 shadow-sm">
+                                            <p className="text-xs font-bold mb-3 flex items-center gap-1 uppercase tracking-wider">
+                                                <AlertCircle size={14}/> กำลังแก้ไขรูปภาพเดิม:
+                                            </p><br></br>
+                                        
+                                            <div className="relative h-64 min-w-[200px] rounded-2xl overflow-hidden border-2 border-orange-200 shadow-sm bg-white flex items-center justify-center">
+                                                <img 
+                                                    src={selectedImageToReplace.url} 
+                                                    className="h-full w-auto object-contain" 
+                                                    alt="Replacing" 
+                                                />
+                                                
+                                                {/* Overlay  */}
+                                                <div className="absolute inset-0 bg-orange-500/10 pointer-events-none"></div>
+                                            </div><br></br>
+                                            <p className="text-sm font-bold mt-3 bg-orange-100 px-3 py-1 rounded-full">{selectedImageToReplace.type}</p>
                                         </div>
                                     )}
                                     
-                                    <label className={`group relative flex flex-col items-center justify-center w-full h-80 rounded-3xl border-3 border-dashed transition-all duration-300 cursor-pointer overflow-hidden ${newImageFile ? 'border-green-400 bg-green-50/30' : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-100/50'}`}>
+                                    {/* --- ส่วนอัปโหลดรูปใหม่ --- */}
+                                    <label className={`group relative flex flex-col items-center justify-center w-full min-h-[24rem] h-auto p-6 rounded-3xl border-3 border-dashed transition-all duration-300 cursor-pointer overflow-hidden ${newImageFile ? 'border-green-400 bg-white' : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-100/50'}`}>
                                         <input type="file" className="hidden" accept="image/png, image/jpeg, image/jpg" onChange={(e) => setNewImageFile(e.target.files[0])} />
                                         
                                         {newImageFile ? (
-                                            <div className="flex flex-col items-center animate-bounce-short z-10">
-                                                <div className="w-20 h-20 bg-white text-green-500 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-green-100 border border-green-100"><CheckCircle2 size={40} strokeWidth={3} /></div>
-                                                <span className="font-bold text-xl text-slate-800 mb-1 drop-shadow-sm">{newImageFile.name}</span>
-                                                <span className="text-sm font-medium text-green-600 bg-green-100 px-3 py-1 rounded-full">พร้อมอัปโหลด</span>
-                                                <p className="text-xs text-slate-400 mt-6 group-hover:text-slate-500 transition-colors">คลิกเพื่อเปลี่ยนรูปภาพใหม่</p>
+                                            <div className="flex flex-col items-center w-full animate-fade-in z-10">
+                                                
+                                                {/* กำหนดความสูง h-64 ให้เท่ากับรูปเก่าด้านบน */}
+                                                <div className="relative h-64 w-auto rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 shadow-sm flex items-center justify-center mb-4">
+                                                    <img 
+                                                        src={URL.createObjectURL(newImageFile)} 
+                                                        className="h-full w-auto object-contain" 
+                                                        alt="Preview" 
+                                                    />
+                                                </div>
+
+                                                <span className="font-bold text-lg text-slate-800 mb-1 drop-shadow-sm truncate max-w-[80%]">{newImageFile.name}</span>
+                                                <span className="text-sm font-medium text-green-600 bg-green-100 px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                                                    <CheckCircle2 size={14}/> รูปใหม่พร้อมอัปโหลด
+                                                </span><br></br>
+                                                <p className="text-xs text-slate-400 mt-3 group-hover:text-indigo-500 transition-colors font-medium">คลิกพื้นที่ว่างเพื่อเปลี่ยนรูปภาพ</p>
                                             </div>
                                         ) : (
                                             <div className="flex flex-col items-center z-10 p-6 transition-transform duration-300 group-hover:scale-105">
@@ -511,8 +534,28 @@ export default function ManageCase() {
                                     <h3 className="text-xl font-bold text-slate-800 mb-1">Step 3: สรุปผลและระบุเหตุผล (Reason)</h3>
                                     <p className="text-slate-500 mb-8 text-sm">ระบุสาเหตุในการเปลี่ยนแปลงรูปภาพ <span className="font-bold text-indigo-600">{selectedImageToReplace?.type}</span></p>
                                     
+                                    {/* --- ADDED: NEW IMAGE PREVIEW IN STEP 3 --- */}
+                                    {newImageFile && (
+                                        <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col items-center">
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">รูปภาพใหม่ที่จะใช้งาน</p>
+                                            <div className="relative rounded-lg overflow-hidden shadow-md border border-slate-200 max-h-64">
+                                                <img 
+                                                    src={URL.createObjectURL(newImageFile)} 
+                                                    alt="New Preview" 
+                                                    className="w-full h-full object-contain"
+                                                />
+                                            </div>
+                                            <p className="text-xs text-slate-400 mt-2">{newImageFile.name}</p>
+                                        </div>
+                                    )}
+
                                     <div className="relative">
-                                        <textarea className="w-full bg-white border-2 border-slate-200 rounded-3xl p-6 h-48 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all resize-none text-slate-700 text-lg leading-relaxed shadow-sm placeholder:text-slate-300" placeholder="พิมพ์รายละเอียดที่นี่..." value={reason} onChange={(e) => setReason(e.target.value)}></textarea>
+                                        <textarea 
+                                            className="textarea textarea-bordered w-full h-48 text-lg" 
+                                            placeholder="พิมพ์รายละเอียดที่นี่..." 
+                                            value={reason} 
+                                            onChange={(e) => setReason(e.target.value)}
+                                        ></textarea>
                                         <div className="absolute bottom-4 right-4 text-xs font-bold text-slate-300 pointer-events-none">{reason.length} CHARS</div>
                                     </div>
                                 </div>
