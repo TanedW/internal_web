@@ -83,7 +83,6 @@ export default function ManageCase() {
     try {
         const apiUrl = process.env.NEXT_PUBLIC_DB_SEARCH_CASE_API_URL;
         if (!apiUrl) throw new Error("API URL not configured");
-
         const response = await fetch(`${apiUrl}?id=${searchId.trim()}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
