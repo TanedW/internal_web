@@ -17,7 +17,7 @@ export default async function handler(req) {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
 
-  const sql = neon(process.env.DATA_BASE_URL);
+  const sql = neon(process.env.NEXT_PUBLIC_DB_SEARCH_CASE_API_URL);
   const { searchParams } = new URL(req.url);
   const id = searchParams.get('id'); // รับ ticket_id (เช่น TKT-20260115-0001)
 
