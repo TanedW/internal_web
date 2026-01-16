@@ -124,13 +124,24 @@ export default function ManageCase() {
                 allImagesCombined.push({ id: 'placeholder', type: 'No Image', url: "https://via.placeholder.com/150?text=No+Image" });
             }
 
+            // --- [UPDATED] ดึงชื่อหน่วยงานมาต่อกันด้วย comma ---
+            const departmentNames = apiData.organizations && apiData.organizations.length > 0 
+                ? apiData.organizations.map(org => org.name).join(', ') 
+                : "General";
+
+            // --- [UPDATED] แปลงวันที่จาก created_at ---
+            // ถ้ามี apiData.created_at ให้ใช้และจัดรูปแบบเป็น YYYY-MM-DD (หรือจะใช้ .toLocaleDateString('th-TH') ก็ได้)
+            const caseDate = apiData.created_at 
+                ? new Date(apiData.created_at).toISOString().split('T')[0] 
+                : new Date().toISOString().split('T')[0];
+
             setCurrentCase({
                 id: searchId.trim().toUpperCase(),
                 uuid: apiData.issue_cases_id,
                 title: "Case Details Found", 
-                department: "General",       
+                department: departmentNames, // ใช้ค่าที่ map มาแล้ว
                 assignee: "System",
-                date: new Date().toISOString().split('T')[0],
+                date: caseDate,
                 allImages: allImagesCombined,
                 status: "Active"
             });
