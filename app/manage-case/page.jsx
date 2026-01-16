@@ -4,8 +4,6 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { 
   LogOut, 
-  LayoutDashboard, 
-  FileText, 
   Search, 
   CheckCircle2, 
   Users, 
@@ -15,9 +13,9 @@ import {
   ArrowLeft, 
   ArrowRight,
   X,
-  Menu as MenuIcon,
   ImageIcon 
 } from "lucide-react"; 
+import Link from 'next/link';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../../firebaseConfig"; 
 
@@ -191,21 +189,24 @@ export default function ManageCase() {
       <script src="https://cdn.tailwindcss.com"></script>
 
       {/* ================= NAVBAR MOBILE ================= */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
-          <div className="flex justify-between items-center px-6 py-3 pb-safe">
-            <a href="/manage" className="flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all duration-300">
-                <LayoutDashboard size={22} strokeWidth={2} />
-                <span className="text-[10px] font-medium">Email</span>
-            </a>
-            <a href="/manage-case" className="flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-full bg-slate-900 !text-white shadow-lg shadow-slate-900/20 transition-all duration-300 transform scale-105">
-                <FileText size={22} strokeWidth={2.5} />
-                <span className="text-[10px] font-bold tracking-wide">Case</span>
-            </a>
-            <a href="/manage-richmenu" className="flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all duration-300">
-                <MenuIcon size={22} strokeWidth={2} />
-                <span className="text-[10px] font-medium">Menu</span>
-            </a>
-          </div>
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.1)] bg-white">
+        <div className="flex w-full h-16 border-t border-gray-100">
+          <Link href="/manage" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+            <span className="text-[10px] font-bold">Email</span>
+          </Link>
+          
+          {/* Active State (Case)  */}
+          <Link href="/manage-case" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-900 bg-slate-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+            <span className="text-[10px] font-bold">Case</span>
+          </Link>
+          
+          <Link href="/manage-richmenu" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"></path></svg>
+            <span className="text-[10px] font-bold">Menu</span>
+          </Link>
+        </div>
       </div>
 
        <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-sm z-50 px-4 flex justify-between items-center border-b border-gray-100 shadow-sm">
@@ -382,7 +383,7 @@ export default function ManageCase() {
                                     <h3 className="text-xl font-bold text-slate-800 mb-1 text-center">Step 1: ตรวจสอบและเลือกรูปภาพ (Review & Select)</h3>
                                     <p className="text-slate-500 mb-8 text-center text-sm">คลิกเลือกรูปภาพที่ต้องการแก้ไขจากรายการด้านล่าง</p>
                                     
-                                    {/* ส่วนแสดงรายละเอียด Case (แก้ไขจุด Alignment ตรงนี้) */}
+                                    {/* ส่วนแสดงรายละเอียด Case */}
                                     <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                         <div>
                                             <div className="flex items-center gap-2 mb-2">
@@ -393,7 +394,6 @@ export default function ManageCase() {
                                             <h4 className="text-xl font-bold text-slate-800">{currentCase.title}</h4>
                                         </div>
                                         
-                                        {/* แก้ไขส่วนวันที่และแผนกให้ตรงกัน */}
                                         <div className="flex flex-col items-end space-y-2 text-sm">
                                             <div className="flex items-center gap-2 text-slate-700 font-medium">
                                                 <Users size={16} className="text-slate-400"/>
@@ -478,7 +478,7 @@ export default function ManageCase() {
                                             <p className="text-xs font-bold mb-3 flex items-center gap-1 uppercase tracking-wider">
                                                 <AlertCircle size={14}/> กำลังแก้ไขรูปภาพเดิม:
                                             </p><br></br>
-                                        
+                                            
                                             <div className="relative h-64 min-w-[200px] rounded-2xl overflow-hidden border-2 border-orange-200 shadow-sm bg-white flex items-center justify-center">
                                                 <img 
                                                     src={selectedImageToReplace.url} 

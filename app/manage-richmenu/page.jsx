@@ -15,62 +15,62 @@ export default function RichMenuHome() {
   const [currentMenus, setCurrentMenus] = useState({});
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-    if (currentUser) {
-      setUser(currentUser);
-      
-      // โหลดจาก cache ก่อน
-      const cachedBots = localStorage.getItem('cachedBots');
-      const cachedMenus = localStorage.getItem('cachedMenus');
-      
-      if (cachedBots) {
-        setBots(JSON.parse(cachedBots));
-      }
-      if (cachedMenus) {
-        setCurrentMenus(JSON.parse(cachedMenus));
-      }
-      
-      setLoading(false);
-      
-      // รีเฟรชข้อมูลในพื้นหลัง
-      fetchBotsData();
-    } else {
-      router.push('/');
-    }
-  });
-  return () => unsubscribe();
-}, [router]);
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
 
-async function fetchBotsData() {
-  setIsRefreshing(true);
-  try {
-    const botsRes = await fetch('/api/richmenu/bots');
-    const botsData = await botsRes.json();
-    
-    if (Array.isArray(botsData)) {
-      setBots(botsData);
-      localStorage.setItem('cachedBots', JSON.stringify(botsData));
-      
-      const menusData = {};
-      for (const bot of botsData) {
-        try {
-          const menuRes = await fetch(`/api/richmenu/current?botKey=${bot.key}`);
-          const menuData = await menuRes.json();
-          menusData[bot.key] = menuData.currentMenuId || null;
-        } catch (err) {
-          console.error(`Error fetching menu for ${bot.key}:`, err);
+        // โหลดจาก cache ก่อน
+        const cachedBots = localStorage.getItem('cachedBots');
+        const cachedMenus = localStorage.getItem('cachedMenus');
+
+        if (cachedBots) {
+          setBots(JSON.parse(cachedBots));
         }
+        if (cachedMenus) {
+          setCurrentMenus(JSON.parse(cachedMenus));
+        }
+
+        setLoading(false);
+
+        // รีเฟรชข้อมูลในพื้นหลัง
+        fetchBotsData();
+      } else {
+        router.push('/');
       }
-      setCurrentMenus(menusData);
-      localStorage.setItem('cachedMenus', JSON.stringify(menusData));
+    });
+    return () => unsubscribe();
+  }, [router]);
+
+  async function fetchBotsData() {
+    setIsRefreshing(true);
+    try {
+      const botsRes = await fetch('/api/richmenu/bots');
+      const botsData = await botsRes.json();
+
+      if (Array.isArray(botsData)) {
+        setBots(botsData);
+        localStorage.setItem('cachedBots', JSON.stringify(botsData));
+
+        const menusData = {};
+        for (const bot of botsData) {
+          try {
+            const menuRes = await fetch(`/api/richmenu/current?botKey=${bot.key}`);
+            const menuData = await menuRes.json();
+            menusData[bot.key] = menuData.currentMenuId || null;
+          } catch (err) {
+            console.error(`Error fetching menu for ${bot.key}:`, err);
+          }
+        }
+        setCurrentMenus(menusData);
+        localStorage.setItem('cachedMenus', JSON.stringify(menusData));
+      }
+    } catch (error) {
+      console.error('Error fetching bots:', error);
+    } finally {
+      setIsRefreshing(false);
     }
-  } catch (error) {
-    console.error('Error fetching bots:', error);
-  } finally {
-    setIsRefreshing(false);
   }
-}
 
   const handleLogout = async () => {
     try {
@@ -132,14 +132,14 @@ async function fetchBotsData() {
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
             <span className="text-[10px] font-bold">Case</span>
           </Link>
-          <Link href="/manage-richmenu" className="flex-1 flex flex-col items-center justify-center gap-1 text-indigo-600 bg-indigo-50/50">
+          <Link href="/manage-richmenu" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-900 bg-slate-200">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"></path></svg>
             <span className="text-[10px] font-bold">Menu</span>
           </Link>
         </div>
       </div>
 
-      {/* ================= NAVBAR DESKTOP ================= */}
+      {/* ================= NAVBAR DESKTOP (UPDATED) ================= */}
       <div className="hidden lg:block sticky top-0 z-40 font-sans">
         <div className="navbar bg-white/95 backdrop-blur-xl px-6 lg:px-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border-b border-slate-50/50 transition-all py-3">
           <div className="navbar-start">
@@ -150,26 +150,27 @@ async function fetchBotsData() {
                 </div>
               </div>
               <div className="flex flex-col">
-                <span className="font-extrabold text-slate-800 text-[15px] tracking-tight leading-tight">{user?.displayName || 'Admin'}</span>
+                <span className="font-extrabold text-slate-800 text-[15px] tracking-tight leading-tight">{user?.displayName || "Admin"}</span>
                 <span className="text-[11px] font-bold text-primary/70 uppercase tracking-wider">System Admin</span>
               </div>
             </div>
           </div>
 
           <div className="navbar-center">
-            <ul className="menu menu-horizontal px-1 gap-2 font-medium text-sm bg-slate-50/80 p-1.5 rounded-full border border-slate-100/50">
+            <ul className="menu menu-horizontal px-1 gap-3">
               <li>
-                <Link href="/manage" className="text-slate-500 hover:text-slate-900 hover:bg-white/60 rounded-full px-5 py-2 transition-all">
+                <Link href="/manage" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">
                   จัดการ Email
                 </Link>
               </li>
               <li>
-                <Link href="/manage-case" className="text-slate-500 hover:text-slate-900 hover:bg-white/60 rounded-full px-5 py-2 transition-all">
+                <Link href="/manage-case" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">
                   จัดการ Case
                 </Link>
               </li>
               <li>
-                <Link href="/manage-richmenu" className="!bg-white !text-primary shadow-sm shadow-slate-200/50 rounded-full px-5 py-2 font-bold transition-all transform hover:-translate-y-0.5">
+                {/* Active State applied here for Rich Menu Page */}
+                <Link href="/manage-richmenu" className="!bg-slate-900 !text-white shadow-lg shadow-slate-400/50 rounded-full px-6 py-2.5 font-bold hover:!bg-slate-800 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
                   จัดการ Menu
                 </Link>
               </li>
