@@ -16,10 +16,13 @@ export default function Manage() {
   const [filteredEmails, setFilteredEmails] = useState([]); 
   const [searchTerm, setSearchTerm] = useState(""); 
   
-  // ✅ State สำหรับเก็บสิทธิ์ (เริ่มที่ false เพื่อความปลอดภัย)
-  const [canDelete, setCanDelete] = useState(false);
+  // ✅ State สิทธิ์
+  const [canDelete, setCanDelete] = useState(false); // มาจาก backend meta.can_delete
+  const [currentRole, setCurrentRole] = useState(null); // หาจาก list admin เพื่อคุม Navbar
 
+  // ✅ State สำหรับฟอร์ม
   const [newEmail, setNewEmail] = useState("");
+  const [newRole, setNewRole] = useState("editor"); // Default role
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
@@ -43,7 +46,6 @@ export default function Manage() {
     const currentAdminId = getCurrentAdminId();
 
     try {
-      // ✅ ส่ง requester_id ไปด้วย เพื่อถามสิทธิ์
       const url = currentAdminId 
         ? `${API_URL}?requester_id=${currentAdminId}` 
         : API_URL;
@@ -53,16 +55,27 @@ export default function Manage() {
       
       const jsonResponse = await res.json();
       
-      // ✅ รองรับ Format ใหม่: { data: [...], meta: { can_delete: true/false } }
-      // หรือรองรับ Format เก่า (เผื่อ Backend ยังไม่อัปเดต) ที่ส่ง Array มาตรงๆ
       const data = Array.isArray(jsonResponse) ? jsonResponse : (jsonResponse.data || []);
       const meta = jsonResponse.meta || {};
 
       setAllowedEmails(data);
       setFilteredEmails(data);
       
-      // ✅ อัปเดตสิทธิ์การลบ
+      // ✅ 1. อัปเดตสิทธิ์การลบ (จาก Backend Check)
       setCanDelete(!!meta.can_delete); 
+
+      // ✅ 2. หา Role ของตัวเองเพื่อจัดการ Navbar
+      // (หมายเหตุ: Backend ต้องส่ง field 'role' มาใน data ด้วย ถ้าไม่มีอาจต้องแก้ Backend เพิ่มเติม)
+      if (currentAdminId && data.length > 0) {
+        const myProfile = data.find(u => String(u.admin_id) === String(currentAdminId));
+        if (myProfile && myProfile.role) {
+            setCurrentRole(myProfile.role);
+        } else {
+            // Fallback กรณีหาไม่เจอหรือ Backend ไม่ส่ง role มา (Default ให้เห็นหมดหรือตาม logic)
+            // แต่ตามโจทย์จะ assume ว่า data มี role
+            // setCurrentRole('editor'); 
+        }
+      }
 
     } catch (error) {
       console.error("Error loading admins:", error);
@@ -122,6 +135,7 @@ export default function Manage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 email: newEmail,
+                role: newRole, // ✅ ส่ง Role ที่เลือกไป Backend
                 current_admin_id: currentAdminId 
             }),
         });
@@ -130,6 +144,7 @@ export default function Manage() {
         if (!res.ok) throw new Error(result.message || "Failed to add admin");
 
         setNewEmail("");
+        setNewRole("editor"); // Reset role
         fetchAdmins();
         document.getElementById('add_admin_modal').close();
 
@@ -156,7 +171,6 @@ export default function Manage() {
 
         const result = await res.json();
 
-        // ✅ ดักจับ Error 403 Forbidden
         if (res.status === 403) {
             alert("⛔ Access Denied: คุณไม่มีสิทธิ์ลบข้อมูลผู้ดูแลระบบ");
             return;
@@ -171,6 +185,11 @@ export default function Manage() {
     }
   };
 
+  // --- Helper: Check Navbar Permission ---
+  const showEmailMenu = ['admin', 'editor', 'editor_manage_email'].includes(currentRole);
+  const showCaseMenu = ['admin', 'editor', 'editor_manage_case'].includes(currentRole);
+  const showMenuMenu = ['admin', 'editor', 'editor_manage_menu'].includes(currentRole);
+
   if (loading) return <div className="min-h-screen flex justify-center items-center"><span className="loading loading-spinner text-primary"></span></div>;
 
   return (
@@ -181,21 +200,27 @@ export default function Manage() {
    {/* ================= NAVBAR MOBILE ================= */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.1)] bg-white">
         <div className="flex w-full h-16 border-t border-gray-100">
-            {/* Active State (Email) -> ใช้ bg-slate-200 (เทาเข้มขึ้น) */}
-            <Link href="/manage" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-900 bg-slate-200">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
-                <span className="text-[10px] font-bold">Email</span>
-            </Link>
+            {/* Logic: Show/Hide based on role */}
+            {showEmailMenu && (
+                <Link href="/manage" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-900 bg-slate-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+                    <span className="text-[10px] font-bold">Email</span>
+                </Link>
+            )}
             
-            <Link href="/manage-case" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
-                <span className="text-[10px] font-bold">Case</span>
-            </Link>
+            {showCaseMenu && (
+                <Link href="/manage-case" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                    <span className="text-[10px] font-bold">Case</span>
+                </Link>
+            )}
             
-            <Link href="/manage-richmenu" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"></path></svg>
-                <span className="text-[10px] font-bold">Menu</span>
-            </Link>
+            {showMenuMenu && (
+                <Link href="/manage-richmenu" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"></path></svg>
+                    <span className="text-[10px] font-bold">Menu</span>
+                </Link>
+            )}
         </div>
       </div>
 
@@ -209,7 +234,10 @@ export default function Manage() {
               </div>
               <div className="flex flex-col justify-center">
                   <span className="font-bold text-slate-800 text-sm truncate max-w-[160px]">{user?.displayName || "Admin User"}</span>
-                  <span className="text-[10px] text-indigo-500 font-bold uppercase">SYSTEM ADMIN</span>
+                  <span className="text-[10px] text-indigo-500 font-bold uppercase">
+                    {/* Display Role Label cleanly */}
+                    {currentRole ? currentRole.replace(/_/g, ' ') : 'SYSTEM ADMIN'}
+                  </span>
               </div>
             </div>
             <button onClick={handleLogout} className="btn btn-ghost btn-circle btn-sm hover:bg-red-50">
@@ -234,28 +262,36 @@ export default function Manage() {
                     </div>
                     <div className="flex flex-col">
                         <span className="font-extrabold text-slate-800 text-[15px] tracking-tight leading-tight">{user?.displayName || "Admin"}</span>
-                        <span className="text-[11px] font-bold text-primary/70 uppercase tracking-wider">System Admin</span>
+                        <span className="text-[11px] font-bold text-primary/70 uppercase tracking-wider">
+                            {currentRole ? currentRole.replace(/_/g, ' ') : 'System Admin'}
+                        </span>
                     </div>
                 </div>
             </div>
             
             <div className="navbar-center">
                 <ul className="menu menu-horizontal px-1 gap-3">
-                    <li>
-                        <Link href="/manage" className="!bg-slate-900 !text-white shadow-lg shadow-slate-300 rounded-full px-6 py-2.5 font-bold hover:!bg-slate-800 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
-                            จัดการ Email
-                        </Link>
-                    </li>
-                    <li>
-                        <Link href="/manage-case" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">
-                            จัดการ Case
-                        </Link>
-                    </li>
-                    <li>
-                        <Link href="/manage-richmenu" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">
-                            จัดการ Menu
-                        </Link>
-                    </li>
+                    {showEmailMenu && (
+                        <li>
+                            <Link href="/manage" className="!bg-slate-900 !text-white shadow-lg shadow-slate-300 rounded-full px-6 py-2.5 font-bold hover:!bg-slate-800 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
+                                จัดการ Email
+                            </Link>
+                        </li>
+                    )}
+                    {showCaseMenu && (
+                        <li>
+                            <Link href="/manage-case" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">
+                                จัดการ Case
+                            </Link>
+                        </li>
+                    )}
+                    {showMenuMenu && (
+                        <li>
+                            <Link href="/manage-richmenu" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">
+                                จัดการ Menu
+                            </Link>
+                        </li>
+                    )}
                 </ul>
             </div>
             
@@ -378,7 +414,9 @@ export default function Manage() {
                             {item.email}
                         </h3>
                         
-                        <p className="text-blue-600 font-medium text-sm mb-4">Admin Member</p>
+                        <p className="text-blue-600 font-medium text-xs uppercase mb-4 tracking-wide">
+                            {item.role ? item.role.replace(/_/g, ' ') : 'Member'}
+                        </p>
                         
                         <div className="mt-auto pt-4 border-t border-slate-50 w-full flex justify-center">
                               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-green-600 border border-green-100">
@@ -417,7 +455,7 @@ export default function Manage() {
                         <div className="flex flex-col min-w-0">
                             <span className="font-bold text-slate-800 text-base truncate pr-2">{item.email}</span>
                             <div className="flex items-center gap-1 text-xs text-slate-400">
-                                <span>Administrator</span>
+                                <span className="uppercase">{item.role ? item.role.replace(/_/g, ' ') : 'Admin'}</span>
                                 <span>•</span>
                                 <span className="text-green-600">Active</span>
                             </div>
@@ -453,10 +491,14 @@ export default function Manage() {
                >✕</button>
             </div>
             
-            <form onSubmit={handleAddEmail}>
+            <form onSubmit={handleAddEmail} className="flex flex-col gap-4">
               
-                <div className="join w-full flex">
-                    <label className="input input-bordered flex items-center gap-2 join-item flex-1 bg-slate-50 border-slate-200 focus-within:outline-none focus-within:border-slate-200 h-12 min-w-0">
+                {/* Email Input */}
+                <div className="form-control">
+                    <label className="label">
+                        <span className="label-text font-bold">Email Address</span>
+                    </label>
+                    <label className="input input-bordered flex items-center gap-2 bg-slate-50 border-slate-200 focus-within:outline-none focus-within:border-primary">
                         <svg className="h-[1em] opacity-50 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                             <g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2.5" fill="none" stroke="currentColor">
                                 <rect width="20" height="16" x="2" y="4" rx="2"></rect>
@@ -472,14 +514,33 @@ export default function Manage() {
                             required 
                         />
                     </label>
-                    <button 
-                        type="submit" 
-                        className="btn btn-neutral join-item px-6 h-12 min-h-0 flex-shrink-0"
-                        disabled={isSubmitting}
-                    >
-                         {isSubmitting ? <span className="loading loading-spinner loading-xs"></span> : "Join"}
-                    </button>
                 </div>
+
+                {/* Role Selection Dropdown */}
+                <div className="form-control">
+                    <label className="label">
+                        <span className="label-text font-bold">Assign Role</span>
+                    </label>
+                    <select 
+                        className="select select-bordered w-full bg-slate-50 border-slate-200 focus:outline-none focus:border-primary"
+                        value={newRole}
+                        onChange={(e) => setNewRole(e.target.value)}
+                    >
+                        <option value="admin">Admin (Full Access + Can Delete)</option>
+                        <option value="editor">Editor (Full Access - No Delete)</option>
+                        <option value="editor_manage_email">Admin Email (Email Only + Can Delete)</option>
+                        <option value="editor_manage_case">Admin Case (Case Only)</option>
+                        <option value="editor_manage_menu">Admin Menu (Menu Only)</option>
+                    </select>
+                </div>
+
+                <button 
+                    type="submit" 
+                    className="btn btn-neutral w-full mt-4 h-12"
+                    disabled={isSubmitting}
+                >
+                     {isSubmitting ? <span className="loading loading-spinner loading-sm"></span> : "Confirm Add Member"}
+                </button>
             </form>
         </div>
         <form method="dialog" className="modal-backdrop">
