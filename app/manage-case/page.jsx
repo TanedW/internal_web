@@ -3,33 +3,70 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  LogOut, 
-  Search, 
-  CheckCircle2, 
-  Users, 
-  Clock, 
-  AlertCircle, 
-  UploadCloud, 
-  ArrowLeft, 
-  ArrowRight,
-  X,
-  ImageIcon,
-  Film,        
-  Music,      
-  FileAudio,
-  MapPin,
-  Calendar
+  LogOut, Search, CheckCircle2, AlertCircle, UploadCloud, 
+  ArrowLeft, ArrowRight, X, ImageIcon, Music, FileAudio, 
+  MapPin, Calendar, Film
 } from "lucide-react"; 
 import Link from 'next/link';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../../firebaseConfig"; 
 
-// --- Helper: ตรวจสอบประเภทไฟล์ ---
+// --- Config: MIME Types ตามเอกสาร API  ---
+const MIME_TYPE_MAP = {
+  // Images [cite: 30]
+  'jpg': 'image/jpeg',
+  'jpeg': 'image/jpeg',
+  'png': 'image/png',
+  'gif': 'image/gif',
+  'bmp': 'image/bmp',
+  'webp': 'image/webp',
+  'heic': 'image/heic',
+  'heif': 'image/heif',
+  'ico': 'image/x-icon',
+  'tiff': 'image/tiff',
+  // Videos [cite: 31]
+  'mp4': 'video/mp4',
+  'mov': 'video/quicktime',
+  'avi': 'video/x-msvideo',
+  'mkv': 'video/x-matroska',
+  'wmv': 'video/x-ms-wmv',
+  // Audio [cite: 31]
+  'mp3': 'audio/mpeg',
+  'wav': 'audio/wav',
+  'ogg': 'audio/ogg',
+  'm4a': 'audio/m4a',
+  'flac': 'audio/flac',
+  'wma': 'audio/x-ms-wma'
+};
+
+// --- Helper: แปลงไฟล์เป็น Base64 พร้อม Header ที่ถูกต้องตาม Doc ---
+const fileToBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    // 1. หานามสกุลไฟล์
+    const extension = file.name.split('.').pop().toLowerCase();
+    
+    // 2. หา MIME Type ที่ถูกต้องจาก Map (ถ้าไม่มีให้ใช้ type เดิมของไฟล์)
+    const mimeType = MIME_TYPE_MAP[extension] || file.type;
+
+    // 3. สร้าง Blob ใหม่ด้วย MIME Type ที่ถูกต้อง (เพื่อบังคับ Header data:...)
+    const blob = new Blob([file], { type: mimeType });
+
+    const reader = new FileReader();
+    reader.readAsDataURL(blob); // ฟังก์ชันนี้จะสร้าง data:MIME;base64,... ให้เองตาม Blob type
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+  });
+};
+
+// --- Helper: ตรวจสอบประเภทไฟล์สำหรับ UI ---
 const getMediaTypeFromFile = (file) => {
     if (!file) return 'unknown';
-    if (file.type.startsWith('image/')) return 'image';
-    if (file.type.startsWith('video/')) return 'video';
-    if (file.type.startsWith('audio/')) return 'audio';
+    const extension = file.name.split('.').pop().toLowerCase();
+    const mimeType = MIME_TYPE_MAP[extension] || file.type;
+
+    if (mimeType.startsWith('image/')) return 'image';
+    if (mimeType.startsWith('video/')) return 'video';
+    if (mimeType.startsWith('audio/')) return 'audio';
     return 'unknown';
 };
 
@@ -124,9 +161,9 @@ export default function ManageCase() {
                         let mType = 'image';
                         
                         // ตรวจสอบจาก Flag หรือ นามสกุลไฟล์
-                        if (item.viewed === 1 || fileUrl.match(/\.(mp4|mov|webm)$/)) {
+                        if (item.viewed === 1 || fileUrl.match(/\.(mp4|mov|webm|avi|mkv)$/)) {
                             mType = 'video';
-                        } else if (fileUrl.match(/\.(mp3|wav|ogg|m4a|aac)$/)) {
+                        } else if (fileUrl.match(/\.(mp3|wav|ogg|m4a|aac|flac)$/)) {
                             mType = 'audio';
                         }
 
@@ -172,7 +209,7 @@ export default function ManageCase() {
     }
   };
 
-  // --- 3. ฟังก์ชันบันทึกข้อมูล (Update) ---
+  // --- 3. ฟังก์ชันบันทึกข้อมูล (TEST MODE: แปลง Base64 เช็คค่าอย่างเดียว ไม่ยิง API) ---
   const handleUpdateImage = async (e) => {
     e.preventDefault();
     
@@ -189,30 +226,63 @@ export default function ManageCase() {
     setIsSubmitting(true);
 
     try {
-        const formData = new FormData();
-        formData.append('file', newImageFile);
-        formData.append('attachmentId', selectedImageToReplace.id); 
-        formData.append('ticketId', currentCase.id);
-        formData.append('reason', reason);
+        console.log("🔄 กำลังเริ่มแปลงไฟล์...");
+
+        // --- 1. แปลงไฟล์เป็น Base64 String ---
+        // ฟังก์ชันนี้จะใช้ MIME_TYPE_MAP เพื่อให้ได้ Header ตรงตาม API Doc
+        const base64String = await fileToBase64(newImageFile);
+        
+        // --- 2. ตรวจสอบผลลัพธ์ (TEST POINT) ---
+        console.log("✅ แปลงไฟล์สำเร็จ! ข้อมูลไฟล์:");
+        console.log("---------------------------------------------");
+        console.log("📂 ชื่อไฟล์:", newImageFile.name);
+        console.log("📏 ขนาดไฟล์ (Original):", newImageFile.size, "bytes");
+        console.log("🔢 ความยาว Base64:", base64String.length, "chars");
+        console.log("✨ Base64 Header (ต้องตรงตาม Doc):", base64String.substring(0, 50) + "...");
+        console.log("✨ Full Base64:", base64String);
+        console.log("---------------------------------------------");
+
+        // แจ้งเตือนเพื่อให้ user ทราบว่าแปลงสำเร็จ (ในโหมด Dev)
+        alert(`TEST MODE: แปลงไฟล์สำเร็จ!\n\nHeader ที่ได้:\n${base64String.substring(0, 40)}...\n\n(เช็คเต็มๆ ได้ใน Console F12)`);
+
+        /* -----------------------------------------------------------
+           ❌ ส่วนนี้ปิดการทำงานไว้ (Commented Out) เพื่อทดสอบ Syntax
+           -----------------------------------------------------------
+        const payload = {
+            image: base64String, // Base64 Data
+            file_name: newImageFile.name.split('.').slice(0, -1).join('.'), 
+            attachmentId: selectedImageToReplace.id,
+            ticketId: currentCase.id,
+            reason: reason
+        };
 
         const response = await fetch('/api/cases/update_image', {
             method: 'POST',
-            body: formData, 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload), 
         });
 
-        const result = await response.json();
-
-        if (response.ok) {
-            setIsSuccess(true);
+        // ตรวจสอบ Response ว่าเป็น JSON หรือ HTML Error
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+             const result = await response.json();
+             if (response.ok) setIsSuccess(true);
+             else throw new Error(result.message || "Update failed");
         } else {
-            throw new Error(result.message || "Update failed");
+             const text = await response.text();
+             console.error("Server HTML Error:", text);
+             throw new Error("Server returned HTML instead of JSON (Check Payload Size)");
         }
+        ----------------------------------------------------------- */
+
+        // จำลองว่าสำเร็จเพื่อให้ UI เปลี่ยนหน้า (เฉพาะตอนเทส)
+        // setIsSuccess(true); 
 
     } catch (error) {
-        console.error("Update Error:", error);
-        alert(`บันทึกไม่สำเร็จ: ${error.message} (Backend อาจยังไม่รองรับไฟล์ประเภทนี้)`);
+        console.error("Conversion Error:", error);
+        alert(`เกิดข้อผิดพลาดในการแปลงไฟล์: ${error.message}`);
     } finally {
-        setIsSubmitting(false);
+        setIsSubmitting(false); // ปลดล็อคปุ่มให้กดใหม่ได้
     }
   };
 
@@ -270,7 +340,6 @@ export default function ManageCase() {
             </button>
       </div>
 
-      {/* ================= NAVBAR DESKTOP ================= */}
       <div className="hidden lg:block sticky top-0 z-40 font-sans">
         <div className="navbar bg-white/95 backdrop-blur-xl px-6 lg:px-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border-b border-slate-50/50 transition-all py-3">
             <div className="navbar-start">
@@ -423,60 +492,40 @@ export default function ManageCase() {
                         </div>
                     ) : (
                         <>
-                        {/* STEP 1: Select (Single Line Indicator Fixed) */}
+                        {/* STEP 1: Select */}
                         {wizardStep === 1 && (
                             <div className="w-full max-w-3xl animate-fade-in">
-                                
-                                {/* --- Main Card Container --- */}
                                 <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 overflow-hidden">
-                                    
                                     <div className="p-5 md:p-8">
-
-                                        {/* Header */}
                                         <div className="text-center mb-8">
                                             <h3 className="text-xl lg:text-2xl font-bold text-slate-800">Step 1: เลือกรายการที่ต้องการแก้ไข</h3>
                                             <p className="text-slate-500 text-sm mt-1">คลิกเลือกรูปภาพ, วิดีโอ หรือไฟล์เสียง</p>
                                         </div>
                                         
-                                        {/* --- Case Info Card --- */}
                                         <div className="bg-slate-100 rounded-2xl p-5 border border-slate-200 mb-8 flex flex-col gap-4">
-                                            {/* Row 1: ID & Status */}
                                             <div className="flex justify-between items-start gap-2"> 
                                                 <div className="flex items-baseline gap-1.5 min-w-0"> 
                                                     <span className="text-slate-400 font-bold text-xs shrink-0">ID:</span>
-                                                    <span className="text-slate-700 font-bold text-sm whitespace-nowrap">
-                                                        {currentCase.id}
-                                                    </span>
+                                                    <span className="text-slate-700 font-bold text-sm whitespace-nowrap">{currentCase.id}</span>
                                                 </div>
                                                 <span className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wide bg-indigo-100 text-indigo-600 border border-indigo-200`}>
                                                     {currentCase.status}
                                                 </span>
                                             </div>
-
-                                            {/* Separator Line */}
                                             <div className="h-px bg-slate-200 w-full"></div>
-
-                                            {/* Row 2: Title & Date */}
                                             <div>
-                                                <h4 className="text-lg font-bold text-slate-800 leading-tight">
-                                                    {currentCase.title}
-                                                </h4>
+                                                <h4 className="text-lg font-bold text-slate-800 leading-tight">{currentCase.title}</h4>
                                                 <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-500">
                                                     <Calendar size={14} className="text-slate-400"/>
                                                     <span>แจ้งเมื่อ: {currentCase.date}</span>
                                                 </div>
                                             </div>
-
-                                            {/* Row 3: Address */}
                                             <div className="bg-white rounded-xl p-3 border border-slate-200/60 flex items-start gap-3 shadow-sm">
                                                 <MapPin size={18} className="text-indigo-500 mt-0.5 shrink-0"/>
-                                                <div className="text-sm text-slate-600 leading-relaxed">
-                                                    {currentCase.department}
-                                                </div>
+                                                <div className="text-sm text-slate-600 leading-relaxed">{currentCase.department}</div>
                                             </div>
                                         </div>
 
-                                        {/* --- Media Section --- */}
                                         <div>
                                             <div className="flex items-center gap-2 mb-4 px-1">
                                                 <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
@@ -485,7 +534,6 @@ export default function ManageCase() {
                                                 <h5 className="font-bold text-slate-800 text-base">รายการไฟล์ประกอบ:</h5>
                                             </div>
 
-                                            {/* Grid Layout */}
                                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                                                 {currentCase.allImages.map((img) => {
                                                     const isSelected = selectedImageToReplace?.id === img.id;
@@ -507,16 +555,10 @@ export default function ManageCase() {
                                                                 }
                                                             `}
                                                         >
-                                                            {/* Media Content */}
                                                             <div className="aspect-video w-full flex items-center justify-center bg-slate-900/5 relative overflow-hidden rounded-t-lg">
                                                                 {img.mediaType === 'video' ? (
                                                                     <div className="relative w-full h-full bg-slate-900 flex items-center justify-center">
-                                                                        <video 
-                                                                            src={img.url} 
-                                                                            className="w-full h-full object-contain bg-black" 
-                                                                            controls
-                                                                            playsInline
-                                                                        />
+                                                                        <video src={img.url} className="w-full h-full object-contain bg-black" controls playsInline />
                                                                     </div>
                                                                 ) : img.mediaType === 'audio' ? (
                                                                     <div className="w-full h-full flex flex-col items-center justify-center bg-amber-50 text-amber-500">
@@ -528,7 +570,6 @@ export default function ManageCase() {
                                                                 )}
                                                             </div>
 
-                                                            {/* Info Strip */}
                                                             <div className={`p-3 flex justify-between items-center ${isSelected ? 'bg-indigo-50' : 'bg-white/50'}`}>
                                                                 <span className={`text-xs font-bold truncate max-w-[70%] ${isSelected ? 'text-indigo-700' : 'text-slate-500'}`}>{img.type}</span>
                                                                 {isSelected && <CheckCircle2 size={18} className="text-indigo-600 animate-[bounceIn_0.3s_ease-out]"/>}
@@ -538,13 +579,11 @@ export default function ManageCase() {
                                                 })}
                                             </div>
                                         </div>
-
-
                                     </div>
                                 </div>
                             </div>
                         )}
-                                                    {/* STEP 2: Upload */}
+                        {/* STEP 2: Upload */}
                             {wizardStep === 2 && (
                                 <div className="w-full max-w-xl mx-auto animate-fade-in">
                                     <div className="text-center mb-6 lg:mb-8">
@@ -552,7 +591,6 @@ export default function ManageCase() {
                                         <p className="text-slate-500 text-sm">เลือกไฟล์เพื่อแทนที่รายการเดิม</p>
                                     </div>
 
-                                    {/* --- ส่วนแสดงไฟล์เก่า --- */}
                                     {selectedImageToReplace && (
                                         <div className="mb-6 lg:mb-8 w-full max-w-sm mx-auto flex flex-col items-center p-4 lg:p-5 bg-orange-50 rounded-3xl border border-orange-100 text-orange-700/70 shadow-sm">
                                             <p className="text-xs font-bold mb-3 flex items-center gap-1 uppercase tracking-wider">
@@ -586,7 +624,6 @@ export default function ManageCase() {
                                         </div>
                                     )}
                                     
-                                    {/* --- ส่วนอัปโหลดไฟล์ใหม่ --- */}
                                     <label className={`group relative flex flex-col items-center justify-center w-full min-h-[18rem] lg:min-h-[22rem] h-auto p-4 lg:p-6 rounded-3xl border-3 border-dashed transition-all duration-300 cursor-pointer overflow-hidden ${newImageFile ? 'border-green-400 bg-white' : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-100/50'}`}>
                                         <input 
                                             type="file" 
@@ -654,7 +691,6 @@ export default function ManageCase() {
                                     <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">Step 3: สรุปผลและระบุเหตุผล</h3>
                                     <p className="text-slate-500 mb-6 lg:mb-8 text-xs lg:text-sm">ระบุสาเหตุในการเปลี่ยนแปลงไฟล์ <span className="font-bold text-indigo-600">{selectedImageToReplace?.type}</span></p>
                                     
-                                    {/* Preview New File */}
                                     {newImageFile && (
                                         <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col items-center">
                                             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">ไฟล์ใหม่ที่จะใช้งาน</p>
@@ -696,10 +732,9 @@ export default function ManageCase() {
                     )}
                 </div>
 
-                {/* --- FOOTER BUTTONS (Buttons side-by-side) --- */}
+                {/* --- FOOTER BUTTONS --- */}
                 {!isSuccess && (
                     <div className="flex flex-row justify-between items-center mt-8 lg:mt-10 pt-6 border-t border-slate-100 gap-4">
-                        {/* Left Button (Cancel/Back) */}
                         {wizardStep === 1 ? (
                             <button 
                                 onClick={resetForm} 
@@ -720,7 +755,6 @@ export default function ManageCase() {
                             </button>
                         )}
 
-                        {/* Right Button (Next/Submit) */}
                         {wizardStep < 3 ? (
                             <button 
                                 onClick={() => setWizardStep(p => p + 1)} 
