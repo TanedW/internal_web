@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '@/firebaseConfig';
 import '@fortawesome/fontawesome-free/css/all.css';
-import { LogOut } from 'lucide-react'; // เพิ่ม import ไอคอน
+import { LogOut } from 'lucide-react';
 
 export default function RichMenuDashboard() {
   const params = useParams();
@@ -27,8 +27,28 @@ export default function RichMenuDashboard() {
   const fileInputRef = useRef(null);
   const dropZoneRef = useRef(null);
 
-  // Helper function for Avatar
   const getAvatarUrl = (name) => `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'Admin')}&background=0D9&color=fff&size=128`;
+
+  // ==========================================
+  // HELPER FUNCTIONS (เหมือน PHP)
+  // ==========================================
+
+  const getIcon = (name) => {
+    const icons = {
+      check: <i className="fa-solid fa-check"></i>,
+      x: <i className="fa-solid fa-xmark"></i>,
+      upload: <i className="fa-solid fa-upload"></i>,
+      trash: <i className="fa-solid fa-trash"></i>,
+      refresh: <i className="fa-solid fa-sync"></i>,
+      image: <i className="fa-regular fa-image"></i>,
+      back: <i className="fa-solid fa-arrow-left"></i>,
+    };
+    return icons[name] || null;
+  };
+
+  // ==========================================
+  // AUTH & DATA FETCHING
+  // ==========================================
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -56,15 +76,16 @@ export default function RichMenuDashboard() {
 
       const currentRes = await fetch(`/api/richmenu/current?botKey=${botKey}`);
       const currentData = await currentRes.json();
-      setCurrentMenuId(currentData.currentMenuId || null);
+      const activeId = currentData.currentMenuId || null;
+      setCurrentMenuId(activeId);
 
       const listRes = await fetch(`/api/richmenu/list?botKey=${botKey}`);
       const listData = await listRes.json();
 
       if (listData.richmenus && Array.isArray(listData.richmenus)) {
         const sorted = [...listData.richmenus].sort((a, b) => {
-          if (a.richMenuId === currentData.currentMenuId) return -1;
-          if (b.richMenuId === currentData.currentMenuId) return 1;
+          if (a.richMenuId === activeId) return -1;
+          if (b.richMenuId === activeId) return 1;
           return 0;
         });
         setMenus(sorted);
@@ -75,45 +96,59 @@ export default function RichMenuDashboard() {
     }
   }
 
-  function setupDragDrop() {
+  // ==========================================
+  // DRAG & DROP HANDLER
+  // ==========================================
+
+  useEffect(() => {
     const zone = dropZoneRef.current;
     if (!zone) return;
 
-    zone.addEventListener('dragover', (e) => {
+    const handleDragOver = (e) => {
       e.preventDefault();
-      zone.classList.add('dragover');
-    });
+      zone.classList.add('php-upload-zone-active');
+    };
 
-    zone.addEventListener('dragleave', () => {
-      zone.classList.remove('dragover');
-    });
+    const handleDragLeave = () => {
+      zone.classList.remove('php-upload-zone-active');
+    };
 
-    zone.addEventListener('drop', (e) => {
+    const handleDrop = (e) => {
       e.preventDefault();
-      zone.classList.remove('dragover');
-
+      zone.classList.remove('php-upload-zone-active');
       const files = e.dataTransfer?.files;
-      if (files?.length) {
-        const file = files[0];
-        if (file.type.includes('image')) {
-          setSelectedFile(file);
-          setFileDisplay(`เลือกไฟล์: ${file.name}`);
-        }
-      }
-    });
-  }
+      if (files?.length) processFile(files[0]);
+    };
 
-  useEffect(() => {
-    setupDragDrop();
+    zone.addEventListener('dragover', handleDragOver);
+    zone.addEventListener('dragleave', handleDragLeave);
+    zone.addEventListener('drop', handleDrop);
+
+    return () => {
+      zone.removeEventListener('dragover', handleDragOver);
+      zone.removeEventListener('dragleave', handleDragLeave);
+      zone.removeEventListener('drop', handleDrop);
+    };
   }, []);
 
-  function handleFileChange(e) {
-    const file = e.target.files?.[0];
-    if (file) {
+  // ==========================================
+  // FILE HANDLERS
+  // ==========================================
+
+  function processFile(file) {
+    if (file && file.type.includes('image')) {
       setSelectedFile(file);
       setFileDisplay(`เลือกไฟล์: ${file.name}`);
     }
   }
+
+  function handleFileChange(e) {
+    processFile(e.target.files?.[0]);
+  }
+
+  // ==========================================
+  // ACTION HANDLERS (เหมือน PHP)
+  // ==========================================
 
   async function handleUpload(e) {
     e.preventDefault();
@@ -128,19 +163,21 @@ export default function RichMenuDashboard() {
       return;
     }
 
+    if (!window.confirm('ยืนยันการเปลี่ยนเมนูสำหรับผู้ใช้ทุกคน?')) return;
+
     try {
       setUploading(true);
       const formData = new FormData();
       formData.append('botKey', botKey);
-      formData.append('menuName', menuName || `Traffy_${botKey}_${new Date().toISOString().slice(0, 19).replace(/[-:]/g, '')}`);
+      const dateStr = new Date().toISOString().slice(0, 19);
+      const timestamp = dateStr.replace(/[-:]/g, '');
+      formData.append('menuName', menuName || `Traffy_${botKey}_${timestamp}`);
       formData.append('menuImage', selectedFile);
 
       const response = await fetch('/api/richmenu/upload', {
         method: 'POST',
         body: formData,
       });
-
-      const data = await response.json();
 
       if (response.ok) {
         const displayName = menuName || `Traffy_${botKey}`;
@@ -149,9 +186,7 @@ export default function RichMenuDashboard() {
         setSelectedFile(null);
         setFileDisplay('');
         if (fileInputRef.current) fileInputRef.current.value = '';
-
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        fetchData();
+        setTimeout(fetchData, 1000);
       } else {
         setAlert({ type: 'error', message: 'ไม่สามารถอัปโหลดเมนูได้' });
       }
@@ -163,7 +198,7 @@ export default function RichMenuDashboard() {
   }
 
   async function handleSwitch(menuId) {
-    if (!confirm('ต้องการเปลี่ยนไปใช้เมนูนี้หรือไม่?')) return;
+    if (!window.confirm('ต้องการเปลี่ยนไปใช้เมนูนี้หรือไม่?')) return;
 
     try {
       const response = await fetch('/api/richmenu/switch', {
@@ -174,8 +209,7 @@ export default function RichMenuDashboard() {
 
       if (response.ok) {
         setAlert({ type: 'success', message: 'เปลี่ยนเมนูสำเร็จ' });
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        fetchData();
+        setTimeout(fetchData, 500);
       } else {
         setAlert({ type: 'error', message: 'ไม่สามารถเปลี่ยนเมนูได้' });
       }
@@ -185,7 +219,7 @@ export default function RichMenuDashboard() {
   }
 
   async function handleDelete(menuId) {
-    if (!confirm('ยืนยันการลบเมนูนี้อย่างถาวร?')) return;
+    if (!window.confirm('ยืนยันการลบเมนูนี้อย่างถาวร?')) return;
 
     try {
       const response = await fetch('/api/richmenu/delete', {
@@ -196,8 +230,7 @@ export default function RichMenuDashboard() {
 
       if (response.ok) {
         setAlert({ type: 'success', message: 'ลบเมนูเรียบร้อยแล้ว' });
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        fetchData();
+        setTimeout(fetchData, 500);
       } else {
         setAlert({ type: 'error', message: 'ไม่สามารถลบเมนูได้' });
       }
@@ -207,13 +240,9 @@ export default function RichMenuDashboard() {
   }
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      localStorage.removeItem('current_admin_id');
-      router.push('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+    await signOut(auth);
+    localStorage.removeItem('current_admin_id');
+    router.push('/');
   };
 
   if (loading) {
@@ -231,19 +260,358 @@ export default function RichMenuDashboard() {
       <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
       <script src="https://cdn.tailwindcss.com"></script>
       
-      {/* Styles */}
+      {/* ==================== PHP THEME STYLES ==================== */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600&display=swap');
-        .sarabun-font { font-family: 'Sarabun', sans-serif; }
-        .alert { padding: 12px 16px; border-radius: 8px; display: flex; align-items: center; gap: 12px; font-size: 14px; animation: slideDown 0.3s ease-out; }
-        .alert-success { background: #E8F5E9; color: #1B5E20; border: 1px solid #C8E6C9; }
-        .alert-error { background: #FFEBEE; color: #B71C1C; border: 1px solid #FFCDD2; }
-        @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .dragover { background: #f0fdf4; border-color: #22c55e !important; }
-        .menu-item.active { border: 1px solid #06C755; box-shadow: 0 0 0 1px #06C755; }
+
+        /* CSS Variables (เหมือน PHP) */
+        :root {
+          --php-primary: #06C755;
+          --php-primary-hover: #05a546;
+          --php-bg-card: #FFFFFF;
+          --php-text-main: #2C3E50;
+          --php-text-sub: #7F8C8D;
+          --php-border: #E8ECEF;
+          --php-danger: #E74C3C;
+          --php-shadow: 0 2px 8px rgba(0,0,0,0.06);
+          --php-radius: 12px;
+        }
+
+        .php-theme {
+          font-family: 'Sarabun', sans-serif;
+          color: var(--php-text-main);
+        }
+
+        .php-container {
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+
+        /* ALERTS */
+        .php-alert {
+          padding: 12px 16px;
+          border-radius: 8px;
+          margin-bottom: 24px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-size: 14px;
+          animation: slideDown 0.3s ease-out;
+        }
+        .php-alert-success { 
+          background: #E8F5E9; 
+          color: #1B5E20; 
+          border: 1px solid #C8E6C9; 
+        }
+        .php-alert-error { 
+          background: #FFEBEE; 
+          color: #B71C1C; 
+          border: 1px solid #FFCDD2; 
+        }
+        @keyframes slideDown { 
+          from { transform: translateY(-10px); opacity: 0; } 
+          to { transform: translateY(0); opacity: 1; } 
+        }
+
+        /* CARDS */
+        .php-card {
+          background: var(--php-bg-card);
+          border-radius: var(--php-radius);
+          box-shadow: var(--php-shadow);
+          padding: 24px;
+          margin-bottom: 24px;
+        }
+        .php-card-header {
+          margin-bottom: 20px;
+          padding-bottom: 15px;
+          border-bottom: 1px solid var(--php-border);
+        }
+        .php-card-title {
+          font-size: 16px;
+          font-weight: 600;
+          margin: 0;
+          color: var(--php-text-main);
+        }
+
+        /* FORM */
+        .php-input-label { 
+          display: block; 
+          margin-bottom: 8px; 
+          font-weight: 500; 
+          font-size: 14px; 
+          color: var(--php-text-main); 
+        }
+        .php-form-control {
+          width: 100%; 
+          padding: 12px; 
+          border: 1px solid var(--php-border);
+          border-radius: 8px; 
+          font-size: 14px; 
+          font-family: 'Sarabun', sans-serif; 
+          transition: 0.2s; 
+          background: #fff;
+        }
+        .php-form-control:focus { 
+          outline: none; 
+          border-color: var(--php-primary); 
+          box-shadow: 0 0 0 3px rgba(6, 199, 85, 0.1); 
+        }
+
+        /* UPLOAD ZONE */
+        .php-upload-zone {
+          border: 2px dashed var(--php-border); 
+          border-radius: var(--php-radius); 
+          padding: 40px 20px;
+          text-align: center; 
+          cursor: pointer; 
+          transition: 0.2s; 
+          position: relative;
+        }
+        .php-upload-zone:hover { 
+          border-color: var(--php-primary); 
+          background: #F9FBF9; 
+        }
+        .php-upload-zone-active { 
+          border-color: var(--php-primary) !important; 
+          background: #F9FBF9 !important; 
+        }
+        .php-upload-text { 
+          font-weight: 500; 
+          margin-bottom: 4px; 
+          display: block; 
+        }
+        .php-upload-sub { 
+          font-size: 12px; 
+          color: var(--php-text-sub); 
+        }
+        .php-file-selected { 
+          color: var(--php-primary); 
+          font-weight: 600; 
+          margin-top: 10px; 
+          display: block; 
+        }
+
+        /* BUTTONS */
+        .php-btn-primary {
+          background: var(--php-primary); 
+          color: white; 
+          border: none; 
+          width: 100%; 
+          padding: 14px;
+          border-radius: 8px; 
+          font-size: 15px; 
+          font-weight: 500; 
+          cursor: pointer; 
+          margin-top: 16px;
+          transition: background 0.2s; 
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          gap: 8px;
+          font-family: 'Sarabun', sans-serif;
+        }
+        .php-btn-primary:hover { background: var(--php-primary-hover); }
+        .php-btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        .php-btn-secondary {
+          background: transparent; 
+          border: 1px solid var(--php-border); 
+          color: var(--php-text-sub);
+          width: 100%; 
+          padding: 12px; 
+          border-radius: 8px; 
+          cursor: pointer; 
+          font-size: 14px;
+          font-weight: 500; 
+          transition: 0.2s; 
+          margin-top: 20px; 
+          display: flex; 
+          align-items: center;
+          justify-content: center; 
+          gap: 8px; 
+          font-family: 'Sarabun', sans-serif;
+        }
+        .php-btn-secondary:hover { 
+          background: #fff; 
+          border-color: var(--php-primary); 
+          color: var(--php-primary); 
+        }
+
+        /* MENU LIST */
+        .php-menu-list { 
+          display: grid; 
+          gap: 16px; 
+          grid-template-columns: 1fr; 
+        }
+        @media (min-width: 768px) { 
+          .php-menu-list { 
+            grid-template-columns: repeat(2, 1fr); 
+          } 
+        }
+        
+        .php-menu-item {
+          background: #fff; 
+          border: 1px solid var(--php-border); 
+          border-radius: 10px; 
+          padding: 16px;
+          display: flex; 
+          flex-direction: column; 
+          gap: 12px; 
+          transition: 0.2s;
+        }
+        .php-menu-item.active { 
+          border-color: var(--php-primary); 
+          background: #fff; 
+          box-shadow: 0 0 0 1px var(--php-primary); 
+        }
+        
+        .php-menu-status { 
+          display: flex; 
+          justify-content: space-between; 
+          align-items: flex-start; 
+        }
+        .php-status-badge {
+          font-size: 11px; 
+          font-weight: 600; 
+          padding: 4px 8px; 
+          border-radius: 20px;
+          text-transform: uppercase; 
+          letter-spacing: 0.5px;
+        }
+        .php-status-active { 
+          background: #E8F5E9; 
+          color: var(--php-primary); 
+        }
+        .php-status-inactive { 
+          background: #ECEFF1; 
+          color: var(--php-text-sub); 
+        }
+
+        .php-menu-details h3 { 
+          margin: 0 0 4px 0; 
+          font-size: 15px; 
+          font-weight: 600; 
+        }
+        .php-menu-details p { 
+          margin: 0; 
+          font-size: 12px; 
+          color: var(--php-text-sub); 
+        }
+        .php-menu-id {
+          font-family: 'Courier New', monospace; 
+          font-size: 11px; 
+          background: #F1F2F6;
+          padding: 4px 6px; 
+          border-radius: 4px; 
+          color: #555; 
+          margin-top: 6px; 
+          display: inline-block; 
+          word-break: break-all;
+        }
+
+        .php-menu-actions { 
+          display: flex; 
+          gap: 8px; 
+          margin-top: 8px; 
+          padding-top: 12px; 
+          border-top: 1px solid #f0f0f0; 
+        }
+        .php-btn-action {
+          flex: 1; 
+          padding: 8px 12px; 
+          border-radius: 6px; 
+          font-size: 13px; 
+          border: 1px solid transparent;
+          cursor: pointer; 
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          gap: 6px;
+          transition: 0.2s; 
+          font-weight: 500; 
+          font-family: 'Sarabun', sans-serif;
+        }
+        .php-btn-switch { 
+          background: #fff; 
+          border-color: var(--php-border); 
+          color: var(--php-text-main); 
+        }
+        .php-btn-switch:hover { 
+          background: #f8f9fa; 
+          border-color: #ccc; 
+        }
+        .php-btn-delete { 
+          background: #fff; 
+          border-color: #FFEBEE; 
+          color: var(--php-danger); 
+        }
+        .php-btn-delete:hover { 
+          background: #FFEBEE; 
+        }
+        
+        .php-btn-disabled { 
+          opacity: 0.5; 
+          cursor: default; 
+          background: #E8F5E9; 
+          border-color: transparent; 
+          color: var(--php-primary); 
+        }
+        
+        .php-empty-state { 
+          text-align: center; 
+          padding: 40px; 
+          color: var(--php-text-sub); 
+        }
+
+        .php-nav-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: #fff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .php-btn-back {
+            text-decoration: none;
+            color: var(--php-text-main);
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: 0.2s;
+        }
+        .php-btn-back:hover { color: var(--php-primary); }
+        .php-bot-badge {
+            font-size: 13px;
+            background: #E8F5E9;
+            color: var(--php-primary);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        .php-main-header {
+            text-align: center;
+            padding: 10px 0 25px 0;
+        }
+        .php-main-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+            color: var(--php-text-main);
+        }
+        .php-main-header p {
+            margin: 0;
+            color: var(--php-text-sub);
+            font-size: 14px;
+        }
       `}</style>
 
-      {/* ================= NAVBAR MOBILE (Bottom) ================= */}
+      {/* ================= NAVBAR (UNCHANGED) ================= */}
+      {/* Mobile Bottom Nav */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.1)] bg-white">
         <div className="flex w-full h-16 border-t border-gray-100">
           <Link href="/manage" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50">
@@ -254,8 +622,6 @@ export default function RichMenuDashboard() {
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
             <span className="text-[10px] font-bold">Case</span>
           </Link>
-          
-          {/* Active State (Menu) -> สีเทาเข้ม bg-slate-200 */}
           <Link href="/manage-richmenu" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-900 bg-slate-200">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"></path></svg>
             <span className="text-[10px] font-bold">Menu</span>
@@ -263,7 +629,7 @@ export default function RichMenuDashboard() {
         </div>
       </div>
 
-       {/* ================= NAVBAR MOBILE (Top) ================= */}
+      {/* Mobile Top Nav */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-sm z-50 px-4 flex justify-between items-center border-b border-gray-100 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="avatar">
@@ -281,7 +647,7 @@ export default function RichMenuDashboard() {
             </button>
       </div>
 
-      {/* ================= NAVBAR DESKTOP ================= */}
+      {/* Desktop Nav */}
       <div className="hidden lg:block sticky top-0 z-40 font-sans">
         <div className="navbar bg-white/95 backdrop-blur-xl px-6 lg:px-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border-b border-slate-50/50 transition-all py-3">
             <div className="navbar-start">
@@ -297,7 +663,6 @@ export default function RichMenuDashboard() {
                     </div>
                 </div>
             </div>
-            
             <div className="navbar-center">
                 <ul className="menu menu-horizontal px-1 gap-3">
                     <li><Link href="/manage" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">จัดการ Email</Link></li>
@@ -305,7 +670,6 @@ export default function RichMenuDashboard() {
                     <li><Link href="/manage-richmenu" className="!bg-slate-900 !text-white shadow-lg shadow-slate-400/50 rounded-full px-6 py-2.5 font-bold hover:!bg-slate-800 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">จัดการ Menu</Link></li>
                 </ul>
             </div>
-            
             <div className="navbar-end">
                 <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-2 rounded-xl hover:bg-red-50 transition-all duration-200">
                     <div className="p-1.5 bg-red-100/50 rounded-lg group-hover:bg-red-100 transition-colors">
@@ -317,170 +681,134 @@ export default function RichMenuDashboard() {
         </div>
       </div>
 
-      {/* ================= CONTENT ================= */}
-      <div className="mt-16 lg:mt-0 pt-6">
-        <div className="max-w-3xl w-full mx-auto px-4 sarabun-font">
+      {/* ================= PHP THEME CONTENT ================= */}
+      <div className="mt-16 lg:mt-0 pt-6 php-theme">
+        <div className="php-container">
           
-          {/* Navigation Back Link */}
-          <div className="flex justify-between items-center mb-6 bg-white p-3 rounded-lg shadow-sm border border-slate-100">
-            <Link href="/manage-richmenu" className="text-slate-600 hover:text-slate-800 font-medium text-sm flex items-center gap-2">
-              <i className="fa-solid fa-arrow-left"></i> กลับหน้าเลือกบอท
+          {/* Navigation Bar */}
+          <div className="php-nav-bar">
+            <Link href="/manage-richmenu" className="php-btn-back">
+                {getIcon('back')} กลับหน้าเลือกบอท
             </Link>
-            {bot && <div className="text-xs font-bold bg-green-50 text-green-600 px-3 py-1 rounded-full">
-              กำลังจัดการ: {bot.name}
-            </div>}
+            <div className="php-bot-badge">
+                กำลังจัดการ: {bot?.name || botKey}
+            </div>
           </div>
 
           {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-slate-800 mb-2">Traffy Rich Menu Manager</h1>
-            <p className="text-slate-500 text-sm">ระบบจัดการเมนู LINE Official Account</p>
+          <div className="php-main-header">
+              <h1>Traffy Rich Menu Manager</h1>
+              <p>ระบบจัดการเมนู LINE Official Account</p>
           </div>
 
           {/* Alert */}
           {alert && (
-            <div className={`alert mb-6 ${alert.type === 'success' ? 'alert-success' : 'alert-error'}`}>
-              <i className={`fa-solid ${alert.type === 'success' ? 'fa-check' : 'fa-exclamation-circle'}`}></i>
+            <div className={`php-alert ${alert.type === 'success' ? 'php-alert-success' : 'php-alert-error'}`}>
+              {getIcon(alert.type === 'success' ? 'check' : 'x')}
               <span>{alert.message}</span>
             </div>
           )}
 
           {/* Upload Card */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 mb-6">
-            <h2 className="text-lg font-semibold text-slate-800 mb-6 pb-4 border-b border-slate-200">
-              สร้างเมนูใหม่ (Upload New)
-            </h2>
+          <section className="php-card">
+            <div className="php-card-header">
+                <h2 className="php-card-title">สร้างเมนูใหม่ (Upload New)</h2>
+            </div>
+            <form onSubmit={handleUpload}>
+                <div className="mb-5">
+                    <label className="php-input-label">ชื่อเมนู (Menu Name)</label>
+                    <input 
+                      type="text" 
+                      className="php-form-control" 
+                      placeholder="ตั้งชื่อเมนู เช่น: เมนูหลัก 2024"
+                      value={menuName}
+                      onChange={(e) => setMenuName(e.target.value)}
+                      disabled={uploading}
+                    />
+                </div>
 
-            <form onSubmit={handleUpload} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  ชื่อเมนู (Menu Name)
-                </label>
-                <input
-                  type="text"
-                  value={menuName}
-                  onChange={(e) => setMenuName(e.target.value)}
-                  placeholder="ตั้งชื่อเมนู เช่น: เมนูหลัก 2024"
-                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
-                  disabled={uploading}
-                />
-              </div>
-
-              <div
-                ref={dropZoneRef}
-                className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center cursor-pointer hover:border-green-400 transition-colors"
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  onChange={handleFileChange}
-                  accept=".jpg,.jpeg"
-                  className="hidden"
-                  disabled={uploading}
-                />
-                <label htmlFor="fileInput" className="cursor-pointer block" onClick={() => fileInputRef.current.click()}>
-                  <div className="text-4xl mb-3">
-                    <i className="fa-regular fa-image text-slate-300"></i>
-                  </div>
-                  <span className="block text-slate-700 font-medium text-sm">
-                    แตะเพื่อเลือกรูปภาพ หรือลากไฟล์มาวาง
-                  </span>
-                  <div className="text-xs text-slate-500 mt-2">
-                    รองรับไฟล์ .jpg ขนาด 2500×843 px (Max 1MB)
-                  </div>
-                  {fileDisplay && (
-                    <div className="text-xs text-green-600 font-medium mt-3">
-                      ✓ {fileDisplay}
+                <div className="php-upload-zone" ref={dropZoneRef}>
+                    <input 
+                      type="file" 
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                      accept=".jpg,.jpeg" 
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      disabled={uploading}
+                    />
+                    <div className="flex flex-col items-center">
+                        <div className="mb-2 text-4xl text-slate-300">{getIcon('image')}</div>
+                        <span className="php-upload-text">แตะเพื่อเลือกรูปภาพ หรือลากไฟล์มาวาง</span>
+                        <div className="php-upload-sub">รองรับไฟล์ .jpg ขนาด 2500x843 px (Max 1MB)</div>
+                        {fileDisplay && <div className="php-file-selected">{fileDisplay}</div>}
                     </div>
-                  )}
-                </label>
-              </div>
+                </div>
 
-              <button
-                type="submit"
-                disabled={uploading}
-                className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium py-3 rounded-lg transition-all text-sm flex items-center justify-center gap-2"
-              >
-                <i className="fa-solid fa-upload"></i>
-                {uploading ? '⏳ กำลังอัปโหลด...' : '📤 อัปโหลด'}
-              </button>
+                <button type="submit" className="php-btn-primary" disabled={uploading}>
+                    {getIcon('upload')}
+                    {uploading ? 'กำลังอัปโหลด...' : 'อัปโหลดและใช้งานทันที'}
+                </button>
             </form>
-          </div>
+          </section>
 
-          {/* Menu List Card */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-            <h2 className="text-lg font-semibold text-slate-800 mb-6 pb-4 border-b border-slate-200">
-              ประวัติเมนู (History)
-            </h2>
+          {/* History Card */}
+          <section className="php-card">
+            <div className="php-card-header">
+                <h2 className="php-card-title">ประวัติเมนูของบอทนี้ (History)</h2>
+            </div>
 
             {menus.length > 0 ? (
-              <>
-                <div className="grid gap-4 md:grid-cols-2">
-                  {visibleMenus.map((menu) => {
-                    const isCurrent = menu.richMenuId === currentMenuId;
-                    return (
-                      <div
-                        key={menu.richMenuId}
-                        className={`menu-item p-4 rounded-lg border transition-all ${
-                          isCurrent ? 'active bg-white' : 'bg-slate-50 border-slate-200'
-                        }`}
-                      >
-                        <div className="flex justify-between items-start mb-3">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-slate-800 text-sm">{menu.name}</h3>
-                            <p className="text-xs text-slate-600 mt-1">{menu.chatBarText}</p>
-                            <div className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded mt-2 font-mono break-all w-fit">
-                              {menu.richMenuId}
-                            </div>
-                          </div>
-                          <span className={`text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap ml-2 ${
-                            isCurrent ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'
-                          }`}>
-                            {isCurrent ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
+                <>
+                <div className="php-menu-list">
+                    {visibleMenus.map((menu) => {
+                        const isCurrent = menu.richMenuId === currentMenuId;
+                        return (
+                            <div key={menu.richMenuId} className={`php-menu-item ${isCurrent ? 'active' : ''}`}>
+                                <div className="php-menu-status">
+                                    <div className="php-menu-details">
+                                        <h3>{menu.name}</h3>
+                                        <p>{menu.chatBarText}</p>
+                                        <div className="php-menu-id">{menu.richMenuId}</div>
+                                    </div>
+                                    <span className={`php-status-badge ${isCurrent ? 'php-status-active' : 'php-status-inactive'}`}>
+                                        {isCurrent ? 'Active' : 'Inactive'}
+                                    </span>
+                                </div>
 
-                        {!isCurrent ? (
-                          <div className="flex gap-2 mt-3 pt-3 border-t border-slate-200">
-                            <button
-                              onClick={() => handleSwitch(menu.richMenuId)}
-                              className="flex-1 bg-white hover:bg-green-50 text-green-600 border border-green-200 py-2 rounded text-xs font-medium flex items-center justify-center gap-1"
-                            >
-                              <i className="fa-solid fa-sync"></i> ใช้เมนูนี้
-                            </button>
-                            <button
-                              onClick={() => handleDelete(menu.richMenuId)}
-                              className="flex-1 bg-white hover:bg-red-50 text-red-600 border border-red-200 py-2 rounded text-xs font-medium flex items-center justify-center gap-1"
-                            >
-                              <i className="fa-solid fa-trash"></i> ลบ
-                            </button>
-                          </div>
-                        ) : (
-                          <button disabled className="w-full bg-green-100 text-green-600 py-2 rounded text-xs font-medium mt-3 pt-3 border-t border-slate-200 flex items-center justify-center gap-1">
-                            <i className="fa-solid fa-check"></i> ใช้งานอยู่
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
+                                {!isCurrent ? (
+                                    <div className="php-menu-actions">
+                                        <button onClick={() => handleSwitch(menu.richMenuId)} className="php-btn-action php-btn-switch">
+                                            {getIcon('refresh')} ใช้เมนูนี้
+                                        </button>
+                                        <button onClick={() => handleDelete(menu.richMenuId)} className="php-btn-action php-btn-delete">
+                                            {getIcon('trash')} ลบ
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="php-menu-actions">
+                                        <button disabled className="php-btn-action php-btn-disabled">
+                                            {getIcon('check')} ใช้งานอยู่
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
 
                 {menus.length > 6 && !showAllMenus && (
-                  <button
-                    onClick={() => setShowAllMenus(true)}
-                    className="w-full mt-4 py-2 border border-slate-200 text-slate-600 hover:text-slate-800 font-medium text-sm rounded-lg hover:bg-slate-50 transition"
-                  >
-                    ดูเพิ่มเติม (อีก {menus.length - 6} รายการ) ▼
-                  </button>
+                    <button onClick={() => setShowAllMenus(true)} className="php-btn-secondary">
+                        ดูเพิ่มเติม (อีก {menus.length - 6} รายการ) ▼
+                    </button>
                 )}
-              </>
+                </>
             ) : (
-              <div className="text-center py-12">
-                <i className="fa-regular fa-image text-4xl text-slate-300 mb-3 block"></i>
-                <p className="text-slate-500 text-sm">ไม่พบประวัติเมนูในระบบ</p>
-              </div>
+                <div className="php-empty-state">
+                    <div className="mb-2 text-5xl text-slate-300">{getIcon('image')}</div>
+                    <p>ไม่พบประวัติเมนูในระบบ</p>
+                </div>
             )}
-          </div>
+          </section>
 
         </div>
       </div>
