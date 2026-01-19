@@ -526,8 +526,8 @@ export default function Manage() {
                         value={newRole}
                         onChange={(e) => setNewRole(e.target.value)}
                     >
-                        <option value="admin">SuperAdmin (Full Access + Can Delete)</option>
-                        <option value="editor">Editor (Full Access - No Delete)</option>
+                        {/* <option value="admin">SuperAdmin (Full Access + Can Delete)</option>
+                        <option value="editor">Editor (Full Access - No Delete)</option> */}
                         <option value="editor_manage_email">Admin Email </option>
                         <option value="editor_manage_case">Admin Case </option>
                         <option value="editor_manage_menu">Admin Menu </option>
