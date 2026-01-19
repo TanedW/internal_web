@@ -539,17 +539,6 @@ export default function ManageCase() {
                                             </div>
                                         </div>
 
-                                        {/* Selection Indicator (Fixed: Single Line) */}
-                                        <div className={`mt-8 transition-all duration-300 transform ${selectedImageToReplace ? 'opacity-100 translate-y-0 h-auto' : 'opacity-0 translate-y-2 h-0 overflow-hidden'}`}>
-                                            <div className="bg-slate-800 text-white px-4 py-3 rounded-xl shadow-lg flex items-center justify-center gap-3">
-                                                <CheckCircle2 size={20} className="text-emerald-400 shrink-0" strokeWidth={3} />
-                                                {/* [EDIT] บังคับ flex-row เพื่อให้อยู่บรรทัดเดียวเสมอ */}
-                                                <div className="flex flex-row items-center gap-2 text-sm">
-                                                    <span className="font-medium text-slate-300 whitespace-nowrap">คุณเลือกแก้ไข:</span>
-                                                    <span className="font-bold text-white whitespace-nowrap">{selectedImageToReplace?.type}</span>
-                                                </div>
-                                            </div>
-                                        </div>
 
                                     </div>
                                 </div>
