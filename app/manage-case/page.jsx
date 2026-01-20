@@ -13,7 +13,7 @@ import { auth } from "../../firebaseConfig";
 
 // --- Config: MIME Types ตามเอกสาร API  ---
 const MIME_TYPE_MAP = {
-  // Images [cite: 30]
+  // Images
   'jpg': 'image/jpeg',
   'jpeg': 'image/jpeg',
   'png': 'image/png',
@@ -24,13 +24,13 @@ const MIME_TYPE_MAP = {
   'heif': 'image/heif',
   'ico': 'image/x-icon',
   'tiff': 'image/tiff',
-  // Videos [cite: 31]
+  // Videos
   'mp4': 'video/mp4',
   'mov': 'video/quicktime',
   'avi': 'video/x-msvideo',
   'mkv': 'video/x-matroska',
   'wmv': 'video/x-ms-wmv',
-  // Audio [cite: 31]
+  // Audio
   'mp3': 'audio/mpeg',
   'wav': 'audio/wav',
   'ogg': 'audio/ogg',
@@ -209,10 +209,11 @@ export default function ManageCase() {
     }
   };
 
-  // --- 3. ฟังก์ชันบันทึกข้อมูล (TEST MODE: แปลง Base64 เช็คค่าอย่างเดียว ไม่ยิง API) ---
+  // --- 3. ฟังก์ชันบันทึกข้อมูล (อัปโหลดจริง + บันทึก LocalStorage) ---
   const handleUpdateImage = async (e) => {
     e.preventDefault();
     
+    // Validation
     if (!selectedImageToReplace) {
         alert("กรุณาเลือกรายการที่ต้องการแก้ไขในขั้นตอนที่ 1");
         setWizardStep(1);
@@ -223,66 +224,96 @@ export default function ManageCase() {
         return; 
     }
     
+    // ตรวจสอบ URL API
+    const uploadApiUrl = process.env.NEXT_PUBLIC_FILE_UPLOAD_API_URL;
+    if (!uploadApiUrl) {
+        alert("Configuration Error: NEXT_PUBLIC_FILE_UPLOAD_API_URL not found in .env");
+        return;
+    }
+    const dbManageUrl = process.env.NEXT_PUBLIC_DB_MANAGE_CASE_API_URL;
+    if (!dbManageUrl) {
+         alert("Configuration Error: NEXT_PUBLIC_DB_MANAGE_CASE_API_URL not found in .env");
+         return;
+    }
+    
+
     setIsSubmitting(true);
 
     try {
-        console.log("🔄 กำลังเริ่มแปลงไฟล์...");
+        console.log("🔄 กำลังเตรียมข้อมูลสำหรับอัปโหลด...");
 
-        // --- 1. แปลงไฟล์เป็น Base64 String ---
-        // ฟังก์ชันนี้จะใช้ MIME_TYPE_MAP เพื่อให้ได้ Header ตรงตาม API Doc
+        // 1. แปลงไฟล์เป็น Base64
         const base64String = await fileToBase64(newImageFile);
         
-        // --- 2. ตรวจสอบผลลัพธ์ (TEST POINT) ---
-        console.log("✅ แปลงไฟล์สำเร็จ! ข้อมูลไฟล์:");
-        console.log("---------------------------------------------");
-        console.log("📂 ชื่อไฟล์:", newImageFile.name);
-        console.log("📏 ขนาดไฟล์ (Original):", newImageFile.size, "bytes");
-        console.log("🔢 ความยาว Base64:", base64String.length, "chars");
-        console.log("✨ Base64 Header (ต้องตรงตาม Doc):", base64String.substring(0, 50) + "...");
-        console.log("✨ Full Base64:", base64String);
-        console.log("---------------------------------------------");
-
-        // แจ้งเตือนเพื่อให้ user ทราบว่าแปลงสำเร็จ (ในโหมด Dev)
-        alert(`TEST MODE: แปลงไฟล์สำเร็จ!\n\nHeader ที่ได้:\n${base64String.substring(0, 40)}...\n\n(เช็คเต็มๆ ได้ใน Console F12)`);
-
-        /* -----------------------------------------------------------
-           ❌ ส่วนนี้ปิดการทำงานไว้ (Commented Out) เพื่อทดสอบ Syntax
-           -----------------------------------------------------------
+        // 2. เตรียม Payload (JSON Body)
+        // ใช้ folder_path แบบ Dynamic ตาม Case ID เพื่อความเป็นระเบียบ
         const payload = {
-            image: base64String, // Base64 Data
-            file_name: newImageFile.name.split('.').slice(0, -1).join('.'), 
-            attachmentId: selectedImageToReplace.id,
-            ticketId: currentCase.id,
-            reason: reason
+            // folder_path: `attachment/case_${currentCase.id}`, 
+            folder_path: `attachment/Test_internal_web/case_${currentCase.id}`, 
+            image: base64String
         };
 
-        const response = await fetch('/api/cases/update_image', {
+        // 3. ยิง Request ไปยัง API
+        const response = await fetch(uploadApiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload), 
         });
 
-        // ตรวจสอบ Response ว่าเป็น JSON หรือ HTML Error
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-             const result = await response.json();
-             if (response.ok) setIsSuccess(true);
-             else throw new Error(result.message || "Update failed");
-        } else {
-             const text = await response.text();
-             console.error("Server HTML Error:", text);
-             throw new Error("Server returned HTML instead of JSON (Check Payload Size)");
-        }
-        ----------------------------------------------------------- */
+        const result = await response.json();
 
-        // จำลองว่าสำเร็จเพื่อให้ UI เปลี่ยนหน้า (เฉพาะตอนเทส)
-        // setIsSuccess(true); 
+        // 4. ตรวจสอบผลลัพธ์
+        if (response.ok && result.photo_link) {
+             console.log("✅ Upload Success:", result);
+             
+             // --- REQUIREMENT: บันทึก photo_link ลง LocalStorage ---
+             localStorage.setItem('photo_link', result.photo_link);
+
+             console.log("🔄 กำลังอัปเดตฐานข้อมูล...");
+             
+             const adminId = localStorage.getItem("current_admin_id") || "unknown_admin";
+
+             const dbPayload = {
+                current_admin_id: adminId.toString().replace(/['"]+/g, ''), // ID ผู้แก้ไข
+                photo_id: selectedImageToReplace.id.toString().replace(/['"]+/g, ''), // ID ของรูปที่จะ update
+                file_url: result.photo_link          // URL ใหม่ที่ได้จากการ upload
+             };
+
+             const caseIdParam = currentCase.dbId || currentCase.id;
+
+             const dbResponse = await fetch(`${dbManageUrl}?id=${caseIdParam}`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json'
+                    // หากมี Auth Token ให้ใส่ตรงนี้
+                    // 'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify(dbPayload)
+             });
+
+             const dbResult = await dbResponse.json();
+             
+             if (!dbResponse.ok) {
+                 console.error("Database Error:", dbResult);
+                 throw new Error(dbResult.message || "Database update failed");
+             }
+
+             console.log("✅ Database Updated:", dbResult);
+
+             // เปลี่ยนสถานะเป็นสำเร็จเพื่อโชว์หน้า Success UI
+
+             // เปลี่ยนสถานะเป็นสำเร็จเพื่อโชว์หน้า Success UI
+             setIsSuccess(true);
+        } else {
+             console.error("Server Error:", result);
+             throw new Error(result.message || "Upload failed: ไม่ได้รับ photo_link กลับมา");
+        }
 
     } catch (error) {
-        console.error("Conversion Error:", error);
-        alert(`เกิดข้อผิดพลาดในการแปลงไฟล์: ${error.message}`);
+        console.error("Update Error:", error);
+        alert(`เกิดข้อผิดพลาดในการอัปโหลด: ${error.message}`);
     } finally {
-        setIsSubmitting(false); // ปลดล็อคปุ่มให้กดใหม่ได้
+        setIsSubmitting(false); 
     }
   };
 
