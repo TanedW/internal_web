@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import { 
   LogOut, Search, CheckCircle2, AlertCircle, UploadCloud, 
   ArrowLeft, ArrowRight, X, ImageIcon, Music, FileAudio, 
-  MapPin, Calendar, Film
+  MapPin, Calendar
 } from "lucide-react"; 
 import Link from 'next/link';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../../firebaseConfig"; 
 
-// --- Config: MIME Types ตามเอกสาร API  ---
+// --- Config: MIME Types ---
 const MIME_TYPE_MAP = {
   // Images
   'jpg': 'image/jpeg',
@@ -39,26 +39,18 @@ const MIME_TYPE_MAP = {
   'wma': 'audio/x-ms-wma'
 };
 
-// --- Helper: แปลงไฟล์เป็น Base64 พร้อม Header ที่ถูกต้องตาม Doc ---
 const fileToBase64 = (file) => {
   return new Promise((resolve, reject) => {
-    // 1. หานามสกุลไฟล์
     const extension = file.name.split('.').pop().toLowerCase();
-    
-    // 2. หา MIME Type ที่ถูกต้องจาก Map (ถ้าไม่มีให้ใช้ type เดิมของไฟล์)
     const mimeType = MIME_TYPE_MAP[extension] || file.type;
-
-    // 3. สร้าง Blob ใหม่ด้วย MIME Type ที่ถูกต้อง (เพื่อบังคับ Header data:...)
     const blob = new Blob([file], { type: mimeType });
-
     const reader = new FileReader();
-    reader.readAsDataURL(blob); // ฟังก์ชันนี้จะสร้าง data:MIME;base64,... ให้เองตาม Blob type
+    reader.readAsDataURL(blob); 
     reader.onload = () => resolve(reader.result);
     reader.onerror = (error) => reject(error);
   });
 };
 
-// --- Helper: ตรวจสอบประเภทไฟล์สำหรับ UI ---
 const getMediaTypeFromFile = (file) => {
     if (!file) return 'unknown';
     const extension = file.name.split('.').pop().toLowerCase();
@@ -75,28 +67,23 @@ export default function ManageCase() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // --- State สำหรับการค้นหาและข้อมูล Case ---
   const [searchId, setSearchId] = useState("");
   const [currentCase, setCurrentCase] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
   const [inputError, setInputError] = useState(false);
   
-  // --- State สำหรับ Wizard UI (ขั้นตอน 1-3) ---
   const [wizardStep, setWizardStep] = useState(1);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false); 
 
-  // --- State สำหรับการแก้ไขรูปภาพ ---
   const [selectedImageToReplace, setSelectedImageToReplace] = useState(null);
   const [newImageFile, setNewImageFile] = useState(null);
   const [reason, setReason] = useState("");
 
   const inputRef = useRef(null);
   
-  // Helper: Avatar 
   const getAvatarUrl = (seed) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
 
-  // --- 1. Authentication Check ---
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) { 
@@ -118,7 +105,6 @@ export default function ManageCase() {
     }
   };
 
-  // --- 2. ฟังก์ชันค้นหาข้อมูล (Search) ---
   const handleSearch = async (e) => {
     e?.preventDefault(); 
     if (!searchId.trim()) {
@@ -129,7 +115,7 @@ export default function ManageCase() {
 
     const apiUrl = process.env.NEXT_PUBLIC_DB_SEARCH_CASE_API_URL;
     if (!apiUrl) {
-        alert("Configuration Error: NEXT_PUBLIC_DB_SEARCH_CASE_API_URL not found.");
+        alert("Configuration Error: API URL not found.");
         return;
     }
 
@@ -153,14 +139,11 @@ export default function ManageCase() {
             const apiData = result.data;
             let allImagesCombined = [];
             
-            // --- Logic แยกประเภทไฟล์ (Video/Audio/Image) ---
             if (apiData.timeline && Array.isArray(apiData.timeline)) {
                 apiData.timeline.forEach((item, index) => {
                     if(item.photo) {
                         const fileUrl = item.photo.toLowerCase();
                         let mType = 'image';
-                        
-                        // ตรวจสอบจาก Flag หรือ นามสกุลไฟล์
                         if (item.viewed === 1 || fileUrl.match(/\.(mp4|mov|webm|avi|mkv)$/)) {
                             mType = 'video';
                         } else if (fileUrl.match(/\.(mp3|wav|ogg|m4a|aac|flac)$/)) {
@@ -209,11 +192,9 @@ export default function ManageCase() {
     }
   };
 
-  // --- 3. ฟังก์ชันบันทึกข้อมูล (อัปโหลดจริง + บันทึก LocalStorage) ---
   const handleUpdateImage = async (e) => {
     e.preventDefault();
     
-    // Validation
     if (!selectedImageToReplace) {
         alert("กรุณาเลือกรายการที่ต้องการแก้ไขในขั้นตอนที่ 1");
         setWizardStep(1);
@@ -224,36 +205,24 @@ export default function ManageCase() {
         return; 
     }
     
-    // ตรวจสอบ URL API
     const uploadApiUrl = process.env.NEXT_PUBLIC_FILE_UPLOAD_API_URL;
-    if (!uploadApiUrl) {
-        alert("Configuration Error: NEXT_PUBLIC_FILE_UPLOAD_API_URL not found in .env");
-        return;
-    }
     const dbManageUrl = process.env.NEXT_PUBLIC_DB_MANAGE_CASE_API_URL;
-    if (!dbManageUrl) {
-         alert("Configuration Error: NEXT_PUBLIC_DB_MANAGE_CASE_API_URL not found in .env");
+    
+    if (!uploadApiUrl || !dbManageUrl) {
+         alert("Configuration Error: API URLs not found.");
          return;
     }
-    
 
     setIsSubmitting(true);
 
     try {
-        console.log("🔄 กำลังเตรียมข้อมูลสำหรับอัปโหลด...");
-
-        // 1. แปลงไฟล์เป็น Base64
         const base64String = await fileToBase64(newImageFile);
         
-        // 2. เตรียม Payload (JSON Body)
-        // ใช้ folder_path แบบ Dynamic ตาม Case ID เพื่อความเป็นระเบียบ
         const payload = {
-            // folder_path: `attachment/case_${currentCase.id}`, 
             folder_path: `attachment/Test_internal_web/case_${currentCase.id}`, 
             image: base64String
         };
 
-        // 3. ยิง Request ไปยัง API
         const response = await fetch(uploadApiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -262,21 +231,15 @@ export default function ManageCase() {
 
         const result = await response.json();
 
-        // 4. ตรวจสอบผลลัพธ์
         if (response.ok && result.photo_link) {
-            //  console.log("✅ Upload Success:", result);
-             
-             // --- REQUIREMENT: บันทึก photo_link ลง LocalStorage ---
              localStorage.setItem('photo_link', result.photo_link);
-
-             console.log("🔄 กำลังอัปเดตฐานข้อมูล...");
              
              const adminId = localStorage.getItem("current_admin_id") || "unknown_admin";
 
              const dbPayload = {
-                current_admin_id: adminId.toString().replace(/['"]+/g, ''), // ID ผู้แก้ไข
-                photo_id: selectedImageToReplace.id.toString().replace(/['"]+/g, ''), // ID ของรูปที่จะ update
-                file_url: result.photo_link,          // URL ใหม่ที่ได้จากการ upload
+                current_admin_id: adminId.toString().replace(/['"]+/g, ''), 
+                photo_id: selectedImageToReplace.id.toString().replace(/['"]+/g, ''), 
+                file_url: result.photo_link,          
                 description: reason
              };
 
@@ -284,33 +247,24 @@ export default function ManageCase() {
 
              const dbResponse = await fetch(`${dbManageUrl}?id=${caseIdParam}`, {
                 method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json'
-                    // หากมี Auth Token ให้ใส่ตรงนี้
-                    // 'Authorization': `Bearer ${token}` 
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dbPayload)
              });
 
              const dbResult = await dbResponse.json();
              
              if (!dbResponse.ok) {
-                 console.error("Database Error:", dbResult);
                  throw new Error(dbResult.message || "Database update failed");
              }
 
-            //  console.log("✅ Database Updated:", dbResult);
-
-             // เปลี่ยนสถานะเป็นสำเร็จเพื่อโชว์หน้า Success UI
              setIsSuccess(true);
         } else {
-             console.error("Server Error:", result);
-             throw new Error(result.message || "Upload failed: ไม่ได้รับ photo_link กลับมา");
+             throw new Error(result.message || "Upload failed");
         }
 
     } catch (error) {
         console.error("Update Error:", error);
-        alert(`เกิดข้อผิดพลาดในการอัปโหลด: ${error.message}`);
+        alert(`เกิดข้อผิดพลาด: ${error.message}`);
     } finally {
         setIsSubmitting(false); 
     }
@@ -372,7 +326,6 @@ export default function ManageCase() {
         </div>
       </div>
 
-
       {/* ================= NAVBAR DESKTOP ================= */}
       <div className="hidden lg:block sticky top-0 z-40 font-sans">
         <div className="navbar bg-white/95 backdrop-blur-xl px-6 lg:px-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border-b border-slate-50/50 transition-all py-3">
@@ -389,7 +342,6 @@ export default function ManageCase() {
                     </div>
                 </div>
             </div>
-            
             <div className="navbar-center">
                 <ul className="menu menu-horizontal px-1 gap-3">
                     <li><a href="/manage" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">จัดการ Email</a></li>
@@ -397,11 +349,14 @@ export default function ManageCase() {
                     <li><a href="/manage-richmenu" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">จัดการ Menu</a></li>
                 </ul>
             </div>
-            
             <div className="navbar-end">
-                <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-2 rounded-xl hover:bg-red-50 transition-all duration-200">
+                 <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-2 rounded-xl hover:bg-red-50 transition-all duration-200">
                     <div className="p-1.5 bg-red-100/50 rounded-lg group-hover:bg-red-100 transition-colors">
-                        <LogOut size={20} className="text-red-500 transition-transform group-hover:translate-x-0.5" />
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-500 transition-transform group-hover:translate-x-0.5">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
                     </div>
                     <span className="text-red-600 font-bold tracking-wide text-[15px]">Logout</span>
                 </button>
@@ -411,81 +366,79 @@ export default function ManageCase() {
 
 
       {/* ================= MAIN CONTENT ================= */}
-      {/* แก้ไข: ปรับ margin-top จาก mt-20 เป็น mt-16 ให้พอดีกับ Header ใหม่ */}
       <div className="container mx-auto px-4 mt-16 lg:mt-12 max-w-4xl">
         
-        {/* --- Header & Search --- */}
-        <div className="flex flex-col items-center text-center mb-8 lg:mb-12 space-y-6">
-            <div className="space-y-3 max-w-2xl px-2">
-                <p className="text-slate-500 text-base lg:text-lg max-w-lg mx-auto leading-relaxed">
-                    ค้นหา Case ID เพื่อแก้ไขข้อมูลรูปภาพ วิดีโอ หรือไฟล์เสียง (สำหรับ Admin)
-                </p>
-            </div>
-
-            <div className="w-full max-w-xl relative mx-auto z-10 px-1">
-                <form 
-                    onSubmit={handleSearch} 
-                    className={`relative group transition-all duration-200 ${inputError ? '-translate-x-1' : 'translate-x-0'}`}
-                >
-                    <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-violet-600 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-500"></div>
+        {/* --- Header & Search Section (แสดงเฉพาะตอนที่ยังไม่มี Case) --- */}
+        {!currentCase && (
+            <div className="flex flex-col justify-start relative w-full max-w-2xl mx-auto overflow-hidden rounded-3xl animate-fade-in pt-12">
+        
+                <div className="flex flex-col items-center text-center space-y-5 relative z-10 px-4">
                     
-                    <div className={`relative bg-white rounded-full shadow-lg border-2 flex items-center p-1.5 lg:p-2 transition-all duration-300 ${inputError ? 'border-red-400 ring-4 ring-red-500/10' : 'border-indigo-100 hover:border-indigo-400 focus-within:border-indigo-600 focus-within:shadow-xl focus-within:ring-4 focus-within:ring-indigo-500/10'}`}>
-                        
-                        <div className={`pl-3 lg:pl-5 pr-2 transition-colors ${inputError ? 'text-red-500' : 'text-indigo-600'}`}>
-                            {inputError ? <AlertCircle size={22} className="lg:w-7 lg:h-7" strokeWidth={2.5} /> : <Search size={22} className="lg:w-7 lg:h-7" strokeWidth={3} />}
-                        </div>
 
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            value={searchId}
-                            onChange={(e) => {
-                                setSearchId(e.target.value);
-                                if(inputError) setInputError(false);
-                            }}
-                            className={`flex-1 bg-transparent border-none outline-none font-bold placeholder:text-slate-400 placeholder:font-medium h-12 lg:h-14 w-full text-lg lg:text-xl ${inputError ? 'text-red-600' : 'text-slate-800'}`}
-                            placeholder="ระบุ Case ID..."
-                            disabled={isSearching}
-                        />
+                    {/* Text Group */}
+                    <div className="space-y-2 px-2">
 
-                        {searchId && !isSearching && (
-                            <button 
-                                type="button" 
-                                onClick={() => setSearchId("")}
-                                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full mr-1 transition-all"
-                            >
-                                <X size={18} className="lg:w-5 lg:h-5" strokeWidth={3} />
-                            </button>
-                        )}
+                        <p className="text-slate-500 text-sm lg:text-base max-w-md mx-auto leading-relaxed">
+                            กรอกรหัส Case ID เพื่อค้นหาและแก้ไขรูปภาพ<br className="hidden sm:block"/> วิดีโอ หรือไฟล์เสียง (สำหรับ Admin)
+                        </p>
+                    </div>
 
-                        <button 
-                            type="submit" 
-                            disabled={isSearching}
-                            className={`rounded-full px-5 lg:px-8 py-2.5 lg:py-3.5 font-bold text-sm lg:text-base transition-all duration-300 shadow-md transform active:scale-95 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed justify-center text-white min-w-[90px] lg:min-w-[120px] ${inputError ? 'bg-red-500 hover:bg-red-600 shadow-red-200' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 hover:shadow-indigo-300'}`}
+                    {/* Form Container */}
+                    <div className="w-full relative max-w-lg mx-auto pb-4">
+                        <form 
+                            onSubmit={handleSearch} 
+                            className={`relative group transition-all duration-200 ${inputError ? '-translate-x-1' : 'translate-x-0'}`}
                         >
-                            {isSearching ? (
-                                <span className="loading loading-spinner loading-sm text-white"></span>
-                            ) : (
-                                <span className="hidden sm:inline">ค้นหา</span>
-                            )}
-                            <ArrowRight size={18} strokeWidth={3} className={isSearching ? "hidden" : "inline"}/>
-                        </button>
+                            {/* Removed blurry background behind input for clarity */}
+                            <div className={`relative bg-white rounded-full shadow-lg border-2 flex items-center p-1.5 lg:p-2 transition-all duration-300 ${inputError ? 'border-red-400 ring-4 ring-red-500/10' : 'border-indigo-50 hover:border-indigo-200 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10'}`}>
+                                <div className={`pl-4 pr-3 transition-colors ${inputError ? 'text-red-500' : 'text-slate-400'}`}>
+                                    <Search size={22} className="lg:w-6 lg:h-6" strokeWidth={2.5} />
+                                </div>
+                                <input
+                                    ref={inputRef}
+                                    type="text"
+                                    value={searchId}
+                                    onChange={(e) => {
+                                        setSearchId(e.target.value);
+                                        if(inputError) setInputError(false);
+                                    }}
+                                    className={`flex-1 bg-transparent border-none outline-none font-bold placeholder:text-slate-300 placeholder:font-medium h-12 lg:h-14 w-full text-lg ${inputError ? 'text-red-600' : 'text-slate-800'}`}
+                                    placeholder="ระบุ Case ID..."
+                                    disabled={isSearching}
+                                />
+                                {searchId && !isSearching && (
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setSearchId("")}
+                                        className="p-2 text-slate-300 hover:text-slate-500 hover:bg-slate-50 rounded-full transition-all"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                )}
+                                <button 
+                                    type="submit" 
+                                    disabled={isSearching}
+                                    className={`rounded-full px-6 py-2.5 font-bold text-sm transition-all duration-300 shadow-md transform active:scale-95 flex items-center gap-2 text-white min-w-[100px] justify-center ml-1 ${inputError ? 'bg-red-500 hover:bg-red-600' : 'bg-slate-900 hover:bg-slate-800'}`}
+                                >
+                                    {isSearching ? <span className="loading loading-spinner loading-xs"></span> : "ค้นหา"}
+                                </button>
+                            </div>
+                        </form>
+                        {inputError && (
+                            <div className="absolute top-full left-0 right-0 mt-3 text-center animate-fade-in z-20">
+                                <span className="bg-red-50 text-red-600 text-xs font-bold px-4 py-2 rounded-full border border-red-100 shadow-sm inline-flex items-center gap-1">
+                                    <AlertCircle size={14}/> กรุณาระบุ ID
+                                </span>
+                            </div>
+                        )}
                     </div>
-                </form>
-
-                {inputError && (
-                    <div className="absolute top-full left-0 right-0 mt-3 text-center animate-[fadeIn_0.3s_ease-out]">
-                        <span className="bg-red-50 text-red-600 text-xs lg:text-sm font-bold px-4 py-2 rounded-xl border border-red-100 inline-flex items-center gap-2 shadow-sm">
-                            <AlertCircle size={14}/> กรุณาระบุ Case ID ก่อนค้นหา
-                        </span>
-                    </div>
-                )}
+                </div>
             </div>
-        </div>
+        )}
 
-        {/* --- Wizard Content --- */}
-        {currentCase ? (
-           <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-100 p-5 lg:p-10 relative overflow-hidden transition-all duration-300 mb-6">
+        {/* --- Wizard Content (Step 1, 2, 3) --- */}
+        {currentCase && (
+           <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-100 p-5 lg:p-10 relative overflow-hidden transition-all duration-300 mb-6 animate-fade-in-up">
                 
                 {/* Wizard Progress */}
                 {!isSuccess && (
@@ -493,7 +446,6 @@ export default function ManageCase() {
                         <div className="flex items-center justify-center relative">
                             <div className="absolute top-1/2 left-0 w-full h-1 bg-slate-100 -z-10 rounded-full"></div>
                             <div className={`absolute top-1/2 left-0 h-1 bg-indigo-500 -z-10 rounded-full transition-all duration-500 ease-out`} style={{ width: `${((wizardStep - 1) / 2) * 100}%` }}></div>
-
                             {[1, 2, 3].map((step) => (
                                 <div key={step} className="relative flex flex-col items-center flex-1">
                                     <div className={`w-10 h-10 lg:w-12 lg:h-12 rounded-2xl flex items-center justify-center font-bold text-base lg:text-lg border-4 transition-all duration-300 z-10 bg-white ${wizardStep >= step ? 'border-indigo-500 text-indigo-600 shadow-lg shadow-indigo-200 scale-110' : 'border-slate-200 text-slate-300'}`}>
@@ -527,37 +479,33 @@ export default function ManageCase() {
                         </div>
                     ) : (
                         <>
-                        {/* STEP 1: Select (Single Line Indicator Fixed) */}
+                        {/* STEP 1: Select */}
                         {wizardStep === 1 && (
                             <div className="w-full max-w-3xl animate-fade-in">
-                                
-                                {/* --- Main Card Container --- */}
                                 <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 overflow-hidden">
-                                    
                                     <div className="p-5 md:p-8">
-
                                         {/* Header */}
                                         <div className="text-center mb-8">
                                             <h3 className="text-xl lg:text-2xl font-bold text-slate-800">Step 1: เลือกรายการที่ต้องการแก้ไข</h3>
-                                            <p className="text-slate-500 text-sm mt-1">คลิกเลือกรูปภาพ, วิดีโอ หรือไฟล์เสียง</p>
+                                            <p className="text-slate-500 text-sm mt-1">คลิกเลือกรูปภาพ, วิดีโอ หรือไฟล์เสียงที่ต้องการดำเนินการ</p>
                                         </div>
                                         
                                         {/* --- Case Info Card --- */}
                                         <div className="bg-slate-100 rounded-2xl p-5 border border-slate-200 mb-8 flex flex-col gap-4">
-                                            {/* Row 1: ID & Status */}
-                                            {/* ส่วนนี้ ID อยู่ซ้าย สถานะอยู่ขวา ตาม justify-between */}
-                                            <div className="flex justify-between items-start gap-2"> 
-                                                <div className="flex items-baseline gap-1.5 min-w-0"> 
-                                                    <span className="text-slate-400 font-bold text-xs shrink-0">ID:</span>
-                                                    <span className="text-slate-700 font-bold text-sm whitespace-nowrap">
-                                                        {currentCase.id}
+                                            {/* Row 1: ID & Status (Mobile Optimized) */}
+                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-2"> 
+                                                <div className="flex items-center justify-between w-full gap-3"> 
+                                                    <div className="flex items-center gap-1.5 min-w-0 overflow-hidden"> 
+                                                        <span className="text-slate-400 font-bold text-xs shrink-0">ID:</span>
+                                                        <span className="text-slate-700 font-bold text-sm truncate">
+                                                            {currentCase.id}
+                                                        </span>
+                                                    </div>
+                                                    <span className={`ml-auto shrink-0 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wide bg-indigo-100 text-indigo-600 border border-indigo-200`}>
+                                                        {currentCase.status}
                                                     </span>
                                                 </div>
-                                                <span className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wide bg-indigo-100 text-indigo-600 border border-indigo-200`}>
-                                                    {currentCase.status}
-                                                </span>
                                             </div>
-
                                             {/* Separator Line */}
                                             <div className="h-px bg-slate-200 w-full"></div>
 
@@ -608,7 +556,7 @@ export default function ManageCase() {
                                                                 relative rounded-xl overflow-hidden cursor-pointer transition-all duration-200 group border-2
                                                                 ${isSelected 
                                                                     ? 'border-indigo-500 ring-4 ring-indigo-500/10 shadow-lg scale-[1.02] z-10 bg-indigo-50' 
-                                                                    : 'border-transparent bg-slate-50 hover:bg-slate-100 hover:border-indigo-200/50'
+                                                                    : 'border-transparent bg-slate-50 hover:bg-slate-100 hover:border-indigo-200/50 hover:shadow-md'
                                                                 }
                                                             `}
                                                         >
@@ -619,9 +567,14 @@ export default function ManageCase() {
                                                                         <video 
                                                                             src={img.url} 
                                                                             className="w-full h-full object-contain bg-black" 
-                                                                            controls
+                                                                            controls={false}
                                                                             playsInline
                                                                         />
+                                                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                                            <div className="w-10 h-10 bg-black/30 rounded-full flex items-center justify-center backdrop-blur-sm">
+                                                                                <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1"></div>
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
                                                                 ) : img.mediaType === 'audio' ? (
                                                                     <div className="w-full h-full flex flex-col items-center justify-center bg-amber-50 text-amber-500">
@@ -629,50 +582,59 @@ export default function ManageCase() {
                                                                         <span className="text-xs font-bold mt-2">AUDIO</span>
                                                                     </div>
                                                                 ) : (
-                                                                    <img src={img.url} className="w-full h-full object-cover" alt={img.type} />
+                                                                    <img src={img.url} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt={img.type} />
+                                                                )}
+                                                                {!isSelected && (
+                                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-all duration-300">
+                                                                        <span className="opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 bg-white/90 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
+                                                                            เลือกรายการนี้
+                                                                        </span>
+                                                                    </div>
                                                                 )}
                                                             </div>
-
                                                             {/* Info Strip */}
-                                                            <div className={`p-3 flex justify-between items-center ${isSelected ? 'bg-indigo-50' : 'bg-white/50'}`}>
-                                                                <span className={`text-xs font-bold truncate max-w-[70%] ${isSelected ? 'text-indigo-700' : 'text-slate-500'}`}>{img.type}</span>
-                                                                {isSelected && <CheckCircle2 size={18} className="text-indigo-600 animate-[bounceIn_0.3s_ease-out]"/>}
+                                                            <div className={`p-3 flex justify-between items-center transition-colors ${isSelected ? 'bg-indigo-50' : 'bg-white/50 group-hover:bg-indigo-50/30'}`}>
+                                                                <span className={`text-xs font-bold truncate max-w-[45%] ${isSelected ? 'text-indigo-700' : 'text-slate-700'}`}>
+                                                                    {img.type}
+                                                                </span>
+                                                                <div className="flex items-center gap-2">
+                                                                    {!isSelected && (
+                                                                        <span className="text-[10px] text-red-500 font-bold whitespace-nowrap animate-pulse">
+                                                                            แตะตรงนี้เพื่อเลือก
+                                                                        </span>
+                                                                    )}
+                                                                    {isSelected ? (
+                                                                        <CheckCircle2 size={20} className="text-indigo-600 animate-[bounceIn_0.3s_ease-out] shrink-0"/>
+                                                                    ) : (
+                                                                        <div className="w-5 h-5 rounded-full border-2 border-slate-200 group-hover:border-indigo-300 transition-colors bg-blue-100 shrink-0"></div>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     )
                                                 })}
                                             </div>
                                         </div>
-
-
                                     </div>
                                 </div>
                             </div>
                         )}
-                                            {/* STEP 2: Upload */}
+                            {/* STEP 2: Upload */}
                             {wizardStep === 2 && (
                                 <div className="w-full max-w-xl mx-auto animate-fade-in">
                                     <div className="text-center mb-6 lg:mb-8">
                                         <h3 className="text-xl lg:text-2xl font-black text-slate-800 mb-2">อัปโหลดไฟล์ใหม่</h3>
                                         <p className="text-slate-500 text-sm">เลือกไฟล์เพื่อแทนที่รายการเดิม</p>
                                     </div>
-
-                                    {/* --- ส่วนแสดงไฟล์เก่า --- */}
                                     {selectedImageToReplace && (
                                         <div className="mb-6 lg:mb-8 w-full max-w-sm mx-auto flex flex-col items-center p-4 lg:p-5 bg-orange-50 rounded-3xl border border-orange-100 text-orange-700/70 shadow-sm">
                                             <p className="text-xs font-bold mb-3 flex items-center gap-1 uppercase tracking-wider">
                                                 <AlertCircle size={14}/> กำลังแก้ไขไฟล์เดิม:
                                             </p><br></br>
-                                            
                                             <div className="relative w-full aspect-video rounded-2xl overflow-hidden border-2 border-orange-200 shadow-sm bg-black flex items-center justify-center">
                                                 {selectedImageToReplace.mediaType === 'video' ? (
                                                     <div className="relative w-full h-full bg-black group/video">
-                                                        <video 
-                                                            src={selectedImageToReplace.url} 
-                                                            className="w-full h-full object-contain"
-                                                            controls
-                                                            playsInline
-                                                         />
+                                                        <video src={selectedImageToReplace.url} className="w-full h-full object-contain" controls playsInline />
                                                     </div>
                                                 ) : selectedImageToReplace.mediaType === 'audio' ? (
                                                     <div className="flex flex-col items-center p-4 w-full h-full bg-amber-50 justify-center">
@@ -680,18 +642,12 @@ export default function ManageCase() {
                                                         <audio src={selectedImageToReplace.url} controls className="w-full max-w-[200px]" />
                                                     </div>
                                                 ) : (
-                                                    <img 
-                                                        src={selectedImageToReplace.url} 
-                                                        className="h-full w-auto object-contain bg-white" 
-                                                        alt="Replacing" 
-                                                    />
+                                                    <img src={selectedImageToReplace.url} className="h-full w-auto object-contain bg-white" alt="Replacing" />
                                                 )}
                                             </div><br></br>
                                             <p className="text-xs lg:text-sm font-bold mt-3 bg-orange-100 px-3 py-1 rounded-full">{selectedImageToReplace.type}</p>
                                         </div>
                                     )}
-                                    
-                                    {/* --- ส่วนอัปโหลดไฟล์ใหม่ --- */}
                                     <label className={`group relative flex flex-col items-center justify-center w-full min-h-[18rem] lg:min-h-[22rem] h-auto p-4 lg:p-6 rounded-3xl border-3 border-dashed transition-all duration-300 cursor-pointer overflow-hidden ${newImageFile ? 'border-green-400 bg-white' : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-100/50'}`}>
                                         <input 
                                             type="file" 
@@ -701,20 +657,12 @@ export default function ManageCase() {
                                                 if(e.target.files[0]) setNewImageFile(e.target.files[0]);
                                             }} 
                                         />
-                                        
                                         {newImageFile ? (
                                             <div className="flex flex-col items-center w-full animate-fade-in z-10">
                                                 <div className="relative w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center mb-4 min-h-[200px]">
                                                     {getMediaTypeFromFile(newImageFile) === 'video' ? (
                                                         <div className="relative w-full bg-black">
-                                                            <video 
-                                                                src={URL.createObjectURL(newImageFile)} 
-                                                                className="w-full max-h-[50vh] object-contain mx-auto" 
-                                                                controls 
-                                                                autoPlay 
-                                                                muted
-                                                                playsInline
-                                                            />
+                                                            <video src={URL.createObjectURL(newImageFile)} className="w-full max-h-[50vh] object-contain mx-auto" controls autoPlay muted playsInline />
                                                         </div>
                                                     ) : getMediaTypeFromFile(newImageFile) === 'audio' ? (
                                                         <div className="w-full min-h-[200px] flex flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100 text-orange-600 px-6 py-4">
@@ -723,11 +671,7 @@ export default function ManageCase() {
                                                             <audio src={URL.createObjectURL(newImageFile)} controls className="w-full shadow-sm rounded-lg" />
                                                         </div>
                                                     ) : (
-                                                        <img 
-                                                            src={URL.createObjectURL(newImageFile)} 
-                                                            className="w-full max-h-[50vh] object-contain" 
-                                                            alt="Preview" 
-                                                        />
+                                                        <img src={URL.createObjectURL(newImageFile)} className="w-full max-h-[50vh] object-contain" alt="Preview" />
                                                     )}
                                                 </div>
                                                 <span className="font-bold text-base lg:text-lg text-slate-800 mb-1 drop-shadow-sm truncate max-w-[90%]">{newImageFile.name}</span>
@@ -758,20 +702,13 @@ export default function ManageCase() {
                                 <div className="w-full max-w-xl text-center animate-fade-in">
                                     <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">Step 3: สรุปผลและระบุเหตุผล</h3>
                                     <p className="text-slate-500 mb-6 lg:mb-8 text-xs lg:text-sm">ระบุสาเหตุในการเปลี่ยนแปลงไฟล์ <span className="font-bold text-indigo-600">{selectedImageToReplace?.type}</span></p>
-                                    
-                                    {/* Preview New File */}
                                     {newImageFile && (
                                         <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col items-center">
                                             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">ไฟล์ใหม่ที่จะใช้งาน</p>
                                             <div className="relative w-full rounded-lg overflow-hidden shadow-md border border-slate-200 bg-white flex items-center justify-center min-h-[150px]">
                                                 {getMediaTypeFromFile(newImageFile) === 'video' ? (
                                                     <div className="relative w-full bg-black">
-                                                        <video 
-                                                            src={URL.createObjectURL(newImageFile)} 
-                                                            className="w-full max-h-[50vh] object-contain mx-auto" 
-                                                            controls 
-                                                            playsInline
-                                                        />
+                                                        <video src={URL.createObjectURL(newImageFile)} className="w-full max-h-[50vh] object-contain mx-auto" controls playsInline />
                                                     </div>
                                                 ) : getMediaTypeFromFile(newImageFile) === 'audio' ? (
                                                     <div className="flex flex-col items-center justify-center w-full min-h-[150px] bg-amber-50 p-4">
@@ -785,7 +722,6 @@ export default function ManageCase() {
                                             <p className="text-xs text-slate-400 mt-2">{newImageFile.name}</p>
                                         </div>
                                     )}
-
                                     <div className="relative">
                                         <textarea 
                                             className="textarea textarea-bordered w-full h-32 lg:h-40 text-base lg:text-lg shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10" 
@@ -801,7 +737,7 @@ export default function ManageCase() {
                     )}
                 </div>
 
-                {/* --- FOOTER BUTTONS (Buttons side-by-side) --- */}
+                {/* --- FOOTER BUTTONS --- */}
                 {!isSuccess && (
                     <div className="flex flex-row justify-between items-center mt-8 lg:mt-10 pt-6 border-t border-slate-100 gap-4">
                         {/* Left Button (Cancel/Back) */}
@@ -852,8 +788,6 @@ export default function ManageCase() {
                     </div>
                 )}
            </div>
-        ) : (
-             <div className="text-center py-24 opacity-40"></div>
         )}
 
       </div>
