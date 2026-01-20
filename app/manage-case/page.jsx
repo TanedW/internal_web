@@ -99,6 +99,7 @@ export default function ManageCase() {
   const handleLogout = async () => {
     try {
         await signOut(auth);
+        localStorage.removeItem("current_admin_id");
         router.push("/");
     } catch (error) {
         console.error("Logout error", error);
@@ -252,16 +253,16 @@ export default function ManageCase() {
              });
 
              const dbResult = await dbResponse.json();
-             
-             if (!dbResponse.ok) {
-                 throw new Error(dbResult.message || "Database update failed");
-             }
 
-             setIsSuccess(true);
-        } else {
-             throw new Error(result.message || "Upload failed");
-        }
-
+             // Check if HTTP status is OK and the API logic confirms success
+            if (dbResponse.ok && (dbResult.success === undefined || dbResult.success)) {
+                localStorage.removeItem("photo_link");
+                setIsSuccess(true);
+            } else {
+                // Handle failure
+                throw new Error(dbResult.message || "Database update failed");
+            }
+    }
     } catch (error) {
         console.error("Update Error:", error);
         alert(`เกิดข้อผิดพลาด: ${error.message}`);
