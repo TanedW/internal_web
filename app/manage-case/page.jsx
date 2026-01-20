@@ -3,70 +3,33 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  LogOut, Search, CheckCircle2, AlertCircle, UploadCloud, 
-  ArrowLeft, ArrowRight, X, ImageIcon, Music, FileAudio, 
-  MapPin, Calendar, Film
+  LogOut, 
+  Search, 
+  CheckCircle2, 
+  Users, 
+  Clock, 
+  AlertCircle, 
+  UploadCloud, 
+  ArrowLeft, 
+  ArrowRight,
+  X,
+  ImageIcon,
+  Film,        
+  Music,      
+  FileAudio,
+  MapPin,
+  Calendar
 } from "lucide-react"; 
 import Link from 'next/link';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../../firebaseConfig"; 
 
-// --- Config: MIME Types ตามเอกสาร API  ---
-const MIME_TYPE_MAP = {
-  // Images
-  'jpg': 'image/jpeg',
-  'jpeg': 'image/jpeg',
-  'png': 'image/png',
-  'gif': 'image/gif',
-  'bmp': 'image/bmp',
-  'webp': 'image/webp',
-  'heic': 'image/heic',
-  'heif': 'image/heif',
-  'ico': 'image/x-icon',
-  'tiff': 'image/tiff',
-  // Videos
-  'mp4': 'video/mp4',
-  'mov': 'video/quicktime',
-  'avi': 'video/x-msvideo',
-  'mkv': 'video/x-matroska',
-  'wmv': 'video/x-ms-wmv',
-  // Audio
-  'mp3': 'audio/mpeg',
-  'wav': 'audio/wav',
-  'ogg': 'audio/ogg',
-  'm4a': 'audio/m4a',
-  'flac': 'audio/flac',
-  'wma': 'audio/x-ms-wma'
-};
-
-// --- Helper: แปลงไฟล์เป็น Base64 พร้อม Header ที่ถูกต้องตาม Doc ---
-const fileToBase64 = (file) => {
-  return new Promise((resolve, reject) => {
-    // 1. หานามสกุลไฟล์
-    const extension = file.name.split('.').pop().toLowerCase();
-    
-    // 2. หา MIME Type ที่ถูกต้องจาก Map (ถ้าไม่มีให้ใช้ type เดิมของไฟล์)
-    const mimeType = MIME_TYPE_MAP[extension] || file.type;
-
-    // 3. สร้าง Blob ใหม่ด้วย MIME Type ที่ถูกต้อง (เพื่อบังคับ Header data:...)
-    const blob = new Blob([file], { type: mimeType });
-
-    const reader = new FileReader();
-    reader.readAsDataURL(blob); // ฟังก์ชันนี้จะสร้าง data:MIME;base64,... ให้เองตาม Blob type
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = (error) => reject(error);
-  });
-};
-
-// --- Helper: ตรวจสอบประเภทไฟล์สำหรับ UI ---
+// --- Helper: ตรวจสอบประเภทไฟล์ ---
 const getMediaTypeFromFile = (file) => {
     if (!file) return 'unknown';
-    const extension = file.name.split('.').pop().toLowerCase();
-    const mimeType = MIME_TYPE_MAP[extension] || file.type;
-
-    if (mimeType.startsWith('image/')) return 'image';
-    if (mimeType.startsWith('video/')) return 'video';
-    if (mimeType.startsWith('audio/')) return 'audio';
+    if (file.type.startsWith('image/')) return 'image';
+    if (file.type.startsWith('video/')) return 'video';
+    if (file.type.startsWith('audio/')) return 'audio';
     return 'unknown';
 };
 
@@ -161,9 +124,9 @@ export default function ManageCase() {
                         let mType = 'image';
                         
                         // ตรวจสอบจาก Flag หรือ นามสกุลไฟล์
-                        if (item.viewed === 1 || fileUrl.match(/\.(mp4|mov|webm|avi|mkv)$/)) {
+                        if (item.viewed === 1 || fileUrl.match(/\.(mp4|mov|webm)$/)) {
                             mType = 'video';
-                        } else if (fileUrl.match(/\.(mp3|wav|ogg|m4a|aac|flac)$/)) {
+                        } else if (fileUrl.match(/\.(mp3|wav|ogg|m4a|aac)$/)) {
                             mType = 'audio';
                         }
 
@@ -209,11 +172,10 @@ export default function ManageCase() {
     }
   };
 
-  // --- 3. ฟังก์ชันบันทึกข้อมูล (อัปโหลดจริง + บันทึก LocalStorage) ---
+  // --- 3. ฟังก์ชันบันทึกข้อมูล (Update) ---
   const handleUpdateImage = async (e) => {
     e.preventDefault();
     
-    // Validation
     if (!selectedImageToReplace) {
         alert("กรุณาเลือกรายการที่ต้องการแก้ไขในขั้นตอนที่ 1");
         setWizardStep(1);
@@ -224,95 +186,33 @@ export default function ManageCase() {
         return; 
     }
     
-    // ตรวจสอบ URL API
-    const uploadApiUrl = process.env.NEXT_PUBLIC_FILE_UPLOAD_API_URL;
-    if (!uploadApiUrl) {
-        alert("Configuration Error: NEXT_PUBLIC_FILE_UPLOAD_API_URL not found in .env");
-        return;
-    }
-    const dbManageUrl = process.env.NEXT_PUBLIC_DB_MANAGE_CASE_API_URL;
-    if (!dbManageUrl) {
-         alert("Configuration Error: NEXT_PUBLIC_DB_MANAGE_CASE_API_URL not found in .env");
-         return;
-    }
-    
-
     setIsSubmitting(true);
 
     try {
-        console.log("🔄 กำลังเตรียมข้อมูลสำหรับอัปโหลด...");
+        const formData = new FormData();
+        formData.append('file', newImageFile);
+        formData.append('attachmentId', selectedImageToReplace.id); 
+        formData.append('ticketId', currentCase.id);
+        formData.append('reason', reason);
 
-        // 1. แปลงไฟล์เป็น Base64
-        const base64String = await fileToBase64(newImageFile);
-        
-        // 2. เตรียม Payload (JSON Body)
-        // ใช้ folder_path แบบ Dynamic ตาม Case ID เพื่อความเป็นระเบียบ
-        const payload = {
-            // folder_path: `attachment/case_${currentCase.id}`, 
-            folder_path: `attachment/Test_internal_web/case_${currentCase.id}`, 
-            image: base64String
-        };
-
-        // 3. ยิง Request ไปยัง API
-        const response = await fetch(uploadApiUrl, {
+        const response = await fetch('/api/cases/update_image', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload), 
+            body: formData, 
         });
 
         const result = await response.json();
 
-        // 4. ตรวจสอบผลลัพธ์
-        if (response.ok && result.photo_link) {
-            //  console.log("✅ Upload Success:", result);
-             
-             // --- REQUIREMENT: บันทึก photo_link ลง LocalStorage ---
-             localStorage.setItem('photo_link', result.photo_link);
-
-             console.log("🔄 กำลังอัปเดตฐานข้อมูล...");
-             
-             const adminId = localStorage.getItem("current_admin_id") || "unknown_admin";
-
-             const dbPayload = {
-                current_admin_id: adminId.toString().replace(/['"]+/g, ''), // ID ผู้แก้ไข
-                photo_id: selectedImageToReplace.id.toString().replace(/['"]+/g, ''), // ID ของรูปที่จะ update
-                file_url: result.photo_link,          // URL ใหม่ที่ได้จากการ upload
-                description: reason
-             };
-
-             const caseIdParam = currentCase.dbId || currentCase.id;
-
-             const dbResponse = await fetch(`${dbManageUrl}?id=${caseIdParam}`, {
-                method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json'
-                    // หากมี Auth Token ให้ใส่ตรงนี้
-                    // 'Authorization': `Bearer ${token}` 
-                },
-                body: JSON.stringify(dbPayload)
-             });
-
-             const dbResult = await dbResponse.json();
-             
-             if (!dbResponse.ok) {
-                 console.error("Database Error:", dbResult);
-                 throw new Error(dbResult.message || "Database update failed");
-             }
-
-            //  console.log("✅ Database Updated:", dbResult);
-
-             // เปลี่ยนสถานะเป็นสำเร็จเพื่อโชว์หน้า Success UI
-             setIsSuccess(true);
+        if (response.ok) {
+            setIsSuccess(true);
         } else {
-             console.error("Server Error:", result);
-             throw new Error(result.message || "Upload failed: ไม่ได้รับ photo_link กลับมา");
+            throw new Error(result.message || "Update failed");
         }
 
     } catch (error) {
         console.error("Update Error:", error);
-        alert(`เกิดข้อผิดพลาดในการอัปโหลด: ${error.message}`);
+        alert(`บันทึกไม่สำเร็จ: ${error.message} (Backend อาจยังไม่รองรับไฟล์ประเภทนี้)`);
     } finally {
-        setIsSubmitting(false); 
+        setIsSubmitting(false);
     }
   };
 
@@ -334,42 +234,46 @@ export default function ManageCase() {
       <script src="https://cdn.tailwindcss.com"></script>
 
       {/* ================= NAVBAR MOBILE ================= */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-sm z-50 px-4 flex justify-between items-center border-b border-gray-100 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="avatar">
+            <div className="w-9 h-9 rounded-full ring ring-offset-2 ring-indigo-50">
+              <img src={user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.displayName}`} alt="User" />
+            </div>
+          </div>
+          <div className="flex flex-col justify-center">
+            <span className="font-bold text-slate-800 text-sm truncate max-w-[160px]">{user?.displayName || 'Admin User'}</span>
+            <span className="text-[10px] text-indigo-500 font-bold uppercase">SYSTEM ADMIN</span>
+          </div>
+        </div>
+        <button onClick={handleLogout} className="btn btn-ghost btn-circle btn-sm hover:bg-red-50">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-500">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </button>
+      </div>
+
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.1)] bg-white">
         <div className="flex w-full h-16 border-t border-gray-100">
           <Link href="/manage" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
             <span className="text-[10px] font-bold">Email</span>
           </Link>
-          
-          <Link href="/manage-case" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-900 bg-slate-200">
+          <Link href="/manage-case" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
             <span className="text-[10px] font-bold">Case</span>
           </Link>
-          
-          <Link href="/manage-richmenu" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50">
+          <Link href="/manage-richmenu" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-900 bg-slate-200">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"></path></svg>
             <span className="text-[10px] font-bold">Menu</span>
           </Link>
         </div>
       </div>
 
-       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-sm z-50 px-4 flex justify-between items-center border-b border-gray-100 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="avatar">
-                  <div className="w-9 h-9 rounded-full ring ring-offset-2 ring-indigo-50">
-                      <img src={user?.photoURL || getAvatarUrl("Admin")} alt="User"/>
-                  </div>
-              </div>
-              <div className="flex flex-col justify-center">
-                  <span className="font-bold text-slate-800 text-sm truncate max-w-[160px]">{user?.displayName || "Admin User"}</span>
-                  <span className="text-[10px] text-indigo-500 font-bold uppercase">SYSTEM ADMIN</span>
-              </div>
-            </div>
-            <button onClick={handleLogout} className="btn btn-ghost btn-circle btn-sm hover:bg-red-50">
-                <LogOut size={22} className="text-red-500" />
-            </button>
-      </div>
 
+      {/* ================= NAVBAR DESKTOP ================= */}
       <div className="hidden lg:block sticky top-0 z-40 font-sans">
         <div className="navbar bg-white/95 backdrop-blur-xl px-6 lg:px-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border-b border-slate-50/50 transition-all py-3">
             <div className="navbar-start">
@@ -407,7 +311,8 @@ export default function ManageCase() {
 
 
       {/* ================= MAIN CONTENT ================= */}
-      <div className="container mx-auto px-4 mt-20 lg:mt-12 max-w-4xl">
+      {/* แก้ไข: ปรับ margin-top จาก mt-20 เป็น mt-16 ให้พอดีกับ Header ใหม่ */}
+      <div className="container mx-auto px-4 mt-16 lg:mt-12 max-w-4xl">
         
         {/* --- Header & Search --- */}
         <div className="flex flex-col items-center text-center mb-8 lg:mb-12 space-y-6">
@@ -522,40 +427,61 @@ export default function ManageCase() {
                         </div>
                     ) : (
                         <>
-                        {/* STEP 1: Select */}
+                        {/* STEP 1: Select (Single Line Indicator Fixed) */}
                         {wizardStep === 1 && (
                             <div className="w-full max-w-3xl animate-fade-in">
+                                
+                                {/* --- Main Card Container --- */}
                                 <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 overflow-hidden">
+                                    
                                     <div className="p-5 md:p-8">
+
+                                        {/* Header */}
                                         <div className="text-center mb-8">
                                             <h3 className="text-xl lg:text-2xl font-bold text-slate-800">Step 1: เลือกรายการที่ต้องการแก้ไข</h3>
                                             <p className="text-slate-500 text-sm mt-1">คลิกเลือกรูปภาพ, วิดีโอ หรือไฟล์เสียง</p>
                                         </div>
                                         
+                                        {/* --- Case Info Card --- */}
                                         <div className="bg-slate-100 rounded-2xl p-5 border border-slate-200 mb-8 flex flex-col gap-4">
+                                            {/* Row 1: ID & Status */}
+                                            {/* ส่วนนี้ ID อยู่ซ้าย สถานะอยู่ขวา ตาม justify-between */}
                                             <div className="flex justify-between items-start gap-2"> 
                                                 <div className="flex items-baseline gap-1.5 min-w-0"> 
                                                     <span className="text-slate-400 font-bold text-xs shrink-0">ID:</span>
-                                                    <span className="text-slate-700 font-bold text-sm whitespace-nowrap">{currentCase.id}</span>
+                                                    <span className="text-slate-700 font-bold text-sm whitespace-nowrap">
+                                                        {currentCase.id}
+                                                    </span>
                                                 </div>
                                                 <span className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wide bg-indigo-100 text-indigo-600 border border-indigo-200`}>
                                                     {currentCase.status}
                                                 </span>
                                             </div>
+
+                                            {/* Separator Line */}
                                             <div className="h-px bg-slate-200 w-full"></div>
+
+                                            {/* Row 2: Title & Date */}
                                             <div>
-                                                <h4 className="text-lg font-bold text-slate-800 leading-tight">{currentCase.title}</h4>
+                                                <h4 className="text-lg font-bold text-slate-800 leading-tight">
+                                                    {currentCase.title}
+                                                </h4>
                                                 <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-500">
                                                     <Calendar size={14} className="text-slate-400"/>
                                                     <span>แจ้งเมื่อ: {currentCase.date}</span>
                                                 </div>
                                             </div>
+
+                                            {/* Row 3: Address */}
                                             <div className="bg-white rounded-xl p-3 border border-slate-200/60 flex items-start gap-3 shadow-sm">
                                                 <MapPin size={18} className="text-indigo-500 mt-0.5 shrink-0"/>
-                                                <div className="text-sm text-slate-600 leading-relaxed">{currentCase.department}</div>
+                                                <div className="text-sm text-slate-600 leading-relaxed">
+                                                    {currentCase.department}
+                                                </div>
                                             </div>
                                         </div>
 
+                                        {/* --- Media Section --- */}
                                         <div>
                                             <div className="flex items-center gap-2 mb-4 px-1">
                                                 <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
@@ -564,6 +490,7 @@ export default function ManageCase() {
                                                 <h5 className="font-bold text-slate-800 text-base">รายการไฟล์ประกอบ:</h5>
                                             </div>
 
+                                            {/* Grid Layout */}
                                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                                                 {currentCase.allImages.map((img) => {
                                                     const isSelected = selectedImageToReplace?.id === img.id;
@@ -585,10 +512,16 @@ export default function ManageCase() {
                                                                 }
                                                             `}
                                                         >
+                                                            {/* Media Content */}
                                                             <div className="aspect-video w-full flex items-center justify-center bg-slate-900/5 relative overflow-hidden rounded-t-lg">
                                                                 {img.mediaType === 'video' ? (
                                                                     <div className="relative w-full h-full bg-slate-900 flex items-center justify-center">
-                                                                        <video src={img.url} className="w-full h-full object-contain bg-black" controls playsInline />
+                                                                        <video 
+                                                                            src={img.url} 
+                                                                            className="w-full h-full object-contain bg-black" 
+                                                                            controls
+                                                                            playsInline
+                                                                        />
                                                                     </div>
                                                                 ) : img.mediaType === 'audio' ? (
                                                                     <div className="w-full h-full flex flex-col items-center justify-center bg-amber-50 text-amber-500">
@@ -600,6 +533,7 @@ export default function ManageCase() {
                                                                 )}
                                                             </div>
 
+                                                            {/* Info Strip */}
                                                             <div className={`p-3 flex justify-between items-center ${isSelected ? 'bg-indigo-50' : 'bg-white/50'}`}>
                                                                 <span className={`text-xs font-bold truncate max-w-[70%] ${isSelected ? 'text-indigo-700' : 'text-slate-500'}`}>{img.type}</span>
                                                                 {isSelected && <CheckCircle2 size={18} className="text-indigo-600 animate-[bounceIn_0.3s_ease-out]"/>}
@@ -609,11 +543,13 @@ export default function ManageCase() {
                                                 })}
                                             </div>
                                         </div>
+
+
                                     </div>
                                 </div>
                             </div>
                         )}
-                        {/* STEP 2: Upload */}
+                                            {/* STEP 2: Upload */}
                             {wizardStep === 2 && (
                                 <div className="w-full max-w-xl mx-auto animate-fade-in">
                                     <div className="text-center mb-6 lg:mb-8">
@@ -621,6 +557,7 @@ export default function ManageCase() {
                                         <p className="text-slate-500 text-sm">เลือกไฟล์เพื่อแทนที่รายการเดิม</p>
                                     </div>
 
+                                    {/* --- ส่วนแสดงไฟล์เก่า --- */}
                                     {selectedImageToReplace && (
                                         <div className="mb-6 lg:mb-8 w-full max-w-sm mx-auto flex flex-col items-center p-4 lg:p-5 bg-orange-50 rounded-3xl border border-orange-100 text-orange-700/70 shadow-sm">
                                             <p className="text-xs font-bold mb-3 flex items-center gap-1 uppercase tracking-wider">
@@ -654,6 +591,7 @@ export default function ManageCase() {
                                         </div>
                                     )}
                                     
+                                    {/* --- ส่วนอัปโหลดไฟล์ใหม่ --- */}
                                     <label className={`group relative flex flex-col items-center justify-center w-full min-h-[18rem] lg:min-h-[22rem] h-auto p-4 lg:p-6 rounded-3xl border-3 border-dashed transition-all duration-300 cursor-pointer overflow-hidden ${newImageFile ? 'border-green-400 bg-white' : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-100/50'}`}>
                                         <input 
                                             type="file" 
@@ -721,6 +659,7 @@ export default function ManageCase() {
                                     <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">Step 3: สรุปผลและระบุเหตุผล</h3>
                                     <p className="text-slate-500 mb-6 lg:mb-8 text-xs lg:text-sm">ระบุสาเหตุในการเปลี่ยนแปลงไฟล์ <span className="font-bold text-indigo-600">{selectedImageToReplace?.type}</span></p>
                                     
+                                    {/* Preview New File */}
                                     {newImageFile && (
                                         <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col items-center">
                                             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">ไฟล์ใหม่ที่จะใช้งาน</p>
@@ -762,9 +701,10 @@ export default function ManageCase() {
                     )}
                 </div>
 
-                {/* --- FOOTER BUTTONS --- */}
+                {/* --- FOOTER BUTTONS (Buttons side-by-side) --- */}
                 {!isSuccess && (
                     <div className="flex flex-row justify-between items-center mt-8 lg:mt-10 pt-6 border-t border-slate-100 gap-4">
+                        {/* Left Button (Cancel/Back) */}
                         {wizardStep === 1 ? (
                             <button 
                                 onClick={resetForm} 
@@ -785,6 +725,7 @@ export default function ManageCase() {
                             </button>
                         )}
 
+                        {/* Right Button (Next/Submit) */}
                         {wizardStep < 3 ? (
                             <button 
                                 onClick={() => setWizardStep(p => p + 1)} 
