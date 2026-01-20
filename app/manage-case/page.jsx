@@ -264,7 +264,7 @@ export default function ManageCase() {
 
         // 4. ตรวจสอบผลลัพธ์
         if (response.ok && result.photo_link) {
-             console.log("✅ Upload Success:", result);
+            //  console.log("✅ Upload Success:", result);
              
              // --- REQUIREMENT: บันทึก photo_link ลง LocalStorage ---
              localStorage.setItem('photo_link', result.photo_link);
@@ -276,7 +276,8 @@ export default function ManageCase() {
              const dbPayload = {
                 current_admin_id: adminId.toString().replace(/['"]+/g, ''), // ID ผู้แก้ไข
                 photo_id: selectedImageToReplace.id.toString().replace(/['"]+/g, ''), // ID ของรูปที่จะ update
-                file_url: result.photo_link          // URL ใหม่ที่ได้จากการ upload
+                file_url: result.photo_link,          // URL ใหม่ที่ได้จากการ upload
+                description: reason
              };
 
              const caseIdParam = currentCase.dbId || currentCase.id;
@@ -298,9 +299,7 @@ export default function ManageCase() {
                  throw new Error(dbResult.message || "Database update failed");
              }
 
-             console.log("✅ Database Updated:", dbResult);
-
-             // เปลี่ยนสถานะเป็นสำเร็จเพื่อโชว์หน้า Success UI
+            //  console.log("✅ Database Updated:", dbResult);
 
              // เปลี่ยนสถานะเป็นสำเร็จเพื่อโชว์หน้า Success UI
              setIsSuccess(true);
