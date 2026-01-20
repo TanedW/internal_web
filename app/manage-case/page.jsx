@@ -3,33 +3,70 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  LogOut, 
-  Search, 
-  CheckCircle2, 
-  Users, 
-  Clock, 
-  AlertCircle, 
-  UploadCloud, 
-  ArrowLeft, 
-  ArrowRight,
-  X,
-  ImageIcon,
-  Film,        
-  Music,      
-  FileAudio,
-  MapPin,
-  Calendar
+  LogOut, Search, CheckCircle2, AlertCircle, UploadCloud, 
+  ArrowLeft, ArrowRight, X, ImageIcon, Music, FileAudio, 
+  MapPin, Calendar, Film
 } from "lucide-react"; 
 import Link from 'next/link';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../../firebaseConfig"; 
 
-// --- Helper: ตรวจสอบประเภทไฟล์ ---
+// --- Config: MIME Types ตามเอกสาร API  ---
+const MIME_TYPE_MAP = {
+  // Images
+  'jpg': 'image/jpeg',
+  'jpeg': 'image/jpeg',
+  'png': 'image/png',
+  'gif': 'image/gif',
+  'bmp': 'image/bmp',
+  'webp': 'image/webp',
+  'heic': 'image/heic',
+  'heif': 'image/heif',
+  'ico': 'image/x-icon',
+  'tiff': 'image/tiff',
+  // Videos
+  'mp4': 'video/mp4',
+  'mov': 'video/quicktime',
+  'avi': 'video/x-msvideo',
+  'mkv': 'video/x-matroska',
+  'wmv': 'video/x-ms-wmv',
+  // Audio
+  'mp3': 'audio/mpeg',
+  'wav': 'audio/wav',
+  'ogg': 'audio/ogg',
+  'm4a': 'audio/m4a',
+  'flac': 'audio/flac',
+  'wma': 'audio/x-ms-wma'
+};
+
+// --- Helper: แปลงไฟล์เป็น Base64 พร้อม Header ที่ถูกต้องตาม Doc ---
+const fileToBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    // 1. หานามสกุลไฟล์
+    const extension = file.name.split('.').pop().toLowerCase();
+    
+    // 2. หา MIME Type ที่ถูกต้องจาก Map (ถ้าไม่มีให้ใช้ type เดิมของไฟล์)
+    const mimeType = MIME_TYPE_MAP[extension] || file.type;
+
+    // 3. สร้าง Blob ใหม่ด้วย MIME Type ที่ถูกต้อง (เพื่อบังคับ Header data:...)
+    const blob = new Blob([file], { type: mimeType });
+
+    const reader = new FileReader();
+    reader.readAsDataURL(blob); // ฟังก์ชันนี้จะสร้าง data:MIME;base64,... ให้เองตาม Blob type
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+  });
+};
+
+// --- Helper: ตรวจสอบประเภทไฟล์สำหรับ UI ---
 const getMediaTypeFromFile = (file) => {
     if (!file) return 'unknown';
-    if (file.type.startsWith('image/')) return 'image';
-    if (file.type.startsWith('video/')) return 'video';
-    if (file.type.startsWith('audio/')) return 'audio';
+    const extension = file.name.split('.').pop().toLowerCase();
+    const mimeType = MIME_TYPE_MAP[extension] || file.type;
+
+    if (mimeType.startsWith('image/')) return 'image';
+    if (mimeType.startsWith('video/')) return 'video';
+    if (mimeType.startsWith('audio/')) return 'audio';
     return 'unknown';
 };
 
@@ -124,9 +161,9 @@ export default function ManageCase() {
                         let mType = 'image';
                         
                         // ตรวจสอบจาก Flag หรือ นามสกุลไฟล์
-                        if (item.viewed === 1 || fileUrl.match(/\.(mp4|mov|webm)$/)) {
+                        if (item.viewed === 1 || fileUrl.match(/\.(mp4|mov|webm|avi|mkv)$/)) {
                             mType = 'video';
-                        } else if (fileUrl.match(/\.(mp3|wav|ogg|m4a|aac)$/)) {
+                        } else if (fileUrl.match(/\.(mp3|wav|ogg|m4a|aac|flac)$/)) {
                             mType = 'audio';
                         }
 
@@ -172,10 +209,11 @@ export default function ManageCase() {
     }
   };
 
-  // --- 3. ฟังก์ชันบันทึกข้อมูล (Update) ---
+  // --- 3. ฟังก์ชันบันทึกข้อมูล (อัปโหลดจริง + บันทึก LocalStorage) ---
   const handleUpdateImage = async (e) => {
     e.preventDefault();
     
+    // Validation
     if (!selectedImageToReplace) {
         alert("กรุณาเลือกรายการที่ต้องการแก้ไขในขั้นตอนที่ 1");
         setWizardStep(1);
@@ -186,33 +224,95 @@ export default function ManageCase() {
         return; 
     }
     
+    // ตรวจสอบ URL API
+    const uploadApiUrl = process.env.NEXT_PUBLIC_FILE_UPLOAD_API_URL;
+    if (!uploadApiUrl) {
+        alert("Configuration Error: NEXT_PUBLIC_FILE_UPLOAD_API_URL not found in .env");
+        return;
+    }
+    const dbManageUrl = process.env.NEXT_PUBLIC_DB_MANAGE_CASE_API_URL;
+    if (!dbManageUrl) {
+         alert("Configuration Error: NEXT_PUBLIC_DB_MANAGE_CASE_API_URL not found in .env");
+         return;
+    }
+    
+
     setIsSubmitting(true);
 
     try {
-        const formData = new FormData();
-        formData.append('file', newImageFile);
-        formData.append('attachmentId', selectedImageToReplace.id); 
-        formData.append('ticketId', currentCase.id);
-        formData.append('reason', reason);
+        console.log("🔄 กำลังเตรียมข้อมูลสำหรับอัปโหลด...");
 
-        const response = await fetch('/api/cases/update_image', {
+        // 1. แปลงไฟล์เป็น Base64
+        const base64String = await fileToBase64(newImageFile);
+        
+        // 2. เตรียม Payload (JSON Body)
+        // ใช้ folder_path แบบ Dynamic ตาม Case ID เพื่อความเป็นระเบียบ
+        const payload = {
+            // folder_path: `attachment/case_${currentCase.id}`, 
+            folder_path: `attachment/Test_internal_web/case_${currentCase.id}`, 
+            image: base64String
+        };
+
+        // 3. ยิง Request ไปยัง API
+        const response = await fetch(uploadApiUrl, {
             method: 'POST',
-            body: formData, 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload), 
         });
 
         const result = await response.json();
 
-        if (response.ok) {
-            setIsSuccess(true);
+        // 4. ตรวจสอบผลลัพธ์
+        if (response.ok && result.photo_link) {
+            //  console.log("✅ Upload Success:", result);
+             
+             // --- REQUIREMENT: บันทึก photo_link ลง LocalStorage ---
+             localStorage.setItem('photo_link', result.photo_link);
+
+             console.log("🔄 กำลังอัปเดตฐานข้อมูล...");
+             
+             const adminId = localStorage.getItem("current_admin_id") || "unknown_admin";
+
+             const dbPayload = {
+                current_admin_id: adminId.toString().replace(/['"]+/g, ''), // ID ผู้แก้ไข
+                photo_id: selectedImageToReplace.id.toString().replace(/['"]+/g, ''), // ID ของรูปที่จะ update
+                file_url: result.photo_link,          // URL ใหม่ที่ได้จากการ upload
+                description: reason
+             };
+
+             const caseIdParam = currentCase.dbId || currentCase.id;
+
+             const dbResponse = await fetch(`${dbManageUrl}?id=${caseIdParam}`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json'
+                    // หากมี Auth Token ให้ใส่ตรงนี้
+                    // 'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify(dbPayload)
+             });
+
+             const dbResult = await dbResponse.json();
+             
+             if (!dbResponse.ok) {
+                 console.error("Database Error:", dbResult);
+                 throw new Error(dbResult.message || "Database update failed");
+             }
+
+            //  console.log("✅ Database Updated:", dbResult);
+
+             // เปลี่ยนสถานะเป็นสำเร็จเพื่อโชว์หน้า Success UI
+             setIsSuccess(true);
         } else {
-            throw new Error(result.message || "Update failed");
+             console.error("Server Error:", result);
+             throw new Error(result.message || "Upload failed: ไม่ได้รับ photo_link กลับมา");
         }
 
     } catch (error) {
         console.error("Update Error:", error);
-        alert(`บันทึกไม่สำเร็จ: ${error.message} (Backend อาจยังไม่รองรับไฟล์ประเภทนี้)`);
+        alert(`เกิดข้อผิดพลาดในการอัปโหลด: ${error.message}`);
     } finally {
-        setIsSubmitting(false);
+        setIsSubmitting(false); 
     }
   };
 
