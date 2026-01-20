@@ -24,13 +24,15 @@ export default function RichMenuDashboard() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileDisplay, setFileDisplay] = useState('');
   const [showAllMenus, setShowAllMenus] = useState(false);
+  const [isUploadExpanded, setIsUploadExpanded] = useState(true);
+  
   const fileInputRef = useRef(null);
   const dropZoneRef = useRef(null);
 
   const getAvatarUrl = (name) => `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'Admin')}&background=0D9&color=fff&size=128`;
 
   // ==========================================
-  // HELPER FUNCTIONS (เหมือน PHP)
+  // HELPER FUNCTIONS
   // ==========================================
 
   const getIcon = (name) => {
@@ -42,6 +44,8 @@ export default function RichMenuDashboard() {
       refresh: <i className="fa-solid fa-sync"></i>,
       image: <i className="fa-regular fa-image"></i>,
       back: <i className="fa-solid fa-arrow-left"></i>,
+      chevronUp: <i className="fa-solid fa-chevron-up"></i>,
+      chevronDown: <i className="fa-solid fa-chevron-down"></i>,
     };
     return icons[name] || null;
   };
@@ -129,7 +133,7 @@ export default function RichMenuDashboard() {
       zone.removeEventListener('dragleave', handleDragLeave);
       zone.removeEventListener('drop', handleDrop);
     };
-  }, []);
+  }, [isUploadExpanded]);
 
   // ==========================================
   // FILE HANDLERS
@@ -147,7 +151,7 @@ export default function RichMenuDashboard() {
   }
 
   // ==========================================
-  // ACTION HANDLERS (เหมือน PHP)
+  // ACTION HANDLERS
   // ==========================================
 
   async function handleUpload(e) {
@@ -254,6 +258,7 @@ export default function RichMenuDashboard() {
   }
 
   const visibleMenus = showAllMenus ? menus : menus.slice(0, 6);
+  const activeMenu = menus.find(m => m.richMenuId === currentMenuId);
 
   return (
     <div className="min-h-screen bg-[#F4F6F8] font-sans pb-32 lg:pb-10">
@@ -264,7 +269,7 @@ export default function RichMenuDashboard() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600&display=swap');
 
-        /* CSS Variables (เหมือน PHP) */
+        /* CSS Variables */
         :root {
           --php-primary: #06C755;
           --php-primary-hover: #05a546;
@@ -358,23 +363,24 @@ export default function RichMenuDashboard() {
           box-shadow: 0 0 0 3px rgba(6, 199, 85, 0.1); 
         }
 
-        /* UPLOAD ZONE */
+        /* UPLOAD ZONE - COMPACT VERSION */
         .php-upload-zone {
           border: 2px dashed var(--php-border); 
           border-radius: var(--php-radius); 
-          padding: 40px 20px;
+          padding: 20px;
           text-align: center; 
           cursor: pointer; 
           transition: 0.2s; 
           position: relative;
+          background: #FAFAFA;
         }
         .php-upload-zone:hover { 
           border-color: var(--php-primary); 
-          background: #F9FBF9; 
+          background: #F0FDF4; 
         }
         .php-upload-zone-active { 
           border-color: var(--php-primary) !important; 
-          background: #F9FBF9 !important; 
+          background: #F0FDF4 !important; 
         }
         .php-upload-text { 
           font-weight: 500; 
@@ -388,8 +394,13 @@ export default function RichMenuDashboard() {
         .php-file-selected { 
           color: var(--php-primary); 
           font-weight: 600; 
-          margin-top: 10px; 
+          margin-top: 8px; 
+          font-size: 13px;
           display: block; 
+          background: #E8F5E9;
+          padding: 4px 8px;
+          border-radius: 4px;
+          display: inline-block;
         }
 
         /* BUTTONS */
@@ -398,12 +409,11 @@ export default function RichMenuDashboard() {
           color: white; 
           border: none; 
           width: 100%; 
-          padding: 14px;
+          padding: 12px;
           border-radius: 8px; 
           font-size: 15px; 
           font-weight: 500; 
           cursor: pointer; 
-          margin-top: 16px;
           transition: background 0.2s; 
           display: flex; 
           align-items: center; 
@@ -464,6 +474,38 @@ export default function RichMenuDashboard() {
           border-color: var(--php-primary); 
           background: #fff; 
           box-shadow: 0 0 0 1px var(--php-primary); 
+        }
+
+        /* Image Preview Styles */
+        .php-menu-img-container {
+            width: 100%;
+            aspect-ratio: 2.96; 
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #eee;
+            position: relative;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .php-menu-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: relative;
+            z-index: 2;
+        }
+        .php-menu-img-placeholder {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #d1d5db;
+            z-index: 1;
         }
         
         .php-menu-status { 
@@ -582,6 +624,7 @@ export default function RichMenuDashboard() {
             display: flex;
             align-items: center;
             gap: 5px;
+            cursor: pointer;
             transition: 0.2s;
         }
         .php-btn-back:hover { color: var(--php-primary); }
@@ -608,10 +651,65 @@ export default function RichMenuDashboard() {
             color: var(--php-text-sub);
             font-size: 14px;
         }
+
+        /* Current Menu Card Styles */
+        .php-current-menu-card {
+          border-top: 4px solid #10b981 !important;
+        }
+        .php-current-menu-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 24px;
+        }
+        @media (min-width: 768px) {
+          .php-current-menu-grid {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
+        .php-current-status-info {
+          background: #ecfdf5;
+          border: 1px solid #d1fae5;
+          padding: 12px 16px;
+          border-radius: 8px;
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          font-size: 14px;
+          color: #047857;
+          margin-top: 12px;
+        }
+
+        /* Upload Section Toggle */
+        .php-upload-header {
+          cursor: pointer;
+          user-select: none;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin: -24px -24px 0 -24px;
+          padding: 24px;
+          border-radius: 12px 12px 0 0;
+          transition: 0.2s;
+        }
+        .php-upload-header:hover {
+          background: #f9fafb;
+        }
+        .php-upload-icon {
+          color: #9ca3af;
+          transition: 0.2s;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+          from { opacity: 0; max-height: 0; }
+          to { opacity: 1; max-height: 1000px; }
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.3s ease-out;
+        }
       `}</style>
 
-      {/* ================= NAVBAR (UNCHANGED) ================= */}
-      {/* Mobile Bottom Nav */}
+      {/* ================= MOBILE BOTTOM NAV ================= */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.1)] bg-white">
         <div className="flex w-full h-16 border-t border-gray-100">
           <Link href="/manage" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50">
@@ -629,55 +727,55 @@ export default function RichMenuDashboard() {
         </div>
       </div>
 
-      {/* Mobile Top Nav */}
+      {/* ================= MOBILE TOP NAV ================= */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-sm z-50 px-4 flex justify-between items-center border-b border-gray-100 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="avatar">
-                  <div className="w-9 h-9 rounded-full ring ring-offset-2 ring-indigo-50">
-                      <img src={user?.photoURL || getAvatarUrl(user?.displayName)} alt="User"/>
-                  </div>
-              </div>
-              <div className="flex flex-col justify-center">
-                  <span className="font-bold text-slate-800 text-sm truncate max-w-[160px]">{user?.displayName || "Admin User"}</span>
-                  <span className="text-[10px] text-indigo-500 font-bold uppercase">SYSTEM ADMIN</span>
-              </div>
+        <div className="flex items-center gap-3">
+          <div className="avatar">
+            <div className="w-9 h-9 rounded-full ring ring-offset-2 ring-indigo-50">
+              <img src={user?.photoURL || getAvatarUrl(user?.displayName)} alt="User"/>
             </div>
-            <button onClick={handleLogout} className="btn btn-ghost btn-circle btn-sm hover:bg-red-50">
-                <LogOut size={22} className="text-red-500" />
-            </button>
+          </div>
+          <div className="flex flex-col justify-center">
+            <span className="font-bold text-slate-800 text-sm truncate max-w-[160px]">{user?.displayName || "Admin User"}</span>
+            <span className="text-[10px] text-indigo-500 font-bold uppercase">SYSTEM ADMIN</span>
+          </div>
+        </div>
+        <button onClick={handleLogout} className="btn btn-ghost btn-circle btn-sm hover:bg-red-50">
+          <LogOut size={22} className="text-red-500" />
+        </button>
       </div>
 
-      {/* Desktop Nav */}
+      {/* ================= DESKTOP NAV ================= */}
       <div className="hidden lg:block sticky top-0 z-40 font-sans">
         <div className="navbar bg-white/95 backdrop-blur-xl px-6 lg:px-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border-b border-slate-50/50 transition-all py-3">
-            <div className="navbar-start">
-                <div className="flex items-center gap-3 group cursor-default">
-                    <div className="avatar">
-                        <div className="w-11 h-11 rounded-full ring-[3px] ring-primary/20 ring-offset-[3px] ring-offset-white transition-all group-hover:ring-primary/40">
-                            <img src={user?.photoURL || getAvatarUrl(user?.displayName)} alt="User" className="object-cover"/>
-                        </div>
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="font-extrabold text-slate-800 text-[15px] tracking-tight leading-tight">{user?.displayName || "Admin"}</span>
-                        <span className="text-[11px] font-bold text-primary/70 uppercase tracking-wider">System Admin</span>
-                    </div>
+          <div className="navbar-start">
+            <div className="flex items-center gap-3 group cursor-default">
+              <div className="avatar">
+                <div className="w-11 h-11 rounded-full ring-[3px] ring-primary/20 ring-offset-[3px] ring-offset-white transition-all group-hover:ring-primary/40">
+                  <img src={user?.photoURL || getAvatarUrl(user?.displayName)} alt="User" className="object-cover"/>
                 </div>
+              </div>
+              <div className="flex flex-col">
+                <span className="font-extrabold text-slate-800 text-[15px] tracking-tight leading-tight">{user?.displayName || "Admin"}</span>
+                <span className="text-[11px] font-bold text-primary/70 uppercase tracking-wider">System Admin</span>
+              </div>
             </div>
-            <div className="navbar-center">
-                <ul className="menu menu-horizontal px-1 gap-3">
-                    <li><Link href="/manage" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">จัดการ Email</Link></li>
-                    <li><Link href="/manage-case" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">จัดการ Case</Link></li>
-                    <li><Link href="/manage-richmenu" className="!bg-slate-900 !text-white shadow-lg shadow-slate-400/50 rounded-full px-6 py-2.5 font-bold hover:!bg-slate-800 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">จัดการ Menu</Link></li>
-                </ul>
-            </div>
-            <div className="navbar-end">
-                <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-2 rounded-xl hover:bg-red-50 transition-all duration-200">
-                    <div className="p-1.5 bg-red-100/50 rounded-lg group-hover:bg-red-100 transition-colors">
-                        <LogOut size={20} className="text-red-500 transition-transform group-hover:translate-x-0.5" />
-                    </div>
-                    <span className="text-red-600 font-bold tracking-wide text-[15px]">Logout</span>
-                </button>
-            </div>
+          </div>
+          <div className="navbar-center">
+            <ul className="menu menu-horizontal px-1 gap-3">
+              <li><Link href="/manage" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">จัดการ Email</Link></li>
+              <li><Link href="/manage-case" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">จัดการ Case</Link></li>
+              <li><Link href="/manage-richmenu" className="!bg-slate-900 !text-white shadow-lg shadow-slate-400/50 rounded-full px-6 py-2.5 font-bold hover:!bg-slate-800 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">จัดการ Menu</Link></li>
+            </ul>
+          </div>
+          <div className="navbar-end">
+            <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-2 rounded-xl hover:bg-red-50 transition-all duration-200">
+              <div className="p-1.5 bg-red-100/50 rounded-lg group-hover:bg-red-100 transition-colors">
+                <LogOut size={20} className="text-red-500 transition-transform group-hover:translate-x-0.5" />
+              </div>
+              <span className="text-red-600 font-bold tracking-wide text-[15px]">Logout</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -688,17 +786,17 @@ export default function RichMenuDashboard() {
           {/* Navigation Bar */}
           <div className="php-nav-bar">
             <Link href="/manage-richmenu" className="php-btn-back">
-                {getIcon('back')} กลับหน้าเลือกบอท
+              {getIcon('back')} กลับหน้าเลือกบอท
             </Link>
             <div className="php-bot-badge">
-                กำลังจัดการ: {bot?.name || botKey}
+              กำลังจัดการ: {bot?.name || botKey}
             </div>
           </div>
 
           {/* Header */}
           <div className="php-main-header">
-              <h1>Traffy Rich Menu Manager</h1>
-              <p>ระบบจัดการเมนู LINE Official Account</p>
+            <h1>Traffy Rich Menu Manager</h1>
+            <p>ระบบจัดการเมนู LINE Official Account</p>
           </div>
 
           {/* Alert */}
@@ -709,104 +807,233 @@ export default function RichMenuDashboard() {
             </div>
           )}
 
-          {/* Upload Card */}
-          <section className="php-card">
-            <div className="php-card-header">
-                <h2 className="php-card-title">สร้างเมนูใหม่ (Upload New)</h2>
+          {/* ==================== CURRENT MENU STATUS CARD ==================== */}
+          <section className="php-card php-current-menu-card">
+            <div className="php-card-header flex justify-between items-center">
+              <h2 className="php-card-title flex items-center gap-2">
+                <i className="fa-solid fa-star text-emerald-500"></i>
+                เมนูที่ใช้งานอยู่ (Current Menu)
+              </h2>
+              {activeMenu && (
+                <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-1 rounded-md">
+                  LIVE
+                </span>
+              )}
             </div>
-            <form onSubmit={handleUpload}>
-                <div className="mb-5">
-                    <label className="php-input-label">ชื่อเมนู (Menu Name)</label>
-                    <input 
-                      type="text" 
-                      className="php-form-control" 
-                      placeholder="ตั้งชื่อเมนู เช่น: เมนูหลัก 2024"
-                      value={menuName}
-                      onChange={(e) => setMenuName(e.target.value)}
-                      disabled={uploading}
-                    />
-                </div>
-
-                <div className="php-upload-zone" ref={dropZoneRef}>
-                    <input 
-                      type="file" 
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-                      accept=".jpg,.jpeg" 
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      disabled={uploading}
-                    />
-                    <div className="flex flex-col items-center">
-                        <div className="mb-2 text-4xl text-slate-300">{getIcon('image')}</div>
-                        <span className="php-upload-text">แตะเพื่อเลือกรูปภาพ หรือลากไฟล์มาวาง</span>
-                        <div className="php-upload-sub">รองรับไฟล์ .jpg ขนาด 2500x843 px (Max 1MB)</div>
-                        {fileDisplay && <div className="php-file-selected">{fileDisplay}</div>}
+            {activeMenu ? (
+              <div className="php-current-menu-grid">
+                {/* Image Column */}
+                <div>
+                  <div className="php-menu-img-container shadow-md border-emerald-100">
+                    <div className="php-menu-img-placeholder">
+                      {getIcon('image')}
                     </div>
+                    <img 
+                      src={activeMenu.imageUrl || `/api/richmenu/image?botKey=${botKey}&menuId=${activeMenu.richMenuId}`}
+                      alt="Current Menu"
+                      className="php-menu-img"
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  </div>
                 </div>
+                {/* Details Column */}
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-800">{activeMenu.name}</h3>
+                    <div className="flex items-center gap-2 text-slate-400 mt-1">
+                      <i className="fa-regular fa-id-card"></i>
+                      <span className="font-mono text-xs">{activeMenu.richMenuId}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-2 opacity-10 text-emerald-500">
+                      <i className="fa-solid fa-quote-right fa-2x"></i>
+                    </div>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Chat Bar Text</span>
+                    <p className="font-medium text-slate-700 text-lg">"{activeMenu.chatBarText}"</p>
+                  </div>
 
-                <button type="submit" className="php-btn-primary" disabled={uploading}>
-                    {getIcon('upload')}
-                    {uploading ? 'กำลังอัปโหลด...' : 'อัปโหลดและใช้งานทันที'}
-                </button>
-            </form>
+                  <div className="php-current-status-info">
+                    <i className="fa-solid fa-circle-check flex-shrink-0 mt-0.5"></i>
+                    <div>
+                      <strong>สถานะปกติ:</strong> เมนูนี้กำลังแสดงผลให้กับผู้ใช้งาน LINE ทุกคนที่ไม่ได้ถูกกำหนดเมนูเฉพาะบุคคล
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : ((
+              <div className="text-center py-10 text-slate-400 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                <div className="text-4xl mb-3 text-slate-300">{getIcon('image')}</div>
+                <p className="font-medium">ยังไม่มีเมนูที่ตั้งค่าเป็น Default</p>
+                <p className="text-sm text-slate-400 mt-1">กรุณาเลือกเมนูจากประวัติด้านล่าง หรืออัปโหลดใหม่</p>
+              </div>
+            ))}
           </section>
 
-          {/* History Card */}
+          {/* ==================== UPLOAD SECTION (COLLAPSIBLE) ==================== */}
+          <section className="php-card transition-all duration-300">
+            {/* ส่วนหัวการ์ด: ปรับ Logic ให้เมื่อหุบ (!isUploadExpanded) จะดึงขอบล่างขึ้น (!mb-[-24px]) และทำมุมโค้ง */}
+            <div 
+              className={`php-upload-header cursor-pointer select-none flex justify-between items-center -m-6 p-6 rounded-t-xl transition-all duration-300
+                ${!isUploadExpanded ? '!rounded-b-xl !mb-[-24px]' : 'border-b border-gray-100'}`} 
+              onClick={() => setIsUploadExpanded(!isUploadExpanded)}
+            >
+              <h2 className="php-card-title flex items-center gap-2 text-base font-semibold m-0 text-slate-700">
+                <i className="fa-solid fa-cloud-arrow-up text-slate-400"></i>
+                สร้างเมนูใหม่ (Upload New)
+              </h2>
+              <button className="text-slate-400 hover:text-slate-600 transition-colors" type="button">
+                {isUploadExpanded ? getIcon('chevronUp') : getIcon('chevronDown')}
+              </button>
+            </div>
+            
+            {/* ส่วนเนื้อหา: แสดงเมื่อเปิดการ์ด */}
+            {isUploadExpanded && (
+              <form onSubmit={handleUpload} className="mt-8 animate-fade-in">
+                <div className="flex flex-col md:flex-row gap-6 items-stretch">
+                  
+                  {/* Left Column: Input & Actions */}
+                  <div className="flex-1 flex flex-col justify-between gap-4">
+                    <div>
+                      <label className="php-input-label">ชื่อเมนู (Menu Name)</label>
+                      <input 
+                        type="text" 
+                        className="php-form-control" 
+                        placeholder="ตั้งชื่อเมนู เช่น: โปรโมชั่น ม.ค. 67"
+                        value={menuName}
+                        onChange={(e) => setMenuName(e.target.value)}
+                        disabled={uploading}
+                      />
+                    </div>
+                    
+                    <div className="bg-blue-50 text-blue-800 text-xs p-3 rounded-md border border-blue-100">
+                      <i className="fa-solid fa-circle-info mr-2"></i>
+                      ขนาดไฟล์แนะนำ: <strong>2500 x 843 px</strong> (JPEG Only, Max 1MB)
+                    </div>
+
+                    <button type="submit" className="php-btn-primary mt-auto" disabled={uploading}>
+                      {getIcon('upload')}
+                      {uploading ? 'กำลังอัปโหลด...' : 'อัปโหลดและใช้งานทันที'}
+                    </button>
+                  </div>
+
+                  {/* Right Column: Compact Drop Zone */}
+                  <div className="flex-1">
+                    <label className="php-input-label">รูปภาพ (Image)</label>
+                    
+                    {/* สำคัญ: ต้องมี relative ที่นี่ เพื่อให้ input absolute ด้านในอ้างอิงขอบเขตจากกล่องนี้ */}
+                    <div 
+                      className="php-upload-zone relative h-full flex flex-col justify-center items-center py-6 min-h-[160px] bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl hover:bg-green-50 hover:border-green-400 transition-colors group" 
+                      ref={dropZoneRef}
+                    >
+                      {/* Input File: จะอยู่แค่ในกรอบแม่ เพราะแม่มี relative แล้ว */}
+                      <input 
+                        type="file" 
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                        accept=".jpg,.jpeg" 
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        disabled={uploading}
+                      />
+                      
+                      {selectedFile ? (
+                        <div className="text-center relative z-0">
+                          <div className="text-4xl text-emerald-500 mb-2">
+                            {getIcon('image')}
+                          </div>
+                          <span className="font-semibold text-slate-700 block mb-1">เลือกไฟล์แล้ว</span>
+                          <div className="php-file-selected text-xs max-w-[200px] truncate mx-auto bg-emerald-100 text-emerald-700 px-2 py-1 rounded">
+                            {selectedFile.name}
+                          </div>
+                          <p className="text-xs text-slate-400 mt-2">แตะเพื่อเปลี่ยนรูป</p>
+                        </div>
+                      ) : (
+                        <div className="text-center text-slate-400 group-hover:text-slate-600 transition-colors relative z-0">
+                          <div className="text-3xl mb-2">{getIcon('image')}</div>
+                          <span className="php-upload-text text-sm font-medium">เลือกรูปภาพ หรือลากไฟล์มาวาง</span>
+                          <span className="text-xs opacity-70 block mt-1">รองรับ .jpg เท่านั้น</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </form>
+            )}
+          </section>
+
+          {/* ==================== HISTORY SECTION ==================== */}
           <section className="php-card">
             <div className="php-card-header">
-                <h2 className="php-card-title">ประวัติเมนูของบอทนี้ (History)</h2>
+              <h2 className="php-card-title">ประวัติเมนูของบอทนี้ (History)</h2>
             </div>
 
             {menus.length > 0 ? (
-                <>
+              <>
                 <div className="php-menu-list">
-                    {visibleMenus.map((menu) => {
-                        const isCurrent = menu.richMenuId === currentMenuId;
-                        return (
-                            <div key={menu.richMenuId} className={`php-menu-item ${isCurrent ? 'active' : ''}`}>
-                                <div className="php-menu-status">
-                                    <div className="php-menu-details">
-                                        <h3>{menu.name}</h3>
-                                        <p>{menu.chatBarText}</p>
-                                        <div className="php-menu-id">{menu.richMenuId}</div>
-                                    </div>
-                                    <span className={`php-status-badge ${isCurrent ? 'php-status-active' : 'php-status-inactive'}`}>
-                                        {isCurrent ? 'Active' : 'Inactive'}
-                                    </span>
-                                </div>
+                  {visibleMenus.map((menu) => {
+                    const isCurrent = menu.richMenuId === currentMenuId;
+                    return (
+                      <div key={menu.richMenuId} className={`php-menu-item ${isCurrent ? 'active' : ''}`}>
+                        
+                        {/* Image Preview Area */}
+                        <div className="php-menu-img-container">
+                          <div className="php-menu-img-placeholder">
+                            {getIcon('image')}
+                          </div>
+                          <img 
+                            src={menu.imageUrl || `/api/richmenu/image?botKey=${botKey}&menuId=${menu.richMenuId}`}
+                            alt={menu.name}
+                            className="php-menu-img"
+                            onError={(e) => { 
+                              e.target.style.display = 'none'; 
+                            }}
+                          />
+                        </div>
 
-                                {!isCurrent ? (
-                                    <div className="php-menu-actions">
-                                        <button onClick={() => handleSwitch(menu.richMenuId)} className="php-btn-action php-btn-switch">
-                                            {getIcon('refresh')} ใช้เมนูนี้
-                                        </button>
-                                        <button onClick={() => handleDelete(menu.richMenuId)} className="php-btn-action php-btn-delete">
-                                            {getIcon('trash')} ลบ
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="php-menu-actions">
-                                        <button disabled className="php-btn-action php-btn-disabled">
-                                            {getIcon('check')} ใช้งานอยู่
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
+                        <div className="php-menu-status">
+                          <div className="php-menu-details">
+                            <h3>{menu.name}</h3>
+                            <p>{menu.chatBarText}</p>
+                            <div className="php-menu-id">{menu.richMenuId}</div>
+                          </div>
+                          <span className={`php-status-badge ${isCurrent ? 'php-status-active' : 'php-status-inactive'}`}>
+                            {isCurrent ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+
+                        {!isCurrent ? (
+                          <div className="php-menu-actions">
+                            <button onClick={() => handleSwitch(menu.richMenuId)} className="php-btn-action php-btn-switch">
+                              {getIcon('refresh')} ใช้เมนูนี้
+                            </button>
+                            <button onClick={() => handleDelete(menu.richMenuId)} className="php-btn-action php-btn-delete">
+                              {getIcon('trash')} ลบ
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="php-menu-actions">
+                            <button disabled className="php-btn-action php-btn-disabled">
+                              {getIcon('check')} ใช้งานอยู่
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {menus.length > 6 && !showAllMenus && (
-                    <button onClick={() => setShowAllMenus(true)} className="php-btn-secondary">
-                        ดูเพิ่มเติม (อีก {menus.length - 6} รายการ) ▼
-                    </button>
+                  <button onClick={() => setShowAllMenus(true)} className="php-btn-secondary">
+                    ดูเพิ่มเติม (อีก {menus.length - 6} รายการ) ▼
+                  </button>
                 )}
-                </>
+              </>
             ) : (
-                <div className="php-empty-state">
-                    <div className="mb-2 text-5xl text-slate-300">{getIcon('image')}</div>
-                    <p>ไม่พบประวัติเมนูในระบบ</p>
-                </div>
+              <div className="php-empty-state">
+                <div className="mb-2 text-5xl text-slate-300">{getIcon('image')}</div>
+                <p>ไม่พบประวัติเมนูในระบบ</p>
+              </div>
             )}
           </section>
 

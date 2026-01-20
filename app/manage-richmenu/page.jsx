@@ -16,30 +16,24 @@ export default function RichMenuHome() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-
-        // โหลดจาก cache ก่อน
+        
+        // 1. โหลด cache
         const cachedBots = localStorage.getItem('cachedBots');
+        if (cachedBots) setBots(JSON.parse(cachedBots));
+        
         const cachedMenus = localStorage.getItem('cachedMenus');
-
-        if (cachedBots) {
-          setBots(JSON.parse(cachedBots));
-        }
-        if (cachedMenus) {
-          setCurrentMenus(JSON.parse(cachedMenus));
-        }
-
+        if (cachedMenus) setCurrentMenus(JSON.parse(cachedMenus));
+        
+        // 2. ⭐⭐⭐ ตั้ง loading = false ทันที ⭐⭐⭐
         setLoading(false);
-
-        // รีเฟรชข้อมูลในพื้นหลัง
+        
+        // 3. fetchBotsData ทำในพื้นหลัง (ไม่ต้องรอ)
         fetchBotsData();
-      } else {
-        router.push('/');
       }
     });
-    return () => unsubscribe();
   }, [router]);
 
   async function fetchBotsData() {
