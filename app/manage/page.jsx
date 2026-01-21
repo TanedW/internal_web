@@ -17,9 +17,9 @@ export default function Manage() {
   const [filteredEmails, setFilteredEmails] = useState([]); 
   const [searchTerm, setSearchTerm] = useState(""); 
   
-  // ✅ State สิทธิ์
+  // ✅ State สิทธิ์ (ปรับเป็น Array)
   const [canDelete, setCanDelete] = useState(false); 
-  const [currentRole, setCurrentRole] = useState(null); 
+  const [currentRoles, setCurrentRoles] = useState([]); 
 
   // ✅ State สำหรับ Mobile Menu
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -68,8 +68,15 @@ export default function Manage() {
 
       if (currentAdminId && data.length > 0) {
         const myProfile = data.find(u => String(u.admin_id) === String(currentAdminId));
-        if (myProfile && myProfile.role) {
-            setCurrentRole(myProfile.role);
+        if (myProfile) {
+            // ✅ CHANGED: รองรับทั้งแบบ array (ใหม่) และ string (เก่า/fallback)
+            let roles = [];
+            if (Array.isArray(myProfile.roles)) {
+                roles = myProfile.roles;
+            } else if (myProfile.role) {
+                roles = [myProfile.role];
+            }
+            setCurrentRoles(roles);
         }
       }
 
@@ -130,7 +137,7 @@ export default function Manage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 email: newEmail,
-                role: newRole, 
+                role: newRole, // ส่งไป 1 Role ก่อนตอนสร้าง
                 current_admin_id: currentAdminId 
             }),
         });
@@ -180,10 +187,21 @@ export default function Manage() {
     }
   };
 
-  // --- Helper: Check Navbar Permission ---
-  const showEmailMenu = ['admin', 'editor', 'editor_manage_email'].includes(currentRole);
-  const showCaseMenu = ['admin', 'editor', 'editor_manage_case'].includes(currentRole);
-  const showMenuMenu = ['admin', 'editor', 'editor_manage_menu'].includes(currentRole);
+  // ✅ Helper: Check Permission (OR Logic)
+  // เช็คว่า user มี role "อย่างน้อย 1 อัน" ที่ตรงกับ list ที่ต้องการหรือไม่
+  const hasAccess = (requiredRoles) => {
+     return currentRoles.some(myRole => requiredRoles.includes(myRole));
+  };
+
+  // --- Helper: Menu Visibility ---
+  const showCaseMenu = hasAccess(['admin', 'editor', 'editor_manage_case']);
+  const showMenuMenu = hasAccess(['admin', 'editor', 'editor_manage_menu']);
+
+  // ✅ Helper: Display Role Name (Format Array to String)
+  const displayRoleName = (roles) => {
+      if (!roles || roles.length === 0) return 'Guest';
+      return roles.map(r => r.replace(/_/g, ' ')).join(' | ');
+  };
 
   // ✅ Helper: แก้ไข Logic Class ปุ่มเมนู
   const getMenuClass = (targetPath) => {
@@ -240,20 +258,18 @@ export default function Manage() {
                         </div>
                       </div>
                       <h2 className="text-lg font-extrabold text-slate-800 break-words w-full px-2">{user?.displayName || "Admin"}</h2>
-                      <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1 bg-indigo-50 px-2 py-0.5 rounded">
-                        {currentRole ? currentRole.replace(/_/g, ' ') : 'System Admin'}
+                      <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1 bg-indigo-50 px-2 py-0.5 rounded break-words w-full">
+                        {displayRoleName(currentRoles)}
                       </span>
                 </div>
 
                 <div className="flex flex-col gap-2 w-full flex-1 overflow-y-auto">
                     <div className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-2 pl-4">Menu</div>
                     
-                    {showEmailMenu && (
                         <Link href="/manage" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage')}>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
                             <span className="font-bold text-sm">จัดการ Email</span>
                         </Link>
-                    )}
                     
                     {showCaseMenu && (
                         <Link href="/manage-case" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-case')}>
@@ -297,20 +313,18 @@ export default function Manage() {
                   </div>
               </div>
               <h2 className="text-lg font-extrabold text-slate-800 px-2 break-words w-full">{user?.displayName || "Admin"}</h2>
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
-                 {currentRole ? currentRole.replace(/_/g, ' ') : 'System Admin'}
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 px-2 break-words w-full">
+                 {displayRoleName(currentRoles)}
               </span>
           </div>
 
           <div className="flex flex-col gap-2 w-full flex-1">
               <div className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-2 pl-4">Menu</div>
               
-              {showEmailMenu && (
                   <Link href="/manage" className={getMenuClass('/manage')}>
                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
                       <span className="font-bold text-sm">จัดการ Email</span>
                   </Link>
-              )}
               
               {showCaseMenu && (
                   <Link href="/manage-case" className={getMenuClass('/manage-case')}>
@@ -396,7 +410,6 @@ export default function Manage() {
         {/* --- GRID VIEW (Equal Height) --- */}
         <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
            
-           {/* ✅ เพิ่ม hidden lg:flex เพื่อให้แสดงแค่บน PC */}
            <div 
                className="hidden lg:flex group relative flex-col items-center justify-center p-6 border-2 border-dashed border-indigo-300 bg-white hover:border-indigo-600 hover:bg-indigo-50 transition-all duration-300 cursor-pointer rounded-2xl shadow-md hover:shadow-xl hover:shadow-indigo-200/50 hover:-translate-y-2 h-full"
                onClick={() => document.getElementById('add_admin_modal').showModal()}
@@ -411,6 +424,11 @@ export default function Manage() {
            </div>
 
            {filteredEmails.map((item) => {
+               // ✅ CHANGED: เตรียม roles list สำหรับ User คนนี้ (fallback ไป role เก่าถ้าไม่มี roles array)
+               const userRoles = item.roles && item.roles.length > 0 
+                  ? item.roles 
+                  : (item.role ? [item.role] : ['member']);
+
                return (
                    <div key={item.admin_id} className="relative bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col items-center text-center justify-center h-full">
                        
@@ -446,10 +464,14 @@ export default function Manage() {
                            {item.email}
                        </h3>
                        
-                       {/* Role Badge */}
-                       <span className="text-indigo-500 font-bold text-[10px] uppercase tracking-wider bg-indigo-50 px-2.5 py-1 rounded-full">
-                           {item.role ? item.role.replace(/_/g, ' ') : 'Member'}
-                       </span>
+                       {/* Role Badges (แสดงหลาย Role) */}
+                       <div className="flex flex-wrap gap-1 justify-center mt-1">
+                           {userRoles.map((role, idx) => (
+                               <span key={idx} className="text-indigo-500 font-bold text-[10px] uppercase tracking-wider bg-indigo-50 px-2.5 py-1 rounded-full whitespace-nowrap">
+                                   {role.replace(/_/g, ' ')}
+                               </span>
+                           ))}
+                       </div>
                    </div>
                );
            })}

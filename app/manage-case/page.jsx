@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from "react";
-import { useRouter, usePathname } from "next/navigation"; // ✅ เพิ่ม usePathname
+import { useRouter, usePathname } from "next/navigation"; 
 import { 
   LogOut, Search, CheckCircle2, AlertCircle, UploadCloud, 
   ArrowLeft, ArrowRight, X, ImageIcon, Music, FileAudio, 
@@ -64,12 +64,13 @@ const getMediaTypeFromFile = (file) => {
 
 export default function ManageCase() {
   const router = useRouter();
-  const pathname = usePathname(); // ✅ ใช้เช็ค Active Menu
+  const pathname = usePathname(); 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // --- State สำหรับ Menu ---
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // ✅ State เปิดปิดเมนูมือถือ
+  // --- State สำหรับ Menu & Permission ---
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [currentRoles, setCurrentRoles] = useState([]); // ✅ เพิ่ม State เก็บ Role
 
   // --- State Business Logic ---
   const [searchId, setSearchId] = useState("");
@@ -87,19 +88,81 @@ export default function ManageCase() {
 
   const inputRef = useRef(null);
   
+  const API_URL_ADMIN = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL; // ✅ URL API สำหรับดึง Role
+
   const getAvatarUrl = (seed) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
+
+  // ✅ Helper: ดึง ID ตัวเองจาก LocalStorage
+  const getCurrentAdminId = () => {
+    if (typeof window !== "undefined") {
+      const storedId = localStorage.getItem("current_admin_id");
+      if (!storedId) return null;
+      return storedId.replace(/^"|"$/g, ''); 
+    }
+    return null;
+  };
+
+  // ✅ Helper: Check Permission
+  const hasAccess = (requiredRoles) => {
+     return currentRoles.some(myRole => requiredRoles.includes(myRole));
+  };
+
+  // ✅ Helper: Display Role Name
+  const displayRoleName = (roles) => {
+      if (!roles || roles.length === 0) return 'Guest';
+      return roles.map(r => r.replace(/_/g, ' ')).join(' | ');
+  };
+
+  // ✅ Logic: Menu Visibility
+  const showCaseMenu = hasAccess(['admin', 'editor', 'editor_manage_case']);
+  const showMenuMenu = hasAccess(['admin', 'editor', 'editor_manage_menu']);
+
+  // ✅ Function: Fetch Admin Roles
+  const fetchAdmins = async () => {
+    if (!API_URL_ADMIN) return;
+    
+    const currentAdminId = getCurrentAdminId();
+
+    try {
+      const url = currentAdminId 
+        ? `${API_URL_ADMIN}?requester_id=${currentAdminId}` 
+        : API_URL_ADMIN;
+
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch admins");
+      
+      const jsonResponse = await res.json();
+      const data = Array.isArray(jsonResponse) ? jsonResponse : (jsonResponse.data || []);
+
+      if (currentAdminId && data.length > 0) {
+        const myProfile = data.find(u => String(u.admin_id) === String(currentAdminId));
+        if (myProfile) {
+            let roles = [];
+            if (Array.isArray(myProfile.roles)) {
+                roles = myProfile.roles;
+            } else if (myProfile.role) {
+                roles = [myProfile.role];
+            }
+            setCurrentRoles(roles);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading admins:", error);
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) { 
         setUser(currentUser); 
+        fetchAdmins(); // ✅ เรียกดึงข้อมูล Role เมื่อ Login
         setLoading(false); 
       } else { 
         router.push("/"); 
       }
     });
     return () => unsubscribe();
-  }, [router]);
+  }, [router, API_URL_ADMIN]);
 
   const handleLogout = async () => {
     try {
@@ -111,7 +174,6 @@ export default function ManageCase() {
     }
   };
 
-  // ✅ Helper: Class สำหรับเมนู (เหมือนหน้า Manage)
   const getMenuClass = (targetPath) => {
       const isActive = pathname === targetPath;
       return `flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-200 ${
@@ -187,7 +249,7 @@ export default function ManageCase() {
                 : "ไม่ระบุวันที่";
 
             setCurrentCase({
-                id: apiData.ticket_id,     
+                id: apiData.ticket_id,      
                 dbId: apiData.id,          
                 title: apiData.problem_type || "แจ้งปัญหาทั่วไป", 
                 department: apiData.address || "ไม่ระบุพิกัด", 
@@ -304,7 +366,6 @@ export default function ManageCase() {
       {/* ================= NAVBAR MOBILE HEADER ================= */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#F4F6F8]/95 backdrop-blur-sm z-40 px-5 flex justify-between items-center border-b border-slate-200/50">
            <div className="flex items-center gap-3">
-              {/* Hamburger */}
               <button onClick={() => setIsMobileMenuOpen(true)} className="btn btn-square btn-ghost btn-sm text-slate-800">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -312,19 +373,16 @@ export default function ManageCase() {
               </button>
               <h1 className="font-bold text-slate-800 text-lg">Case Manage</h1>
            </div>
-           
       </div>
 
-     {/* ================= MOBILE SIDEBAR DRAWER (Drawer Style) ================= */}
+     {/* ================= MOBILE SIDEBAR DRAWER ================= */}
      {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-            {/* Backdrop */}
             <div 
                 className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300"
                 onClick={() => setIsMobileMenuOpen(false)}
             ></div>
 
-            {/* Drawer Content */}
             <div className="relative w-[280px] h-full bg-white shadow-2xl flex flex-col p-6 animate-slide-in-left rounded-r-[2rem]">
                 <button 
                     onClick={() => setIsMobileMenuOpen(false)}
@@ -336,35 +394,43 @@ export default function ManageCase() {
                 </button>
 
                 <div className="flex flex-col items-center text-center mb-8 mt-6">
-                     <div className="w-24 h-24 rounded-full p-1 border-2 border-dashed border-indigo-200 mb-4">
+                      <div className="w-24 h-24 rounded-full p-1 border-2 border-dashed border-indigo-200 mb-4">
                         <div className="w-full h-full rounded-full overflow-hidden bg-slate-50">
                             <img src={user?.photoURL || getAvatarUrl("Admin")} alt="User" className="object-cover w-full h-full"/>
                         </div>
-                     </div>
-                     <h2 className="text-lg font-extrabold text-slate-800 break-words w-full px-2">{user?.displayName || "Admin"}</h2>
-                     <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1 bg-indigo-50 px-2 py-0.5 rounded">
-                        System Admin
-                     </span>
+                      </div>
+                      <h2 className="text-lg font-extrabold text-slate-800 break-words w-full px-2">{user?.displayName || "Admin"}</h2>
+                      
+                      {/* ✅ แสดง Role จริง */}
+                      <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1 bg-indigo-50 px-2 py-0.5 rounded break-words w-full">
+                        {displayRoleName(currentRoles)}
+                      </span>
                 </div>
 
                 <div className="flex flex-col gap-2 w-full flex-1 overflow-y-auto">
                     <div className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-2 pl-4">Menu</div>
                     
+                    {/* ✅ เมนู Manage Email (แสดงตลอด ตามต้นฉบับ) */}
                     <Link href="/manage" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage')}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
                         <span className="font-bold text-sm">จัดการ Email</span>
                     </Link>
                     
-                    {/* เมนูนี้ Active เพราะอยู่หน้า Case */}
-                    <Link href="/manage-case" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-case')}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
-                        <span className="font-bold text-sm">จัดการ Case</span>
-                    </Link>
+                    {/* ✅ เมนู Manage Case (เช็คสิทธิ์) */}
+                    {showCaseMenu && (
+                        <Link href="/manage-case" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-case')}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                            <span className="font-bold text-sm">จัดการ Case</span>
+                        </Link>
+                    )}
                     
-                    <Link href="/manage-richmenu" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-richmenu')}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"></path></svg>
-                        <span className="font-bold text-sm">จัดการ Menu</span>
-                    </Link>
+                    {/* ✅ เมนู Manage Menu (เช็คสิทธิ์) */}
+                    {showMenuMenu && (
+                        <Link href="/manage-richmenu" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-richmenu')}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"></path></svg>
+                            <span className="font-bold text-sm">จัดการ Menu</span>
+                        </Link>
+                    )}
                 </div>
 
                 <div className="mt-auto pt-4 border-t border-slate-100">
@@ -383,7 +449,7 @@ export default function ManageCase() {
         </div>
      )}
 
-      {/* ================= DESKTOP SIDEBAR (Floating) ================= */}
+      {/* ================= DESKTOP SIDEBAR ================= */}
       <div className="hidden lg:flex fixed top-4 bottom-4 left-4 w-72 bg-white rounded-[2rem] shadow-[0_0_40px_-10px_rgba(0,0,0,0.05)] border border-slate-100 flex-col py-8 px-6 z-50 overflow-y-auto no-scrollbar">
           
           <div className="flex flex-col items-center text-center mb-10">
@@ -393,8 +459,10 @@ export default function ManageCase() {
                   </div>
               </div>
               <h2 className="text-lg font-extrabold text-slate-800 px-2 break-words w-full">{user?.displayName || "Admin"}</h2>
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
-                 System Admin
+              
+              {/* ✅ แสดง Role จริง Desktop */}
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 px-2 break-words w-full">
+                 {displayRoleName(currentRoles)}
               </span>
           </div>
 
@@ -406,15 +474,19 @@ export default function ManageCase() {
                   <span className="font-bold text-sm">จัดการ Email</span>
               </Link>
               
-              <Link href="/manage-case" className={getMenuClass('/manage-case')}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
-                  <span className="font-bold text-sm">จัดการ Case</span>
-              </Link>
+              {showCaseMenu && (
+                  <Link href="/manage-case" className={getMenuClass('/manage-case')}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                      <span className="font-bold text-sm">จัดการ Case</span>
+                  </Link>
+              )}
               
-              <Link href="/manage-richmenu" className={getMenuClass('/manage-richmenu')}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"></path></svg>
-                  <span className="font-bold text-sm">จัดการ Menu</span>
-              </Link>
+              {showMenuMenu && (
+                  <Link href="/manage-richmenu" className={getMenuClass('/manage-richmenu')}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"></path></svg>
+                      <span className="font-bold text-sm">จัดการ Menu</span>
+                  </Link>
+              )}
           </div>
 
           <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-2 rounded-xl hover:bg-red-50 transition-all duration-200">
@@ -430,10 +502,9 @@ export default function ManageCase() {
       </div>
 
 
-      {/* ================= MAIN CONTENT (Logic เดิม) ================= */}
-      {/* เพิ่ม lg:pl-80 เพื่อเว้นที่ให้ Sidebar */}
+      {/* ================= MAIN CONTENT ================= */}
       <div className="container mx-auto px-4 pt-24 lg:pt-8 max-w-7xl lg:pl-80 transition-all duration-300 pb-24">
-    
+        
         {/* --- Header & Search Section --- */}
         {!currentCase && (
             <div className="flex flex-col justify-start relative w-full max-w-2xl mx-auto overflow-hidden rounded-3xl animate-fade-in pt-12">
@@ -705,56 +776,56 @@ export default function ManageCase() {
                                                     </div>
                                                 ) : (
                                                     <img src={selectedImageToReplace.url} className="h-full w-auto object-contain bg-white" alt="Replacing" />
-                                                )}
-                                            </div><br></br>
-                                            <p className="text-xs lg:text-sm font-bold mt-3 bg-orange-100 px-3 py-1 rounded-full">{selectedImageToReplace.type}</p>
+                                                )}<br></br>
+                                                <p className="text-xs lg:text-sm font-bold mt-3 bg-orange-100 px-3 py-1 rounded-full">{selectedImageToReplace.type}</p>
+                                            </div>
                                         </div>
                                     )}
                                     <label className={`group relative flex flex-col items-center justify-center w-full min-h-[18rem] lg:min-h-[22rem] h-auto p-4 lg:p-6 rounded-3xl border-3 border-dashed transition-all duration-300 cursor-pointer overflow-hidden ${newImageFile ? 'border-green-400 bg-white' : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-100/50'}`}>
-                                        <input 
-                                            type="file" 
-                                            className="hidden" 
-                                            accept="image/*, video/*, audio/*, .jpg, .jpeg, .png, .gif, .mp4, .mov, .webm, .mp3, .wav, .m4a"
-                                            onChange={(e) => {
-                                                if(e.target.files[0]) setNewImageFile(e.target.files[0]);
-                                            }} 
-                                        />
-                                        {newImageFile ? (
-                                            <div className="flex flex-col items-center w-full animate-fade-in z-10">
-                                                <div className="relative w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center mb-4 min-h-[200px]">
-                                                    {getMediaTypeFromFile(newImageFile) === 'video' ? (
-                                                        <div className="relative w-full bg-black">
-                                                            <video src={URL.createObjectURL(newImageFile)} className="w-full max-h-[50vh] object-contain mx-auto" controls autoPlay muted playsInline />
-                                                        </div>
-                                                    ) : getMediaTypeFromFile(newImageFile) === 'audio' ? (
-                                                        <div className="w-full min-h-[200px] flex flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100 text-orange-600 px-6 py-4">
-                                                            <FileAudio size={48} className="mb-3 drop-shadow-sm" />
-                                                            <p className="text-xs font-bold text-center break-all mb-3 max-w-full">{newImageFile.name}</p>
-                                                            <audio src={URL.createObjectURL(newImageFile)} controls className="w-full shadow-sm rounded-lg" />
-                                                        </div>
-                                                    ) : (
-                                                        <img src={URL.createObjectURL(newImageFile)} className="w-full max-h-[50vh] object-contain" alt="Preview" />
-                                                    )}
+                                            <input 
+                                                type="file" 
+                                                className="hidden" 
+                                                accept="image/*, video/*, audio/*, .jpg, .jpeg, .png, .gif, .mp4, .mov, .webm, .mp3, .wav, .m4a"
+                                                onChange={(e) => {
+                                                    if(e.target.files[0]) setNewImageFile(e.target.files[0]);
+                                                }} 
+                                            />
+                                            {newImageFile ? (
+                                                <div className="flex flex-col items-center w-full animate-fade-in z-10">
+                                                    <div className="relative w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center mb-4 min-h-[200px]">
+                                                        {getMediaTypeFromFile(newImageFile) === 'video' ? (
+                                                            <div className="relative w-full bg-black">
+                                                                <video src={URL.createObjectURL(newImageFile)} className="w-full max-h-[50vh] object-contain mx-auto" controls autoPlay muted playsInline />
+                                                            </div>
+                                                        ) : getMediaTypeFromFile(newImageFile) === 'audio' ? (
+                                                            <div className="w-full min-h-[200px] flex flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100 text-orange-600 px-6 py-4">
+                                                                <FileAudio size={48} className="mb-3 drop-shadow-sm" />
+                                                                <p className="text-xs font-bold text-center break-all mb-3 max-w-full">{newImageFile.name}</p>
+                                                                <audio src={URL.createObjectURL(newImageFile)} controls className="w-full shadow-sm rounded-lg" />
+                                                            </div>
+                                                        ) : (
+                                                            <img src={URL.createObjectURL(newImageFile)} className="w-full max-h-[50vh] object-contain" alt="Preview" />
+                                                        )}
+                                                    </div>
+                                                    <span className="font-bold text-base lg:text-lg text-slate-800 mb-1 drop-shadow-sm truncate max-w-[90%]">{newImageFile.name}</span>
+                                                    <span className="text-xs lg:text-sm font-medium text-green-600 bg-green-100 px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                                                        <CheckCircle2 size={12}/> พร้อมอัปโหลด
+                                                    </span><br></br>
+                                                    <p className="text-xs text-slate-400 mt-2 group-hover:text-indigo-500 transition-colors font-medium">แตะเพื่อเปลี่ยนไฟล์</p>
                                                 </div>
-                                                <span className="font-bold text-base lg:text-lg text-slate-800 mb-1 drop-shadow-sm truncate max-w-[90%]">{newImageFile.name}</span>
-                                                <span className="text-xs lg:text-sm font-medium text-green-600 bg-green-100 px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                                                    <CheckCircle2 size={12}/> พร้อมอัปโหลด
-                                                </span><br></br>
-                                                <p className="text-xs text-slate-400 mt-2 group-hover:text-indigo-500 transition-colors font-medium">แตะเพื่อเปลี่ยนไฟล์</p>
-                                            </div>
-                                        ) : (
-                                            <div className="flex flex-col items-center z-10 p-4 lg:p-6 transition-transform duration-300 group-hover:scale-105 text-center">
-                                                <div className="w-16 h-16 lg:w-20 lg:h-20 bg-white rounded-2xl mb-4 lg:mb-6 flex items-center justify-center shadow-sm border border-slate-100 group-hover:shadow-md group-hover:text-indigo-600 group-hover:border-indigo-100 transition-all text-slate-300"><UploadCloud size={32} className="lg:w-10 lg:h-10" strokeWidth={1.5} /></div>
-                                                <h4 className="font-bold text-base lg:text-lg text-slate-700 mb-2 group-hover:text-indigo-700 transition-colors">เลือกไฟล์มีเดีย</h4>
-                                                <p className="text-slate-400 text-xs lg:text-sm mb-4 lg:mb-6">แตะเพื่อเลือกไฟล์ รูปภาพ, วิดีโอ หรือเสียง</p>
-                                                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                                    <span className="bg-white px-2 py-1 rounded border border-slate-100">IMG</span>
-                                                    <span className="bg-white px-2 py-1 rounded border border-slate-100">VID</span>
-                                                    <span className="bg-white px-2 py-1 rounded border border-slate-100">MP3</span>
+                                            ) : (
+                                                <div className="flex flex-col items-center z-10 p-4 lg:p-6 transition-transform duration-300 group-hover:scale-105 text-center">
+                                                    <div className="w-16 h-16 lg:w-20 lg:h-20 bg-white rounded-2xl mb-4 lg:mb-6 flex items-center justify-center shadow-sm border border-slate-100 group-hover:shadow-md group-hover:text-indigo-600 group-hover:border-indigo-100 transition-all text-slate-300"><UploadCloud size={32} className="lg:w-10 lg:h-10" strokeWidth={1.5} /></div>
+                                                    <h4 className="font-bold text-base lg:text-lg text-slate-700 mb-2 group-hover:text-indigo-700 transition-colors">เลือกไฟล์มีเดีย</h4>
+                                                    <p className="text-slate-400 text-xs lg:text-sm mb-4 lg:mb-6">แตะเพื่อเลือกไฟล์ รูปภาพ, วิดีโอ หรือเสียง</p>
+                                                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                                        <span className="bg-white px-2 py-1 rounded border border-slate-100">IMG</span>
+                                                        <span className="bg-white px-2 py-1 rounded border border-slate-100">VID</span>
+                                                        <span className="bg-white px-2 py-1 rounded border border-slate-100">MP3</span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )}
-                                        {!newImageFile && (<div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-20 pointer-events-none"></div>)}
+                                            )}
+                                            {!newImageFile && (<div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-20 pointer-events-none"></div>)}
                                     </label>
                                 </div>
                             )}

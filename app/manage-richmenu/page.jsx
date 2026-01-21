@@ -6,7 +6,6 @@ import { useRouter, usePathname } from 'next/navigation';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '@/firebaseConfig';
 import '@fortawesome/fontawesome-free/css/all.css';
-// ✅ ใช้ Icons จาก Lucide เพื่อความสวยงามและเข้ากับหน้า ManageCase
 import { LogOut, Menu, X, Mail, Briefcase, LayoutGrid } from 'lucide-react';
 
 export default function RichMenuHome() {
@@ -14,26 +13,108 @@ export default function RichMenuHome() {
   const pathname = usePathname(); 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // --- State Rich Menu Logic ---
   const [bots, setBots] = useState([]);
   const [currentMenus, setCurrentMenus] = useState({});
   const [isRefreshing, setIsRefreshing] = useState(false);
   
-  // ✅ State สำหรับ Mobile Menu
+  // --- State Sidebar & Role ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [currentRoles, setCurrentRoles] = useState([]); // ✅ เก็บ Role ของ User
 
-  // --- Logic เดิมทั้งหมด ---
+  const API_URL_ADMIN = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL; // ✅ API ดึง Role
+
+  // --- Helpers ---
+  const getAvatarUrl = (bot) => {
+    if (bot.pictureUrl) return bot.pictureUrl;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(bot.name)}&background=0D9&color=fff&size=128`;
+  };
+
+  const getUserAvatar = (u) => {
+      return u?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u?.displayName || 'Admin'}`;
+  };
+
+  // ✅ Helper: ดึง ID
+  const getCurrentAdminId = () => {
+    if (typeof window !== "undefined") {
+      const storedId = localStorage.getItem("current_admin_id");
+      if (!storedId) return null;
+      return storedId.replace(/^"|"$/g, ''); 
+    }
+    return null;
+  };
+
+  // ✅ Helper: เช็คสิทธิ์
+  const hasAccess = (requiredRoles) => {
+     return currentRoles.some(myRole => requiredRoles.includes(myRole));
+  };
+
+  // ✅ Helper: แสดงชื่อ Role
+  const displayRoleName = (roles) => {
+      if (!roles || roles.length === 0) return 'Guest';
+      return roles.map(r => r.replace(/_/g, ' ')).join(' | ');
+  };
+
+  // ✅ Logic: การแสดงเมนูตามสิทธิ์
+  const showCaseMenu = hasAccess(['admin', 'editor', 'editor_manage_case']);
+  const showMenuMenu = hasAccess(['admin', 'editor', 'editor_manage_menu']);
+
+  // ✅ Function: ดึงข้อมูล Admin Role
+  const fetchAdmins = async () => {
+    if (!API_URL_ADMIN) return;
+    const currentAdminId = getCurrentAdminId();
+
+    try {
+      const url = currentAdminId 
+        ? `${API_URL_ADMIN}?requester_id=${currentAdminId}` 
+        : API_URL_ADMIN;
+
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch admins");
+      
+      const jsonResponse = await res.json();
+      const data = Array.isArray(jsonResponse) ? jsonResponse : (jsonResponse.data || []);
+
+      if (currentAdminId && data.length > 0) {
+        const myProfile = data.find(u => String(u.admin_id) === String(currentAdminId));
+        if (myProfile) {
+            let roles = [];
+            if (Array.isArray(myProfile.roles)) {
+                roles = myProfile.roles;
+            } else if (myProfile.role) {
+                roles = [myProfile.role];
+            }
+            setCurrentRoles(roles);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading admins:", error);
+    }
+  };
+
+  // --- Main Logic ---
   useEffect(() => {
-    onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        
+        // Load Cached Data
         const cachedBots = localStorage.getItem('cachedBots');
         if (cachedBots) setBots(JSON.parse(cachedBots));
         const cachedMenus = localStorage.getItem('cachedMenus');
         if (cachedMenus) setCurrentMenus(JSON.parse(cachedMenus));
+        
         setLoading(false);
+        
+        // Fetch Fresh Data
         fetchBotsData();
+        fetchAdmins(); // ✅ ดึง Role เมื่อ Login
+      } else {
+         // router.push('/'); // Uncomment if needed
       }
     });
+    return () => unsubscribe();
   }, [router]);
 
   async function fetchBotsData() {
@@ -74,17 +155,11 @@ export default function RichMenuHome() {
     }
   };
 
-  const getAvatarUrl = (bot) => {
-    if (bot.pictureUrl) return bot.pictureUrl;
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(bot.name)}&background=0D9&color=fff&size=128`;
-  };
-
-  // ✅ Helper: แก้ไขให้ตัวหนังสือเป็นสีขาวเมื่อ Active (ใส่ !text-white)
   const getMenuClass = (targetPath) => {
       const isActive = pathname === targetPath;
       return `flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-200 ${
         isActive 
-          ? "bg-[#111827] !text-white shadow-lg shadow-slate-300 scale-[1.02]" // ✅ บังคับสีขาว
+          ? "bg-[#111827] !text-white shadow-lg shadow-slate-300 scale-[1.02]" 
           : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
       }`;
   };
@@ -110,7 +185,6 @@ export default function RichMenuHome() {
               </button>
               <h1 className="font-bold text-slate-800 text-lg">Rich Menu</h1>
            </div>
-            
       </div>
 
      {/* ================= MOBILE SIDEBAR DRAWER ================= */}
@@ -132,12 +206,14 @@ export default function RichMenuHome() {
                 <div className="flex flex-col items-center text-center mb-8 mt-6">
                      <div className="w-24 h-24 rounded-full p-1 border-2 border-dashed border-indigo-200 mb-4">
                         <div className="w-full h-full rounded-full overflow-hidden bg-slate-50">
-                            <img src={user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.displayName}`} alt="User" className="object-cover w-full h-full"/>
+                            <img src={getUserAvatar(user)} alt="User" className="object-cover w-full h-full"/>
                         </div>
                      </div>
                      <h2 className="text-lg font-extrabold text-slate-800 break-words w-full px-2">{user?.displayName || "Admin"}</h2>
-                     <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1 bg-indigo-50 px-2 py-0.5 rounded">
-                        System Admin
+                     
+                     {/* ✅ แสดง Role จริง Mobile */}
+                     <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1 bg-indigo-50 px-2 py-0.5 rounded break-words w-full">
+                        {displayRoleName(currentRoles)}
                      </span>
                 </div>
 
@@ -149,15 +225,21 @@ export default function RichMenuHome() {
                         <span className="font-bold text-sm">จัดการ Email</span>
                     </Link>
                     
-                    <Link href="/manage-case" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-case')}>
-                        <Briefcase size={20} />
-                        <span className="font-bold text-sm">จัดการ Case</span>
-                    </Link>
+                    {/* ✅ เช็คสิทธิ์ Case */}
+                    {showCaseMenu && (
+                        <Link href="/manage-case" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-case')}>
+                            <Briefcase size={20} />
+                            <span className="font-bold text-sm">จัดการ Case</span>
+                        </Link>
+                    )}
                     
-                    <Link href="/manage-richmenu" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-richmenu')}>
-                        <LayoutGrid size={20} />
-                        <span className="font-bold text-sm">จัดการ Menu</span>
-                    </Link>
+                    {/* ✅ เช็คสิทธิ์ Menu */}
+                    {showMenuMenu && (
+                        <Link href="/manage-richmenu" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-richmenu')}>
+                            <LayoutGrid size={20} />
+                            <span className="font-bold text-sm">จัดการ Menu</span>
+                        </Link>
+                    )}
                 </div>
 
                 <div className="mt-auto pt-4 border-t border-slate-100">
@@ -178,12 +260,14 @@ export default function RichMenuHome() {
           <div className="flex flex-col items-center text-center mb-10">
               <div className="w-24 h-24 rounded-full p-1 border-2 border-dashed border-slate-200 mb-4">
                   <div className="w-full h-full rounded-full overflow-hidden bg-slate-50">
-                      <img src={user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.displayName}`} alt="User" className="object-cover w-full h-full"/>
+                      <img src={getUserAvatar(user)} alt="User" className="object-cover w-full h-full"/>
                   </div>
               </div>
               <h2 className="text-lg font-extrabold text-slate-800 px-2 break-words w-full">{user?.displayName || "Admin"}</h2>
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
-                 System Admin
+              
+              {/* ✅ แสดง Role จริง Desktop */}
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 px-2 break-words w-full">
+                 {displayRoleName(currentRoles)}
               </span>
           </div>
 
@@ -195,15 +279,21 @@ export default function RichMenuHome() {
                   <span className="font-bold text-sm">จัดการ Email</span>
               </Link>
               
-              <Link href="/manage-case" className={getMenuClass('/manage-case')}>
-                  <Briefcase size={20} />
-                  <span className="font-bold text-sm">จัดการ Case</span>
-              </Link>
+              {/* ✅ เช็คสิทธิ์ Case */}
+              {showCaseMenu && (
+                  <Link href="/manage-case" className={getMenuClass('/manage-case')}>
+                      <Briefcase size={20} />
+                      <span className="font-bold text-sm">จัดการ Case</span>
+                  </Link>
+              )}
               
-              <Link href="/manage-richmenu" className={getMenuClass('/manage-richmenu')}>
-                  <LayoutGrid size={20} />
-                  <span className="font-bold text-sm">จัดการ Menu</span>
-              </Link>
+              {/* ✅ เช็คสิทธิ์ Menu */}
+              {showMenuMenu && (
+                  <Link href="/manage-richmenu" className={getMenuClass('/manage-richmenu')}>
+                      <LayoutGrid size={20} />
+                      <span className="font-bold text-sm">จัดการ Menu</span>
+                  </Link>
+              )}
           </div>
 
           <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-2 rounded-xl hover:bg-red-50 transition-all duration-200">
@@ -214,7 +304,7 @@ export default function RichMenuHome() {
           </button>
       </div>
 
-      {/* ================= CONTENT (เนื้อหาเดิม) ================= */}
+      {/* ================= CONTENT ================= */}
       <div className="mt-16 lg:mt-0 pt-0 lg:pt-6 lg:pl-80 transition-all duration-300">
         <div className="max-w-4xl w-full mx-auto px-4 lg:py-8">
           <div className="mb-10 text-center lg:text-left">
