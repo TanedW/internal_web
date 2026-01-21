@@ -21,9 +21,15 @@ export default function RichMenuHome() {
   
   // --- State Sidebar & Role ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [currentRoles, setCurrentRoles] = useState([]); // ✅ เก็บ Role ของ User
+  // State สำหรับ Desktop Sidebar (Toggle)
+  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
+  
+  // ✅ State สำหรับ Toggle การแสดง Role (Sidebar)
+  const [isSidebarRolesExpanded, setIsSidebarRolesExpanded] = useState(false);
 
-  const API_URL_ADMIN = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL; // ✅ API ดึง Role
+  const [currentRoles, setCurrentRoles] = useState([]); 
+
+  const API_URL_ADMIN = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
 
   // --- Helpers ---
   const getAvatarUrl = (bot) => {
@@ -35,7 +41,6 @@ export default function RichMenuHome() {
       return u?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u?.displayName || 'Admin'}`;
   };
 
-  // ✅ Helper: ดึง ID
   const getCurrentAdminId = () => {
     if (typeof window !== "undefined") {
       const storedId = localStorage.getItem("current_admin_id");
@@ -45,22 +50,65 @@ export default function RichMenuHome() {
     return null;
   };
 
-  // ✅ Helper: เช็คสิทธิ์
   const hasAccess = (requiredRoles) => {
-     return currentRoles.some(myRole => requiredRoles.includes(myRole));
+      return currentRoles.some(myRole => requiredRoles.includes(myRole));
   };
 
-  // ✅ Helper: แสดงชื่อ Role
-  const displayRoleName = (roles) => {
-      if (!roles || roles.length === 0) return 'Guest';
-      return roles.map(r => r.replace(/_/g, ' ')).join(' | ');
-  };
-
-  // ✅ Logic: การแสดงเมนูตามสิทธิ์
   const showCaseMenu = hasAccess(['admin', 'editor', 'editor_manage_case']);
   const showMenuMenu = hasAccess(['admin', 'editor', 'editor_manage_menu']);
 
-  // ✅ Function: ดึงข้อมูล Admin Role
+  const getMenuClass = (targetPath) => {
+      const isActive = pathname === targetPath;
+      return `flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-200 ${
+        isActive 
+          ? "bg-[#111827] !text-white shadow-lg shadow-slate-300 scale-[1.02]" 
+          : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+      }`;
+  };
+
+  // ✅ Component SidebarRoleDisplay
+  const SidebarRoleDisplay = () => (
+    <div className="flex flex-col items-center mt-2 px-2 w-full">
+        {currentRoles.length > 0 ? (
+            <>
+                {/* --- 1. Expanded --- */}
+                {isSidebarRolesExpanded ? (
+                    <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-1 duration-200 w-full items-center">
+                        {currentRoles.map((role, idx) => (
+                            <span key={idx} className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 truncate max-w-[160px]">
+                                {role.replace(/_/g, ' ')}
+                            </span>
+                        ))}
+                        <button 
+                            onClick={() => setIsSidebarRolesExpanded(false)}
+                            className="btn btn-xs h-7 min-h-0 bg-white border border-indigo-500 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-600 rounded-full px-3 text-[10px] font-bold tracking-wide uppercase shadow-sm"
+                        >
+                            Show less
+                        </button>
+                    </div>
+                ) : (
+                    /* --- 2. Collapsed --- */
+                    <div className="flex flex-wrap gap-2 justify-center items-center">
+                        <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 truncate max-w-[150px]">
+                            {currentRoles[0].replace(/_/g, ' ')}
+                        </span>
+                        {currentRoles.length > 1 && (
+                            <button
+                                onClick={() => setIsSidebarRolesExpanded(true)}
+                                className="btn btn-xs h-7 min-h-0 bg-white border border-indigo-500 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-600 rounded-full px-3 text-[10px] font-bold tracking-wide uppercase shadow-sm"
+                            >
+                                +{currentRoles.length - 1} more
+                            </button>
+                        )}
+                    </div>
+                )}
+            </>
+        ) : (
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Guest</span>
+        )}
+    </div>
+  );
+
   const fetchAdmins = async () => {
     if (!API_URL_ADMIN) return;
     const currentAdminId = getCurrentAdminId();
@@ -99,19 +147,14 @@ export default function RichMenuHome() {
       if (currentUser) {
         setUser(currentUser);
         
-        // Load Cached Data
         const cachedBots = localStorage.getItem('cachedBots');
         if (cachedBots) setBots(JSON.parse(cachedBots));
         const cachedMenus = localStorage.getItem('cachedMenus');
         if (cachedMenus) setCurrentMenus(JSON.parse(cachedMenus));
         
         setLoading(false);
-        
-        // Fetch Fresh Data
         fetchBotsData();
-        fetchAdmins(); // ✅ ดึง Role เมื่อ Login
-      } else {
-         // router.push('/'); // Uncomment if needed
+        fetchAdmins();
       }
     });
     return () => unsubscribe();
@@ -155,15 +198,6 @@ export default function RichMenuHome() {
     }
   };
 
-  const getMenuClass = (targetPath) => {
-      const isActive = pathname === targetPath;
-      return `flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-200 ${
-        isActive 
-          ? "bg-[#111827] !text-white shadow-lg shadow-slate-300 scale-[1.02]" 
-          : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-      }`;
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex justify-center items-center">
@@ -204,28 +238,25 @@ export default function RichMenuHome() {
                 </button>
 
                 <div className="flex flex-col items-center text-center mb-8 mt-6">
-                     <div className="w-24 h-24 rounded-full p-1 border-2 border-dashed border-indigo-200 mb-4">
+                      <div className="w-24 h-24 rounded-full p-1 border-2 border-dashed border-indigo-200 mb-4">
                         <div className="w-full h-full rounded-full overflow-hidden bg-slate-50">
                             <img src={getUserAvatar(user)} alt="User" className="object-cover w-full h-full"/>
                         </div>
-                     </div>
-                     <h2 className="text-lg font-extrabold text-slate-800 break-words w-full px-2">{user?.displayName || "Admin"}</h2>
-                     
-                     {/* ✅ แสดง Role จริง Mobile */}
-                     <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1 bg-indigo-50 px-2 py-0.5 rounded break-words w-full">
-                        {displayRoleName(currentRoles)}
-                     </span>
+                      </div>
+                      <h2 className="text-lg font-extrabold text-slate-800 break-words w-full px-2">{user?.displayName || "Admin"}</h2>
+                      
+                      {/* ✅ เรียกใช้ SidebarRoleDisplay (Mobile) */}
+                      <SidebarRoleDisplay />
                 </div>
 
                 <div className="flex flex-col gap-2 w-full flex-1 overflow-y-auto">
-                    <div className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-2 pl-4">Menu</div>
+                    <div className="text-xs font-bold text-slate-700 uppercase tracking-widest mb-2 pl-4">Menu</div>
                     
                     <Link href="/manage" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage')}>
                         <Mail size={20} />
                         <span className="font-bold text-sm">จัดการ Email</span>
                     </Link>
                     
-                    {/* ✅ เช็คสิทธิ์ Case */}
                     {showCaseMenu && (
                         <Link href="/manage-case" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-case')}>
                             <Briefcase size={20} />
@@ -233,7 +264,6 @@ export default function RichMenuHome() {
                         </Link>
                     )}
                     
-                    {/* ✅ เช็คสิทธิ์ Menu */}
                     {showMenuMenu && (
                         <Link href="/manage-richmenu" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-richmenu')}>
                             <LayoutGrid size={20} />
@@ -255,9 +285,19 @@ export default function RichMenuHome() {
      )}
 
       {/* ================= DESKTOP SIDEBAR ================= */}
-      <div className="hidden lg:flex fixed top-4 bottom-4 left-4 w-72 bg-white rounded-[2rem] shadow-[0_0_40px_-10px_rgba(0,0,0,0.05)] border border-slate-100 flex-col py-8 px-6 z-50 overflow-y-auto no-scrollbar">
+      <div className={`hidden lg:flex fixed top-4 bottom-4 left-4 w-72 bg-white rounded-[2rem] shadow-[0_0_40px_-10px_rgba(0,0,0,0.05)] border border-slate-100 flex-col py-8 px-6 z-50 overflow-y-auto no-scrollbar transition-all duration-300 ease-in-out ${
+          isDesktopSidebarOpen ? "translate-x-0 opacity-100" : "-translate-x-[120%] opacity-0 pointer-events-none"
+      }`}>
           
-          <div className="flex flex-col items-center text-center mb-10">
+           <button 
+                onClick={() => setIsDesktopSidebarOpen(false)}
+                className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-all duration-200"
+                title="Close Sidebar"
+           >
+               <X size={20} />
+           </button>
+
+          <div className="flex flex-col items-center text-center mb-10 mt-2">
               <div className="w-24 h-24 rounded-full p-1 border-2 border-dashed border-slate-200 mb-4">
                   <div className="w-full h-full rounded-full overflow-hidden bg-slate-50">
                       <img src={getUserAvatar(user)} alt="User" className="object-cover w-full h-full"/>
@@ -265,21 +305,18 @@ export default function RichMenuHome() {
               </div>
               <h2 className="text-lg font-extrabold text-slate-800 px-2 break-words w-full">{user?.displayName || "Admin"}</h2>
               
-              {/* ✅ แสดง Role จริง Desktop */}
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 px-2 break-words w-full">
-                 {displayRoleName(currentRoles)}
-              </span>
+              {/* ✅ เรียกใช้ SidebarRoleDisplay (Desktop) */}
+              <SidebarRoleDisplay />
           </div>
 
           <div className="flex flex-col gap-2 w-full flex-1">
-              <div className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-2 pl-4">Menu</div>
+              <div className="text-xs font-bold text-slate-700 uppercase tracking-widest mb-2 pl-4">Menu</div>
               
               <Link href="/manage" className={getMenuClass('/manage')}>
                   <Mail size={20} />
                   <span className="font-bold text-sm">จัดการ Email</span>
               </Link>
               
-              {/* ✅ เช็คสิทธิ์ Case */}
               {showCaseMenu && (
                   <Link href="/manage-case" className={getMenuClass('/manage-case')}>
                       <Briefcase size={20} />
@@ -287,7 +324,6 @@ export default function RichMenuHome() {
                   </Link>
               )}
               
-              {/* ✅ เช็คสิทธิ์ Menu */}
               {showMenuMenu && (
                   <Link href="/manage-richmenu" className={getMenuClass('/manage-richmenu')}>
                       <LayoutGrid size={20} />
@@ -304,15 +340,34 @@ export default function RichMenuHome() {
           </button>
       </div>
 
-      {/* ================= CONTENT ================= */}
-      <div className="mt-16 lg:mt-0 pt-0 lg:pt-6 lg:pl-80 transition-all duration-300">
-        <div className="max-w-4xl w-full mx-auto px-4 lg:py-8">
-          <div className="mb-10 text-center lg:text-left">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4 lg:hidden">
-              <i className="fa-brands fa-line text-green-500 text-4xl"></i>
-            </div>
-            <h1 className="text-3xl lg:text-4xl font-bold text-slate-800">Rich Menu Manager</h1>
-            <p className="text-slate-500 mt-2">เลือกบอทเพื่อจัดการเมนู LINE Official Account</p>
+      {/* ================= MAIN CONTENT ================= */}
+      <div className={`mt-16 lg:mt-0 pt-0 lg:pt-6 transition-all duration-300 pb-24 ${
+          isDesktopSidebarOpen ? "lg:pl-80" : "lg:pl-8"
+      }`}>
+        
+        {/* ✅ ปุ่ม Open Sidebar พร้อมข้อความ "Rich Menu" */}
+        {!isDesktopSidebarOpen && (
+             <div className="hidden lg:flex items-center gap-4 fixed top-8 left-8 z-30 animate-slide-in-left">
+                <button 
+                    onClick={() => setIsDesktopSidebarOpen(true)}
+                    className="btn btn-square btn-ghost bg-white border border-slate-200 shadow-lg shadow-indigo-100/50 text-slate-800 hover:bg-slate-50 transition-all duration-300"
+                    title="Open Sidebar"
+                >
+                    <Menu size={24} />
+                </button>
+                <h1 className="text-2xl font-bold text-slate-800 tracking-tight drop-shadow-sm">
+                    Rich Menu
+                </h1>
+             </div>
+        )}
+
+        <div className={`max-w-4xl w-full mx-auto px-4 lg:py-8 transition-all duration-300 ${!isDesktopSidebarOpen ? 'lg:mt-24' : ''}`}>
+          
+          <div className="mb-10 text-center lg:text-left animate-fade-in">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4 lg:hidden">
+                <i className="fa-brands fa-line text-green-500 text-4xl"></i>
+              </div>
+              <p className="text-slate-500 mt-2">เลือกบอทเพื่อจัดการเมนู LINE Official Account</p>
           </div>
 
           <div className="grid gap-4">
@@ -393,6 +448,13 @@ export default function RichMenuHome() {
         }
         .animate-slide-in-left {
           animation: slide-in-left 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.4s ease-out forwards;
         }
       `}</style>
     </div>

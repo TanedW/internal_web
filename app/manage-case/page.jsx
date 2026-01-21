@@ -24,17 +24,22 @@ const MIME_TYPE_MAP = {
   'heif': 'image/heif',
   'ico': 'image/x-icon',
   'tiff': 'image/tiff',
+  'apng': 'image/apng',
   // Videos
   'mp4': 'video/mp4',
   'mov': 'video/quicktime',
   'avi': 'video/avi',
   'mkv': 'video/x-matroska',
   'wmv': 'video/x-ms-wmv',
+  'm4v': 'video/m4v',
+  'mpg': 'video/mpeg', 
   // Audio
   'mp3': 'audio/mpeg',
   'wav': 'audio/wav',
+  'aac': 'audio/aac',
   'ogg': 'audio/ogg',
   'm4a': 'audio/m4a',
+  'x-m4a': 'audio/x-m4a',
   'flac': 'audio/flac',
   'wma': 'audio/x-ms-wma',
   //file
@@ -49,10 +54,8 @@ const MIME_TYPE_MAP = {
   'ppt': 'application/vnd.ms-powerpoint',
   'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   'rtf': 'application/rtf',  
-  'csv': 'text/csv', //notsure
-  'txt': 'text/plain', //notsure
-
-
+  'csv': 'text/csv', 
+  'txt': 'text/plain', 
 };
 
 const fileToBase64 = (file) => {
@@ -88,7 +91,13 @@ export default function ManageCase() {
   
   // --- State สำหรับ Menu & Permission ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [currentRoles, setCurrentRoles] = useState([]); // ✅ เพิ่ม State เก็บ Role
+  const [currentRoles, setCurrentRoles] = useState([]); 
+
+  // State สำหรับ Desktop Sidebar (Toggle)
+  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
+
+  // ✅ State สำหรับ Toggle การแสดง Role (Sidebar)
+  const [isSidebarRolesExpanded, setIsSidebarRolesExpanded] = useState(false);
 
   // --- State Business Logic ---
   const [searchId, setSearchId] = useState("");
@@ -106,11 +115,11 @@ export default function ManageCase() {
 
   const inputRef = useRef(null);
   
-  const API_URL_ADMIN = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL; // ✅ URL API สำหรับดึง Role
+  const API_URL_ADMIN = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
 
   const getAvatarUrl = (seed) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
 
-  // ✅ Helper: ดึง ID ตัวเองจาก LocalStorage
+  // Helper: ดึง ID ตัวเองจาก LocalStorage
   const getCurrentAdminId = () => {
     if (typeof window !== "undefined") {
       const storedId = localStorage.getItem("current_admin_id");
@@ -120,22 +129,62 @@ export default function ManageCase() {
     return null;
   };
 
-  // ✅ Helper: Check Permission
+  // Helper: Check Permission
   const hasAccess = (requiredRoles) => {
-     return currentRoles.some(myRole => requiredRoles.includes(myRole));
+      return currentRoles.some(myRole => requiredRoles.includes(myRole));
   };
 
-  // ✅ Helper: Display Role Name
-  const displayRoleName = (roles) => {
-      if (!roles || roles.length === 0) return 'Guest';
-      return roles.map(r => r.replace(/_/g, ' ')).join(' | ');
-  };
-
-  // ✅ Logic: Menu Visibility
+  // Logic: Menu Visibility
   const showCaseMenu = hasAccess(['admin', 'editor', 'editor_manage_case']);
   const showMenuMenu = hasAccess(['admin', 'editor', 'editor_manage_menu']);
 
-  // ✅ Function: Fetch Admin Roles
+  // ✅ Component SidebarRoleDisplay (Logic เดียวกับหน้า Manage)
+  const SidebarRoleDisplay = () => (
+    <div className="flex flex-col items-center mt-2 px-2 w-full">
+        {currentRoles.length > 0 ? (
+            <>
+                {/* --- 1. กรณีขยาย (Expanded) --- */}
+                {isSidebarRolesExpanded ? (
+                    <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-1 duration-200 w-full items-center">
+                        {currentRoles.map((role, idx) => (
+                            <span key={idx} className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 truncate max-w-[160px]">
+                                {role.replace(/_/g, ' ')}
+                            </span>
+                        ))}
+                        <button 
+                            onClick={() => setIsSidebarRolesExpanded(false)}
+                            className="btn btn-xs h-7 min-h-0 bg-white border border-indigo-500 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-600 rounded-full px-3 text-[10px] font-bold tracking-wide uppercase shadow-sm"
+                        >
+                            Show less
+                        </button>
+                    </div>
+                ) : (
+                    /* --- 2. กรณีปกติ (Collapsed) --- */
+                    <div className="flex flex-wrap gap-2 justify-center items-center">
+                        {/* Role แรก */}
+                        <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 truncate max-w-[150px]">
+                            {currentRoles[0].replace(/_/g, ' ')}
+                        </span>
+
+                        {/* ปุ่ม +X more */}
+                        {currentRoles.length > 1 && (
+                            <button
+                                onClick={() => setIsSidebarRolesExpanded(true)}
+                                className="btn btn-xs h-7 min-h-0 bg-white border border-indigo-500 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-600 rounded-full px-3 text-[10px] font-bold tracking-wide uppercase shadow-sm"
+                            >
+                                +{currentRoles.length - 1} more
+                            </button>
+                        )}
+                    </div>
+                )}
+            </>
+        ) : (
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Guest</span>
+        )}
+    </div>
+  );
+
+  // Function: Fetch Admin Roles
   const fetchAdmins = async () => {
     if (!API_URL_ADMIN) return;
     
@@ -173,7 +222,7 @@ export default function ManageCase() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) { 
         setUser(currentUser); 
-        fetchAdmins(); // ✅ เรียกดึงข้อมูล Role เมื่อ Login
+        fetchAdmins(); 
         setLoading(false); 
       } else { 
         router.push("/"); 
@@ -419,22 +468,18 @@ export default function ManageCase() {
                       </div>
                       <h2 className="text-lg font-extrabold text-slate-800 break-words w-full px-2">{user?.displayName || "Admin"}</h2>
                       
-                      {/* ✅ แสดง Role จริง */}
-                      <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1 bg-indigo-50 px-2 py-0.5 rounded break-words w-full">
-                        {displayRoleName(currentRoles)}
-                      </span>
+                      {/* ✅ เรียกใช้ SidebarRoleDisplay (Mobile) */}
+                      <SidebarRoleDisplay />
                 </div>
 
                 <div className="flex flex-col gap-2 w-full flex-1 overflow-y-auto">
-                    <div className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-2 pl-4">Menu</div>
+                    <div className="text-xs font-bold text-slate-700 uppercase tracking-widest mb-2 pl-4">Menu</div>
                     
-                    {/* ✅ เมนู Manage Email (แสดงตลอด ตามต้นฉบับ) */}
                     <Link href="/manage" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage')}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
                         <span className="font-bold text-sm">จัดการ Email</span>
                     </Link>
                     
-                    {/* ✅ เมนู Manage Case (เช็คสิทธิ์) */}
                     {showCaseMenu && (
                         <Link href="/manage-case" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-case')}>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
@@ -442,7 +487,6 @@ export default function ManageCase() {
                         </Link>
                     )}
                     
-                    {/* ✅ เมนู Manage Menu (เช็คสิทธิ์) */}
                     {showMenuMenu && (
                         <Link href="/manage-richmenu" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-richmenu')}>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"></path></svg>
@@ -468,9 +512,21 @@ export default function ManageCase() {
      )}
 
       {/* ================= DESKTOP SIDEBAR ================= */}
-      <div className="hidden lg:flex fixed top-4 bottom-4 left-4 w-72 bg-white rounded-[2rem] shadow-[0_0_40px_-10px_rgba(0,0,0,0.05)] border border-slate-100 flex-col py-8 px-6 z-50 overflow-y-auto no-scrollbar">
+      <div className={`hidden lg:flex fixed top-4 bottom-4 left-4 w-72 bg-white rounded-[2rem] shadow-[0_0_40px_-10px_rgba(0,0,0,0.05)] border border-slate-100 flex-col py-8 px-6 z-50 overflow-y-auto no-scrollbar transition-all duration-300 ease-in-out ${
+          isDesktopSidebarOpen ? "translate-x-0 opacity-100" : "-translate-x-[120%] opacity-0 pointer-events-none"
+      }`}>
           
-          <div className="flex flex-col items-center text-center mb-10">
+          <button 
+                onClick={() => setIsDesktopSidebarOpen(false)}
+                className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-all duration-200"
+                title="Close Sidebar"
+          >
+               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+               </svg>
+          </button>
+
+          <div className="flex flex-col items-center text-center mb-10 mt-2">
               <div className="w-24 h-24 rounded-full p-1 border-2 border-dashed border-slate-200 mb-4">
                   <div className="w-full h-full rounded-full overflow-hidden bg-slate-50">
                       <img src={user?.photoURL || getAvatarUrl("Admin")} alt="User" className="object-cover w-full h-full"/>
@@ -478,14 +534,12 @@ export default function ManageCase() {
               </div>
               <h2 className="text-lg font-extrabold text-slate-800 px-2 break-words w-full">{user?.displayName || "Admin"}</h2>
               
-              {/* ✅ แสดง Role จริง Desktop */}
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 px-2 break-words w-full">
-                 {displayRoleName(currentRoles)}
-              </span>
+              {/* ✅ เรียกใช้ SidebarRoleDisplay (Desktop) */}
+              <SidebarRoleDisplay />
           </div>
 
           <div className="flex flex-col gap-2 w-full flex-1">
-              <div className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-2 pl-4">Menu</div>
+              <div className="text-xs font-bold text-slate-700 uppercase tracking-widest mb-2 pl-4">Menu</div>
               
               <Link href="/manage" className={getMenuClass('/manage')}>
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
@@ -521,11 +575,33 @@ export default function ManageCase() {
 
 
       {/* ================= MAIN CONTENT ================= */}
-      <div className="container mx-auto px-4 pt-24 lg:pt-8 max-w-7xl lg:pl-80 transition-all duration-300 pb-24">
+      {/* ✅ ปรับ Padding ซ้าย (pl) ให้ขยับตามสถานะ Sidebar */}
+      <div className={`container mx-auto px-4 pt-24 lg:pt-8 max-w-7xl transition-all duration-300 pb-24 ${
+          isDesktopSidebarOpen ? "lg:pl-80" : "lg:pl-8"
+      }`}>
+        
+        {/* ✅ 2. ปุ่ม Open (Hamburger) แสดงเฉพาะตอน Sidebar ปิด + ข้อความ Manage Case */}
+        {!isDesktopSidebarOpen && (
+             <div className="hidden lg:flex items-center gap-4 fixed top-8 left-8 z-30 animate-slide-in-left">
+                <button 
+                    onClick={() => setIsDesktopSidebarOpen(true)}
+                    className="btn btn-square btn-ghost bg-white border border-slate-200 shadow-lg shadow-indigo-100/50 text-slate-800 hover:bg-slate-50 transition-all duration-300"
+                    title="Open Sidebar"
+                >
+                    {/* ไอคอน Hamburger (3 ขีด) */}
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
+                         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
+                </button>
+                <h1 className="text-2xl font-bold text-slate-800 tracking-tight drop-shadow-sm">
+                    Manage Case
+                </h1>
+             </div>
+        )}
         
         {/* --- Header & Search Section --- */}
         {!currentCase && (
-            <div className="flex flex-col justify-start relative w-full max-w-2xl mx-auto overflow-hidden rounded-3xl animate-fade-in pt-12">
+            <div className="flex flex-col justify-start relative w-full max-w-2xl mx-auto overflow-hidden rounded-3xl animate-fade-in pt-12 lg:mt-24">
         
                 <div className="flex flex-col items-center text-center space-y-5 relative z-10 px-4">
                     {/* Text Group */}
@@ -600,10 +676,10 @@ export default function ManageCase() {
                             {[1, 2, 3].map((step) => (
                                 <div key={step} className="relative flex flex-col items-center flex-1">
                                     <div className={`w-10 h-10 lg:w-12 lg:h-12 rounded-2xl flex items-center justify-center font-bold text-base lg:text-lg border-4 transition-all duration-300 z-10 bg-white ${wizardStep >= step ? 'border-indigo-500 text-indigo-600 shadow-lg shadow-indigo-200 scale-110' : 'border-slate-200 text-slate-300'}`}>
-                                        {step}
+                                                        {step}
                                     </div>
                                     <span className={`absolute top-12 lg:top-14 text-[10px] lg:text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${wizardStep >= step ? 'text-indigo-600' : 'text-slate-300'}`}>
-                                        {step === 1 ? 'Select' : step === 2 ? 'Upload' : 'Reason'}
+                                                        {step === 1 ? 'Select' : step === 2 ? 'Upload' : 'Reason'}
                                     </span>
                                 </div>
                             ))}
@@ -711,56 +787,56 @@ export default function ManageCase() {
                                                                 }
                                                             `}
                                                         >
-                                                            {/* Media Content */}
-                                                            <div className="aspect-video w-full flex items-center justify-center bg-slate-900/5 relative overflow-hidden rounded-t-lg">
-                                                                {img.mediaType === 'video' ? (
-                                                                    <div className="relative w-full h-full bg-slate-900 flex items-center justify-center">
-                                                                        <video 
-                                                                            src={img.url} 
-                                                                            className="w-full h-full object-contain bg-black" 
-                                                                            controls={false}
-                                                                            playsInline
-                                                                        />
-                                                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                                                            <div className="w-10 h-10 bg-black/30 rounded-full flex items-center justify-center backdrop-blur-sm">
-                                                                                <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1"></div>
+                                                                {/* Media Content */}
+                                                                <div className="aspect-video w-full flex items-center justify-center bg-slate-900/5 relative overflow-hidden rounded-t-lg">
+                                                                        {img.mediaType === 'video' ? (
+                                                                            <div className="relative w-full h-full bg-slate-900 flex items-center justify-center">
+                                                                                    <video 
+                                                                                        src={img.url} 
+                                                                                        className="w-full h-full object-contain bg-black" 
+                                                                                        controls={false}
+                                                                                        playsInline
+                                                                                    />
+                                                                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                                                            <div className="w-10 h-10 bg-black/30 rounded-full flex items-center justify-center backdrop-blur-sm">
+                                                                                                    <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1"></div>
+                                                                                            </div>
+                                                                                    </div>
                                                                             </div>
-                                                                        </div>
-                                                                    </div>
-                                                                ) : img.mediaType === 'audio' ? (
-                                                                    <div className="w-full h-full flex flex-col items-center justify-center bg-amber-50 text-amber-500">
-                                                                        <Music size={28} />
-                                                                        <span className="text-xs font-bold mt-2">AUDIO</span>
-                                                                    </div>
-                                                                ) : (
-                                                                    <img src={img.url} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt={img.type} />
-                                                                )}
-                                                                {!isSelected && (
-                                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-all duration-300">
-                                                                        <span className="opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 bg-white/90 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
-                                                                            เลือกรายการนี้
-                                                                        </span>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                            {/* Info Strip */}
-                                                            <div className={`p-3 flex justify-between items-center transition-colors ${isSelected ? 'bg-indigo-50' : 'bg-white/50 group-hover:bg-indigo-50/30'}`}>
-                                                                <span className={`text-xs font-bold truncate max-w-[45%] ${isSelected ? 'text-indigo-700' : 'text-slate-700'}`}>
-                                                                    {img.type}
-                                                                </span>
-                                                                <div className="flex items-center gap-2">
-                                                                    {!isSelected && (
-                                                                        <span className="text-[10px] text-red-500 font-bold whitespace-nowrap animate-pulse">
-                                                                            แตะตรงนี้เพื่อเลือก
-                                                                        </span>
-                                                                    )}
-                                                                    {isSelected ? (
-                                                                        <CheckCircle2 size={20} className="text-indigo-600 animate-[bounceIn_0.3s_ease-out] shrink-0"/>
-                                                                    ) : (
-                                                                        <div className="w-5 h-5 rounded-full border-2 border-slate-200 group-hover:border-indigo-300 transition-colors bg-blue-100 shrink-0"></div>
-                                                                    )}
+                                                                        ) : img.mediaType === 'audio' ? (
+                                                                            <div className="w-full h-full flex flex-col items-center justify-center bg-amber-50 text-amber-500">
+                                                                                    <Music size={28} />
+                                                                                    <span className="text-xs font-bold mt-2">AUDIO</span>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <img src={img.url} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt={img.type} />
+                                                                        )}
+                                                                        {!isSelected && (
+                                                                            <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-all duration-300">
+                                                                                    <span className="opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 bg-white/90 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
+                                                                                        เลือกรายการนี้
+                                                                                    </span>
+                                                                            </div>
+                                                                        )}
                                                                 </div>
-                                                            </div>
+                                                                {/* Info Strip */}
+                                                                <div className={`p-3 flex justify-between items-center transition-colors ${isSelected ? 'bg-indigo-50' : 'bg-white/50 group-hover:bg-indigo-50/30'}`}>
+                                                                        <span className={`text-xs font-bold truncate max-w-[45%] ${isSelected ? 'text-indigo-700' : 'text-slate-700'}`}>
+                                                                            {img.type}
+                                                                        </span>
+                                                                        <div className="flex items-center gap-2">
+                                                                                {!isSelected && (
+                                                                                    <span className="text-[10px] text-red-500 font-bold whitespace-nowrap animate-pulse">
+                                                                                        แตะตรงนี้เพื่อเลือก
+                                                                                    </span>
+                                                                                )}
+                                                                                {isSelected ? (
+                                                                                    <CheckCircle2 size={20} className="text-indigo-600 animate-[bounceIn_0.3s_ease-out] shrink-0"/>
+                                                                                ) : (
+                                                                                    <div className="w-5 h-5 rounded-full border-2 border-slate-200 group-hover:border-indigo-300 transition-colors bg-blue-100 shrink-0"></div>
+                                                                                )}
+                                                                        </div>
+                                                                </div>
                                                         </div>
                                                     )
                                                 })}
@@ -800,50 +876,50 @@ export default function ManageCase() {
                                         </div>
                                     )}
                                     <label className={`group relative flex flex-col items-center justify-center w-full min-h-[18rem] lg:min-h-[22rem] h-auto p-4 lg:p-6 rounded-3xl border-3 border-dashed transition-all duration-300 cursor-pointer overflow-hidden ${newImageFile ? 'border-green-400 bg-white' : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-100/50'}`}>
-                                            <input 
-                                                type="file" 
-                                                className="hidden" 
-                                                accept="image/*, video/*, audio/*, .jpg, .jpeg, .png, .gif, .mp4, .mov, .webm, .mp3, .wav, .m4a"
-                                                onChange={(e) => {
-                                                    if(e.target.files[0]) setNewImageFile(e.target.files[0]);
-                                                }} 
-                                            />
-                                            {newImageFile ? (
-                                                <div className="flex flex-col items-center w-full animate-fade-in z-10">
-                                                    <div className="relative w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center mb-4 min-h-[200px]">
-                                                        {getMediaTypeFromFile(newImageFile) === 'video' ? (
-                                                            <div className="relative w-full bg-black">
-                                                                <video src={URL.createObjectURL(newImageFile)} className="w-full max-h-[50vh] object-contain mx-auto" controls autoPlay muted playsInline />
-                                                            </div>
-                                                        ) : getMediaTypeFromFile(newImageFile) === 'audio' ? (
-                                                            <div className="w-full min-h-[200px] flex flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100 text-orange-600 px-6 py-4">
-                                                                <FileAudio size={48} className="mb-3 drop-shadow-sm" />
-                                                                <p className="text-xs font-bold text-center break-all mb-3 max-w-full">{newImageFile.name}</p>
-                                                                <audio src={URL.createObjectURL(newImageFile)} controls className="w-full shadow-sm rounded-lg" />
-                                                            </div>
-                                                        ) : (
-                                                            <img src={URL.createObjectURL(newImageFile)} className="w-full max-h-[50vh] object-contain" alt="Preview" />
-                                                        )}
+                                    <input 
+                                        type="file" 
+                                        className="hidden" 
+                                        accept="image/*, video/*, audio/*, .jpg, .jpeg, .png, .gif, .mp4, .mov, .webm, .mp3, .wav, .m4a"
+                                        onChange={(e) => {
+                                            if(e.target.files[0]) setNewImageFile(e.target.files[0]);
+                                        }} 
+                                    />
+                                    {newImageFile ? (
+                                        <div className="flex flex-col items-center w-full animate-fade-in z-10">
+                                            <div className="relative w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center mb-4 min-h-[200px]">
+                                                {getMediaTypeFromFile(newImageFile) === 'video' ? (
+                                                    <div className="relative w-full bg-black">
+                                                        <video src={URL.createObjectURL(newImageFile)} className="w-full max-h-[50vh] object-contain mx-auto" controls autoPlay muted playsInline />
                                                     </div>
-                                                    <span className="font-bold text-base lg:text-lg text-slate-800 mb-1 drop-shadow-sm truncate max-w-[90%]">{newImageFile.name}</span>
-                                                    <span className="text-xs lg:text-sm font-medium text-green-600 bg-green-100 px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                                                        <CheckCircle2 size={12}/> พร้อมอัปโหลด
-                                                    </span><br></br>
-                                                    <p className="text-xs text-slate-400 mt-2 group-hover:text-indigo-500 transition-colors font-medium">แตะเพื่อเปลี่ยนไฟล์</p>
-                                                </div>
-                                            ) : (
-                                                <div className="flex flex-col items-center z-10 p-4 lg:p-6 transition-transform duration-300 group-hover:scale-105 text-center">
-                                                    <div className="w-16 h-16 lg:w-20 lg:h-20 bg-white rounded-2xl mb-4 lg:mb-6 flex items-center justify-center shadow-sm border border-slate-100 group-hover:shadow-md group-hover:text-indigo-600 group-hover:border-indigo-100 transition-all text-slate-300"><UploadCloud size={32} className="lg:w-10 lg:h-10" strokeWidth={1.5} /></div>
-                                                    <h4 className="font-bold text-base lg:text-lg text-slate-700 mb-2 group-hover:text-indigo-700 transition-colors">เลือกไฟล์มีเดีย</h4>
-                                                    <p className="text-slate-400 text-xs lg:text-sm mb-4 lg:mb-6">แตะเพื่อเลือกไฟล์ รูปภาพ, วิดีโอ หรือเสียง</p>
-                                                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                                        <span className="bg-white px-2 py-1 rounded border border-slate-100">IMG</span>
-                                                        <span className="bg-white px-2 py-1 rounded border border-slate-100">VID</span>
-                                                        <span className="bg-white px-2 py-1 rounded border border-slate-100">MP3</span>
+                                                ) : getMediaTypeFromFile(newImageFile) === 'audio' ? (
+                                                    <div className="w-full min-h-[200px] flex flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100 text-orange-600 px-6 py-4">
+                                                        <FileAudio size={48} className="mb-3 drop-shadow-sm" />
+                                                        <p className="text-xs font-bold text-center break-all mb-3 max-w-full">{newImageFile.name}</p>
+                                                        <audio src={URL.createObjectURL(newImageFile)} controls className="w-full shadow-sm rounded-lg" />
                                                     </div>
-                                                </div>
-                                            )}
-                                            {!newImageFile && (<div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-20 pointer-events-none"></div>)}
+                                                ) : (
+                                                    <img src={URL.createObjectURL(newImageFile)} className="w-full max-h-[50vh] object-contain" alt="Preview" />
+                                                )}
+                                            </div>
+                                            <span className="font-bold text-base lg:text-lg text-slate-800 mb-1 drop-shadow-sm truncate max-w-[90%]">{newImageFile.name}</span>
+                                            <span className="text-xs lg:text-sm font-medium text-green-600 bg-green-100 px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                                                <CheckCircle2 size={12}/> พร้อมอัปโหลด
+                                            </span><br></br>
+                                            <p className="text-xs text-slate-400 mt-2 group-hover:text-indigo-500 transition-colors font-medium">แตะเพื่อเปลี่ยนไฟล์</p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center z-10 p-4 lg:p-6 transition-transform duration-300 group-hover:scale-105 text-center">
+                                            <div className="w-16 h-16 lg:w-20 lg:h-20 bg-white rounded-2xl mb-4 lg:mb-6 flex items-center justify-center shadow-sm border border-slate-100 group-hover:shadow-md group-hover:text-indigo-600 group-hover:border-indigo-100 transition-all text-slate-300"><UploadCloud size={32} className="lg:w-10 lg:h-10" strokeWidth={1.5} /></div>
+                                            <h4 className="font-bold text-base lg:text-lg text-slate-700 mb-2 group-hover:text-indigo-700 transition-colors">เลือกไฟล์มีเดีย</h4>
+                                            <p className="text-slate-400 text-xs lg:text-sm mb-4 lg:mb-6">แตะเพื่อเลือกไฟล์ รูปภาพ, วิดีโอ หรือเสียง</p>
+                                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                                <span className="bg-white px-2 py-1 rounded border border-slate-100">IMG</span>
+                                                <span className="bg-white px-2 py-1 rounded border border-slate-100">VID</span>
+                                                <span className="bg-white px-2 py-1 rounded border border-slate-100">MP3</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {!newImageFile && (<div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-20 pointer-events-none"></div>)}
                                     </label>
                                 </div>
                             )}
