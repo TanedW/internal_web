@@ -2,35 +2,35 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation'; 
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '@/firebaseConfig';
 import '@fortawesome/fontawesome-free/css/all.css';
+// ✅ ใช้ Icons จาก Lucide เพื่อความสวยงามและเข้ากับหน้า ManageCase
+import { LogOut, Menu, X, Mail, Briefcase, LayoutGrid } from 'lucide-react';
 
 export default function RichMenuHome() {
   const router = useRouter();
+  const pathname = usePathname(); 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [bots, setBots] = useState([]);
   const [currentMenus, setCurrentMenus] = useState({});
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // ✅ State สำหรับ Mobile Menu
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // --- Logic เดิมทั้งหมด ---
   useEffect(() => {
     onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        
-        // 1. โหลด cache
         const cachedBots = localStorage.getItem('cachedBots');
         if (cachedBots) setBots(JSON.parse(cachedBots));
-        
         const cachedMenus = localStorage.getItem('cachedMenus');
         if (cachedMenus) setCurrentMenus(JSON.parse(cachedMenus));
-        
-        // 2. ⭐⭐⭐ ตั้ง loading = false ทันที ⭐⭐⭐
         setLoading(false);
-        
-        // 3. fetchBotsData ทำในพื้นหลัง (ไม่ต้องรอ)
         fetchBotsData();
       }
     });
@@ -41,11 +41,9 @@ export default function RichMenuHome() {
     try {
       const botsRes = await fetch('/api/richmenu/bots');
       const botsData = await botsRes.json();
-
       if (Array.isArray(botsData)) {
         setBots(botsData);
         localStorage.setItem('cachedBots', JSON.stringify(botsData));
-
         const menusData = {};
         for (const bot of botsData) {
           try {
@@ -81,6 +79,16 @@ export default function RichMenuHome() {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(bot.name)}&background=0D9&color=fff&size=128`;
   };
 
+  // ✅ Helper: แก้ไขให้ตัวหนังสือเป็นสีขาวเมื่อ Active (ใส่ !text-white)
+  const getMenuClass = (targetPath) => {
+      const isActive = pathname === targetPath;
+      return `flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-200 ${
+        isActive 
+          ? "bg-[#111827] !text-white shadow-lg shadow-slate-300 scale-[1.02]" // ✅ บังคับสีขาว
+          : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+      }`;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex justify-center items-center">
@@ -90,110 +98,130 @@ export default function RichMenuHome() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F6F8] font-sans pb-24 lg:pb-10">
+    <div className="min-h-screen bg-[#F4F6F8] font-sans">
       <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
       <script src="https://cdn.tailwindcss.com"></script>
 
-      {/* ================= NAVBAR MOBILE ================= */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-sm z-50 px-4 flex justify-between items-center border-b border-gray-100 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="avatar">
-            <div className="w-9 h-9 rounded-full ring ring-offset-2 ring-indigo-50">
-              <img src={user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.displayName}`} alt="User" />
-            </div>
-          </div>
-          <div className="flex flex-col justify-center">
-            <span className="font-bold text-slate-800 text-sm truncate max-w-[160px]">{user?.displayName || 'Admin User'}</span>
-            <span className="text-[10px] text-indigo-500 font-bold uppercase">SYSTEM ADMIN</span>
-          </div>
-        </div>
-        <button onClick={handleLogout} className="btn btn-ghost btn-circle btn-sm hover:bg-red-50">
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-500">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-            <polyline points="16 17 21 12 16 7"></polyline>
-            <line x1="21" y1="12" x2="9" y2="12"></line>
-          </svg>
-        </button>
+      {/* ================= NAVBAR MOBILE HEADER ================= */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#F4F6F8]/95 backdrop-blur-sm z-40 px-5 flex justify-between items-center border-b border-slate-200/50">
+           <div className="flex items-center gap-3">
+              <button onClick={() => setIsMobileMenuOpen(true)} className="btn btn-square btn-ghost btn-sm text-slate-800">
+                  <Menu size={24} />
+              </button>
+              <h1 className="font-bold text-slate-800 text-lg">Rich Menu</h1>
+           </div>
+            
       </div>
 
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.1)] bg-white">
-        <div className="flex w-full h-16 border-t border-gray-100">
-          <Link href="/manage" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
-            <span className="text-[10px] font-bold">Email</span>
-          </Link>
-          <Link href="/manage-case" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
-            <span className="text-[10px] font-bold">Case</span>
-          </Link>
-          <Link href="/manage-richmenu" className="flex-1 flex flex-col items-center justify-center gap-1 text-slate-900 bg-slate-200">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"></path></svg>
-            <span className="text-[10px] font-bold">Menu</span>
-          </Link>
-        </div>
-      </div>
+     {/* ================= MOBILE SIDEBAR DRAWER ================= */}
+     {isMobileMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+            <div 
+                className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300"
+                onClick={() => setIsMobileMenuOpen(false)}
+            ></div>
 
-      {/* ================= NAVBAR DESKTOP (UPDATED) ================= */}
-      <div className="hidden lg:block sticky top-0 z-40 font-sans">
-        <div className="navbar bg-white/95 backdrop-blur-xl px-6 lg:px-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border-b border-slate-50/50 transition-all py-3">
-          <div className="navbar-start">
-            <div className="flex items-center gap-3 group cursor-default">
-              <div className="avatar">
-                <div className="w-11 h-11 rounded-full ring-[3px] ring-primary/20 ring-offset-[3px] ring-offset-white transition-all group-hover:ring-primary/40">
-                  <img src={user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.displayName}`} alt="User" className="object-cover" />
+            <div className="relative w-[280px] h-full bg-white shadow-2xl flex flex-col p-6 animate-slide-in-left rounded-r-[2rem]">
+                <button 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-600 bg-slate-50 rounded-full"
+                >
+                    <X size={20} />
+                </button>
+
+                <div className="flex flex-col items-center text-center mb-8 mt-6">
+                     <div className="w-24 h-24 rounded-full p-1 border-2 border-dashed border-indigo-200 mb-4">
+                        <div className="w-full h-full rounded-full overflow-hidden bg-slate-50">
+                            <img src={user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.displayName}`} alt="User" className="object-cover w-full h-full"/>
+                        </div>
+                     </div>
+                     <h2 className="text-lg font-extrabold text-slate-800 break-words w-full px-2">{user?.displayName || "Admin"}</h2>
+                     <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1 bg-indigo-50 px-2 py-0.5 rounded">
+                        System Admin
+                     </span>
                 </div>
-              </div>
-              <div className="flex flex-col">
-                <span className="font-extrabold text-slate-800 text-[15px] tracking-tight leading-tight">{user?.displayName || "Admin"}</span>
-                <span className="text-[11px] font-bold text-primary/70 uppercase tracking-wider">System Admin</span>
-              </div>
+
+                <div className="flex flex-col gap-2 w-full flex-1 overflow-y-auto">
+                    <div className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-2 pl-4">Menu</div>
+                    
+                    <Link href="/manage" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage')}>
+                        <Mail size={20} />
+                        <span className="font-bold text-sm">จัดการ Email</span>
+                    </Link>
+                    
+                    <Link href="/manage-case" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-case')}>
+                        <Briefcase size={20} />
+                        <span className="font-bold text-sm">จัดการ Case</span>
+                    </Link>
+                    
+                    <Link href="/manage-richmenu" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-richmenu')}>
+                        <LayoutGrid size={20} />
+                        <span className="font-bold text-sm">จัดการ Menu</span>
+                    </Link>
+                </div>
+
+                <div className="mt-auto pt-4 border-t border-slate-100">
+                    <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 w-full">
+                        <div className="p-1.5 bg-red-100/50 rounded-lg group-hover:bg-red-100 transition-colors">
+                            <LogOut size={20} className="text-red-500 transition-transform group-hover:translate-x-0.5" />
+                        </div>
+                        <span className="text-red-600 font-bold tracking-wide text-[15px]">Logout</span>
+                    </button>
+                </div>
             </div>
-          </div>
-
-          <div className="navbar-center">
-            <ul className="menu menu-horizontal px-1 gap-3">
-              <li>
-                <Link href="/manage" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">
-                  จัดการ Email
-                </Link>
-              </li>
-              <li>
-                <Link href="/manage-case" className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-full px-6 py-2.5 font-bold hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200">
-                  จัดการ Case
-                </Link>
-              </li>
-              <li>
-                {/* Active State applied here for Rich Menu Page */}
-                <Link href="/manage-richmenu" className="!bg-slate-900 !text-white shadow-lg shadow-slate-400/50 rounded-full px-6 py-2.5 font-bold hover:!bg-slate-800 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
-                  จัดการ Menu
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div className="navbar-end">
-            <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-2 rounded-xl hover:bg-red-50 transition-all duration-200">
-              <div className="p-1.5 bg-red-100/50 rounded-lg group-hover:bg-red-100 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-500 transition-transform group-hover:translate-x-0.5">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                  <polyline points="16 17 21 12 16 7"></polyline>
-                  <line x1="21" y1="12" x2="9" y2="12"></line>
-                </svg>
-              </div>
-              <span className="text-red-600 font-bold tracking-wide text-[15px]">Logout</span>
-            </button>
-          </div>
         </div>
+     )}
+
+      {/* ================= DESKTOP SIDEBAR ================= */}
+      <div className="hidden lg:flex fixed top-4 bottom-4 left-4 w-72 bg-white rounded-[2rem] shadow-[0_0_40px_-10px_rgba(0,0,0,0.05)] border border-slate-100 flex-col py-8 px-6 z-50 overflow-y-auto no-scrollbar">
+          
+          <div className="flex flex-col items-center text-center mb-10">
+              <div className="w-24 h-24 rounded-full p-1 border-2 border-dashed border-slate-200 mb-4">
+                  <div className="w-full h-full rounded-full overflow-hidden bg-slate-50">
+                      <img src={user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.displayName}`} alt="User" className="object-cover w-full h-full"/>
+                  </div>
+              </div>
+              <h2 className="text-lg font-extrabold text-slate-800 px-2 break-words w-full">{user?.displayName || "Admin"}</h2>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
+                 System Admin
+              </span>
+          </div>
+
+          <div className="flex flex-col gap-2 w-full flex-1">
+              <div className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-2 pl-4">Menu</div>
+              
+              <Link href="/manage" className={getMenuClass('/manage')}>
+                  <Mail size={20} />
+                  <span className="font-bold text-sm">จัดการ Email</span>
+              </Link>
+              
+              <Link href="/manage-case" className={getMenuClass('/manage-case')}>
+                  <Briefcase size={20} />
+                  <span className="font-bold text-sm">จัดการ Case</span>
+              </Link>
+              
+              <Link href="/manage-richmenu" className={getMenuClass('/manage-richmenu')}>
+                  <LayoutGrid size={20} />
+                  <span className="font-bold text-sm">จัดการ Menu</span>
+              </Link>
+          </div>
+
+          <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-2 rounded-xl hover:bg-red-50 transition-all duration-200">
+                <div className="p-1.5 bg-red-100/50 rounded-lg group-hover:bg-red-100 transition-colors">
+                    <LogOut size={20} className="text-red-500 transition-transform group-hover:translate-x-0.5" />
+                </div>
+                <span className="text-red-600 font-bold tracking-wide text-[15px]">Logout</span>
+          </button>
       </div>
 
-      {/* ================= CONTENT ================= */}
-      <div className="mt-16 lg:mt-0 pt-0 lg:pt-6">
-        <div className="max-w-4xl w-full mx-auto px-4">
-          <div className="mb-10 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
+      {/* ================= CONTENT (เนื้อหาเดิม) ================= */}
+      <div className="mt-16 lg:mt-0 pt-0 lg:pt-6 lg:pl-80 transition-all duration-300">
+        <div className="max-w-4xl w-full mx-auto px-4 lg:py-8">
+          <div className="mb-10 text-center lg:text-left">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4 lg:hidden">
               <i className="fa-brands fa-line text-green-500 text-4xl"></i>
             </div>
-            <h1 className="text-4xl font-bold text-slate-800">Rich Menu Manager</h1>
+            <h1 className="text-3xl lg:text-4xl font-bold text-slate-800">Rich Menu Manager</h1>
             <p className="text-slate-500 mt-2">เลือกบอทเพื่อจัดการเมนู LINE Official Account</p>
           </div>
 
@@ -267,6 +295,16 @@ export default function RichMenuHome() {
           </div>
         </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes slide-in-left {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
+        }
+        .animate-slide-in-left {
+          animation: slide-in-left 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}</style>
     </div>
   );
 }
