@@ -27,7 +27,7 @@ const MIME_TYPE_MAP = {
   // Videos
   'mp4': 'video/mp4',
   'mov': 'video/quicktime',
-  'avi': 'video/x-msvideo',
+  'avi': 'video/avi',
   'mkv': 'video/x-matroska',
   'wmv': 'video/x-ms-wmv',
   // Audio
@@ -36,7 +36,22 @@ const MIME_TYPE_MAP = {
   'ogg': 'audio/ogg',
   'm4a': 'audio/m4a',
   'flac': 'audio/flac',
-  'wma': 'audio/x-ms-wma'
+  'wma': 'audio/x-ms-wma',
+  //file
+  'zip': 'application/zip',
+  '7z': 'application/x-7z-compressed',
+  'pdf': 'application/pdf',
+  'rar': 'application/vnd.rar',
+  'doc': 'application/msword',
+  'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'xls': 'application/vnd.ms-excel',
+  'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'ppt': 'application/vnd.ms-powerpoint',
+  'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'csv': 'text/csv', //notsure
+  'txt': 'text/plain', //notsure
+  'rtf': 'application/rtf',
+
 };
 
 const fileToBase64 = (file) => {
