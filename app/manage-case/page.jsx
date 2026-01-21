@@ -48,9 +48,10 @@ const MIME_TYPE_MAP = {
   'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'ppt': 'application/vnd.ms-powerpoint',
   'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'rtf': 'application/rtf',  
   'csv': 'text/csv', //notsure
   'txt': 'text/plain', //notsure
-  'rtf': 'application/rtf',
+
 
 };
 
@@ -74,6 +75,8 @@ const getMediaTypeFromFile = (file) => {
     if (mimeType.startsWith('image/')) return 'image';
     if (mimeType.startsWith('video/')) return 'video';
     if (mimeType.startsWith('audio/')) return 'audio';
+    if (mimeType.startsWith('application/')) return 'file';
+
     return 'unknown';
 };
 
