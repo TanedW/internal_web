@@ -191,7 +191,7 @@ export default function Manage() {
       }`;
   };
 
-  // ✅ Component SidebarRoleDisplay ปรับปรุงดีไซน์ตามรูป
+  // ✅ Component SidebarRoleDisplay ปรับปรุงดีไซน์
   const SidebarRoleDisplay = () => (
     <div className="flex flex-col items-center mt-2 px-2 w-full">
         {currentRoles.length > 0 ? (
@@ -219,11 +219,10 @@ export default function Manage() {
                             {currentRoles[0].replace(/_/g, ' ')}
                         </span>
 
-                        {/* ปุ่ม +X more (สีเทา แบบในรูป) */}
+                        {/* ปุ่ม +X more (สีเทา) */}
                         {currentRoles.length > 1 && (
                             <button
                                 onClick={() => setIsSidebarRolesExpanded(true)}
-                               
                                 className="btn btn-xs h-7 min-h-0 bg-white border border-indigo-500 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-600 rounded-full px-3 text-[10px] font-bold tracking-wide uppercase shadow-sm"
                             >
                                 +{currentRoles.length - 1} more
@@ -461,7 +460,6 @@ export default function Manage() {
         </div>
 
         {/* --- GRID VIEW --- */}
-        {/* ปรับ Grid Columns ให้เหมาะสม */}
         <div className={`grid grid-cols-1 gap-4 ${
             isDesktopSidebarOpen 
                 ? "md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" // Sidebar เปิด
@@ -490,8 +488,8 @@ export default function Manage() {
                 const userRoles = item.roles && item.roles.length > 0 ? item.roles : (item.role ? [item.role] : ['member']);
                 return (
                     <div key={item.admin_id} 
-                        // ✅ ปรับ Padding การ์ด
-                        className={`relative bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col items-center text-center justify-center h-full ${
+                        // ✅ เพิ่ม hover:z-30 เพื่อให้ Card ลอยขึ้นมาเวลา Hover ทับ Tooltip
+                        className={`relative bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col items-center text-center justify-center h-full hover:z-30 ${
                             isDesktopSidebarOpen ? "p-4" : "p-6"
                         }`}
                     >
@@ -507,7 +505,6 @@ export default function Manage() {
                                </svg>
                              </button>
                         )}
-                        {/* ✅ ปรับขนาดรูป */}
                         <div className={`rounded-full bg-slate-50 mb-3 overflow-hidden ring-2 ring-slate-50 mx-auto ${
                             isDesktopSidebarOpen ? "w-10 h-10 mb-2" : "w-14 h-14 mb-3"
                         }`}>
@@ -519,52 +516,52 @@ export default function Manage() {
                             />
                         </div>
 
-                        {/* ✅ ปรับขนาดตัวหนังสือ Email */}
                         <h3 className={`font-bold text-slate-800 mb-2 break-all w-full px-1 ${
                              isDesktopSidebarOpen ? "text-[10px] mb-1" : "text-sm mb-2"
                         }`} title={item.email}>
                             {item.email}
                         </h3>
                         
-                        {/* ============= ส่วนแสดงผล Role (Update ใหม่ กรอบใหญ่ขึ้น) ============= */}
+                        {/* ============= ส่วนแสดงผล Role (แก้ไขสมบูรณ์) ============= */}
 
-                        {/* 1. Mobile View (1 Role + Button +X more) */}
+                        {/* 1. Mobile View */}
                         <div className="lg:hidden mt-2 w-full px-2 flex flex-wrap gap-2 justify-center items-center">
-                            {/* แสดง Role แรกเสมอ (เพิ่มขนาดกรอบและ Max Width) */}
                             {userRoles.length > 0 && (
-                                <span className="inline-flex items-center justify-center text-indigo-600 font-bold text-[10px] uppercase tracking-wider bg-indigo-50 px-4 py-1.5 rounded-full border border-indigo-100 truncate max-w-[180px]">
+                                // ✅ เพิ่ม max-w + truncate กันขอบขาด
+                                <span className="inline-block align-middle text-indigo-600 font-bold text-[10px] uppercase tracking-wider bg-indigo-50 px-4 py-1.5 rounded-full border border-indigo-100 truncate max-w-[80%]">
                                     {userRoles[0].replace(/_/g, ' ')}
                                 </span>
                             )}
-
-                            {/* ถ้ามีมากกว่า 1 Role ให้แสดงปุ่มกดแบบขอบม่วง */}
                             {userRoles.length > 1 && (
                                 <button 
                                     onClick={() => {
                                         setRoleModalData(userRoles);
                                         document.getElementById('role_modal').showModal();
                                     }}
-                                    className="btn btn-xs h-7 min-h-0 bg-white border border-indigo-500 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-600 rounded-full px-3 text-[10px] font-bold tracking-wide uppercase shadow-sm"
+                                    className="btn btn-xs h-7 min-h-0 bg-white border border-indigo-500 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-600 rounded-full px-3 text-[10px] font-bold tracking-wide uppercase shadow-sm shrink-0"
                                 >
                                     +{userRoles.length - 1} more
                                 </button>
                             )}
                         </div>
 
-                        {/* 2. Desktop View (1 Role + Tooltip with Smart Resize) */}
-                        <div className="hidden lg:flex flex-wrap gap-2 justify-center mt-2 w-full px-2">
+                        {/* 2. Desktop View */}
+                        <div className="hidden lg:flex flex-nowrap gap-2 justify-center items-center mt-2 w-full px-1">
                             {userRoles.length > 0 && (
-                                <span className={`inline-flex items-center justify-center font-bold uppercase tracking-wider bg-indigo-50 rounded-full border border-indigo-100 truncate text-indigo-600 ${
+                                // ✅ เพิ่ม max-w + truncate เพื่อให้ตัดคำแทนการบีบปุ่ม
+                                <span className={`inline-block font-bold uppercase tracking-wider bg-indigo-50 rounded-full border border-indigo-100 text-indigo-600 truncate ${
                                     isDesktopSidebarOpen 
-                                        ? "text-[9px] px-2 py-0.5 max-w-[140px]"  // Sidebar เปิด
-                                        : "text-[10px] px-3 py-1 max-w-[180px]"   // Sidebar ปิด
+                                        ? "text-[9px] px-2 py-0.5 max-w-[100px]" 
+                                        : "text-[10px] px-3 py-1 max-w-[140px]" 
                                 }`}>
                                     {userRoles[0].replace(/_/g, ' ')}
                                 </span>
                             )}
                             {userRoles.length > 1 && (
-                                <div className="tooltip" data-tip={userRoles.slice(1).map(r => r.replace(/_/g, ' ')).join(', ')}>
-                                    <span className={`cursor-help text-slate-500 font-bold tracking-wider bg-slate-100 rounded-full whitespace-nowrap border border-slate-200 hover:bg-slate-200 transition-colors ${
+                                // ✅ แก้ Tooltip ตัดคำ
+                                <div className="tooltip tooltip-bottom z-50 flex-shrink-0 before:max-w-[12rem] before:whitespace-normal before:text-center before:content-[attr(data-tip)]" 
+                                     data-tip={userRoles.slice(1).map(r => r.replace(/_/g, ' ')).join(', ')}>
+                                    <span className={`cursor-help text-slate-500 font-bold tracking-wider bg-slate-100 rounded-full whitespace-nowrap border border-slate-200 hover:bg-slate-200 transition-colors flex-shrink-0 ${
                                         isDesktopSidebarOpen 
                                             ? "text-[9px] px-2 py-0.5" 
                                             : "text-[10px] px-2.5 py-1"
@@ -638,11 +635,7 @@ export default function Manage() {
                     ))}
                 </div>
                 
-                <div className="modal-action w-full mt-6">
-                    <form method="dialog" className="w-full">
-                        <button className="btn btn-primary w-full rounded-xl text-white">Close</button>
-                    </form>
-                </div>
+               
             </div>
             <form method="dialog" className="modal-backdrop bg-slate-900/40 backdrop-blur-sm"><button>close</button></form>
         </dialog>
