@@ -160,7 +160,7 @@
   gap: 8px;
   font-family: 'Sarabun', sans-serif;
 }
-.php-btn-primary:hover { background: var(--php-primary-hover); }
+.php-btn-primary:hover { background: var(--php-primary); }
 .php-btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
 
 .php-btn-secondary {
