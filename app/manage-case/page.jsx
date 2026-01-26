@@ -121,7 +121,8 @@ const getFileStyle = (ext) => {
         default:
             // กรณีเป็นไฟล์เอกสาร หรือไฟล์ที่ไม่รองรับการเล่น/แสดงผลตรงๆ
             return (
-<div className={`w-full aspect-video min-h-[200px] flex flex-col items-center justify-center ${style.bg} transition-all duration-300`}>                    <div className="bg-white/50 p-4 rounded-2xl shadow-sm mb-2">
+                <div className={`w-full h-full flex flex-col items-center justify-center ${style.bg} transition-all duration-300`}>
+                    <div className="bg-white/50 p-4 rounded-2xl shadow-sm mb-2">
                         <UploadCloud size={48} className={style.text} strokeWidth={1.5} />
                     </div>
                     <span className={`text-sm font-black uppercase tracking-widest ${style.text}`}>
@@ -681,7 +682,7 @@ export default function ManageCase() {
                             className={`relative group transition-all duration-200 ${inputError ? '-translate-x-1' : 'translate-x-0'}`}
                         >
                             <div className={`relative bg-white rounded-full shadow-lg border-2 flex items-center p-1.5 lg:p-2 transition-all duration-300 ${inputError ? 'border-red-400 ring-4 ring-red-500/10' : 'border-indigo-50 hover:border-indigo-200 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10'}`}>
-                                <div className={`pl-4 pr-3 transition-colors ${inputError ? 'text-red-500' : 'text-slate-400'}`}>
+                                <div className={`pl-4 pr-3 transition-colors ${inputError ? 'text-red-500' : 'text-indigo-600'}`}>
                                     <Search size={22} className="lg:w-6 lg:h-6" strokeWidth={2.5} />
                                 </div>
                                 <input
