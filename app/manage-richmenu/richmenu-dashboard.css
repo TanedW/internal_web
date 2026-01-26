@@ -153,7 +153,6 @@
   font-size: 15px; 
   font-weight: 500; 
   cursor: pointer; 
-  transition: background 0.2s; 
   display: flex; 
   align-items: center; 
   justify-content: center; 
