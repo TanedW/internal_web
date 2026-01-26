@@ -78,9 +78,58 @@ const getMediaTypeFromFile = (file) => {
     if (mimeType.startsWith('image/')) return 'image';
     if (mimeType.startsWith('video/')) return 'video';
     if (mimeType.startsWith('audio/')) return 'audio';
+    if (mimeType.startsWith('text/')) return 'file';
     if (mimeType.startsWith('application/')) return 'file';
 
     return 'unknown';
+};
+
+const FilePreviewRender = ({ file }) => {
+    const type = getMediaTypeFromFile(file);
+    
+    const fileUrl = file instanceof File 
+        ? URL.createObjectURL(file) 
+        : (file.url || file.photo || file);
+
+    const fileName = file.name || (typeof file === 'string' ? file : 'Unknown File');
+    const extension = fileName.split('.').pop().toLowerCase();
+
+    // กำหนดสีตามเงื่อนไขที่คุณระบุ
+const getFileStyle = (ext) => {
+        // ปรับระดับสีให้สดขึ้นตามรูปตัวอย่าง (100 -> 200/500)
+        if (ext === 'pdf') return { bg: 'bg-red-100', text: 'text-red-500', iconBg: 'bg-white' };
+        if (['doc', 'docx'].includes(ext)) return { bg: 'bg-blue-100', text: 'text-blue-500', iconBg: 'bg-white' };
+        if (['csv', 'xls', 'xlsx'].includes(ext)) return { bg: 'bg-emerald-100', text: 'text-emerald-500', iconBg: 'bg-white' };
+        return { bg: 'bg-slate-100', text: 'text-slate-500', iconBg: 'bg-white' };
+    };  
+
+    const style = getFileStyle(extension);
+
+    switch (type) {
+        case 'image':
+            return <img src={fileUrl} className="w-full max-h-[50vh] object-contain mx-auto" alt="Preview" />;
+        case 'video':
+            return <video src={fileUrl} className="w-full max-h-[50vh] object-contain mx-auto" controls autoPlay muted playsInline />;
+        case 'audio':
+            return (
+                <div className="w-full min-h-[150px] flex flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100 text-orange-600 p-6">
+                    <Music size={48} className="mb-3" />
+                    <audio src={fileUrl} controls className="w-full" />
+                </div>
+            );
+        case 'file':
+        default:
+            // กรณีเป็นไฟล์เอกสาร หรือไฟล์ที่ไม่รองรับการเล่น/แสดงผลตรงๆ
+            return (
+<div className={`w-full aspect-video min-h-[200px] flex flex-col items-center justify-center ${style.bg} transition-all duration-300`}>                    <div className="bg-white/50 p-4 rounded-2xl shadow-sm mb-2">
+                        <UploadCloud size={48} className={style.text} strokeWidth={1.5} />
+                    </div>
+                    <span className={`text-sm font-black uppercase tracking-widest ${style.text}`}>
+                        .{extension}
+                    </span>
+                </div>
+            );
+    }
 };
 
 export default function ManageCase() {
@@ -291,8 +340,10 @@ export default function ManageCase() {
                         let mType = 'image';
                         if (item.viewed === 1 || fileUrl.match(/\.(mp4|mov|webm|avi|mkv)$/)) {
                             mType = 'video';
-                        } else if (fileUrl.match(/\.(mp3|wav|ogg|m4a|aac|flac)$/)) {
+                        } else if (item.viewed === 3  || fileUrl.match(/\.(mp3|wav|ogg|m4a|aac|flac)$/)) {
                             mType = 'audio';
+                        } else if (item.viewed === 2  || fileUrl.match(/\.(zip|7z|rar|pdf|doc|docx|rtf|csv|xls|ppt|pptx|txt|)$/)) {
+                            mType = 'file';
                         }
 
                         allImagesCombined.push({
@@ -360,9 +411,20 @@ export default function ManageCase() {
 
     setIsSubmitting(true);
 
+    const getMediaTypeValue = (file) => {
+    const type = getMediaTypeFromFile(file);
+    switch (type) {
+        case 'image': return 0;
+        case 'video': return 1;
+        case 'file': return 2;
+        case 'audio': return 3;
+        default: return 2; // Default เป็นไฟล์ทั่วไป
+    }
+};
+
     try {
         const base64String = await fileToBase64(newImageFile);
-        
+        const newViewedValue = getMediaTypeValue(newImageFile); // <--- เพิ่มบรรทัดนี้        
         const payload = {
             folder_path: `attachment/Test_internal_web/case_${currentCase.id}`, 
             image: base64String
@@ -385,7 +447,8 @@ export default function ManageCase() {
                 current_admin_id: adminId.toString().replace(/['"]+/g, ''), 
                 photo_id: selectedImageToReplace.id.toString().replace(/['"]+/g, ''), 
                 file_url: result.photo_link,          
-                description: reason
+                description: reason,
+                viewed: newViewedValue
              };
 
              const caseIdParam = currentCase.dbId || currentCase.id;
@@ -808,7 +871,12 @@ export default function ManageCase() {
                                                                                     <Music size={28} />
                                                                                     <span className="text-xs font-bold mt-2">AUDIO</span>
                                                                             </div>
-                                                                        ) : (
+                                                                        ) : img.mediaType === 'file' ? (
+                                                                            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-400">
+                                                                                <UploadCloud size={32} />
+                                                                                <span className="text-[10px] font-bold mt-1 uppercase">{img.url.split('.').pop()}</span>
+                                                                            </div>
+                                                                        ) : (                                                        
                                                                             <img src={img.url} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt={img.type} />
                                                                         )}
                                                                         {!isSelected && (
@@ -853,38 +921,36 @@ export default function ManageCase() {
                                         <h3 className="text-xl lg:text-2xl font-black text-slate-800 mb-2">อัปโหลดไฟล์ใหม่</h3>
                                         <p className="text-slate-500 text-sm">เลือกไฟล์เพื่อแทนที่รายการเดิม</p>
                                     </div>
+
                                     {selectedImageToReplace && (
-                                        <div className="mb-6 lg:mb-8 w-full max-w-sm mx-auto flex flex-col items-center p-4 lg:p-5 bg-orange-50 rounded-3xl border border-orange-100 text-orange-700/70 shadow-sm">
-                                            <p className="text-xs font-bold mb-3 flex items-center gap-1 uppercase tracking-wider">
-                                                <AlertCircle size={14}/> กำลังแก้ไขไฟล์เดิม:
-                                            </p><br></br>
-                                            <div className="relative w-full aspect-video rounded-2xl overflow-hidden border-2 border-orange-200 shadow-sm bg-black flex items-center justify-center">
-                                                {selectedImageToReplace.mediaType === 'video' ? (
-                                                    <div className="relative w-full h-full bg-black group/video">
-                                                        <video src={selectedImageToReplace.url} className="w-full h-full object-contain" controls playsInline />
-                                                    </div>
-                                                ) : selectedImageToReplace.mediaType === 'audio' ? (
-                                                    <div className="flex flex-col items-center p-4 w-full h-full bg-amber-50 justify-center">
-                                                        <FileAudio size={40} className="mb-2 text-orange-400"/>
-                                                        <audio src={selectedImageToReplace.url} controls className="w-full max-w-[200px]" />
-                                                    </div>
-                                                ) : (
-                                                    <img src={selectedImageToReplace.url} className="h-full w-auto object-contain bg-white" alt="Replacing" />
-                                                )}<br></br>
-                                                <p className="text-xs lg:text-sm font-bold mt-3 bg-orange-100 px-3 py-1 rounded-full">{selectedImageToReplace.type}</p>
+                                        <div className="mb-6 lg:mb-8 w-full max-w-sm mx-auto flex flex-col items-center p-4 lg:p-5 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                                            <p className="text-[10px] font-bold mb-3 flex items-center gap-1 uppercase tracking-[0.2em] text-slate-400">
+                                                <AlertCircle size={12}/> กำลังแก้ไขไฟล์เดิม
+                                            </p>
+                                            
+                                            {/* Preview Box */}
+                                            <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 flex items-center justify-center shadow-inner">
+                                                <FilePreviewRender file={{
+                                                    url: selectedImageToReplace.url,
+                                                    name: selectedImageToReplace.url
+                                                }} /> 
                                             </div>
+                                            
+                                            <p className="text-xs font-bold mt-3 text-slate-500">
+                                                {selectedImageToReplace.type}
+                                            </p>
                                         </div>
                                     )}
                                     <label className={`group relative flex flex-col items-center justify-center w-full min-h-[18rem] lg:min-h-[22rem] h-auto p-4 lg:p-6 rounded-3xl border-3 border-dashed transition-all duration-300 cursor-pointer overflow-hidden ${newImageFile ? 'border-green-400 bg-white' : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-100/50'}`}>
                                     <input 
                                         type="file" 
                                         className="hidden" 
-                                        accept="image/*, video/*, audio/*, .jpg, .jpeg, .png, .gif, .mp4, .mov, .webm, .mp3, .wav, .m4a"
+                                        accept="image/*, video/*, audio/*, text/*, application/*, .jpg, .jpeg, .png, .gif, .mp4, .mov, .webm, .mp3, .wav, .m4a"
                                         onChange={(e) => {
                                             if(e.target.files[0]) setNewImageFile(e.target.files[0]);
                                         }} 
                                     />
-                                    {newImageFile ? (
+                                    {/* {newImageFile ? (
                                         <div className="flex flex-col items-center w-full animate-fade-in z-10">
                                             <div className="relative w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center mb-4 min-h-[200px]">
                                                 {getMediaTypeFromFile(newImageFile) === 'video' ? (
@@ -907,7 +973,19 @@ export default function ManageCase() {
                                             </span><br></br>
                                             <p className="text-xs text-slate-400 mt-2 group-hover:text-indigo-500 transition-colors font-medium">แตะเพื่อเปลี่ยนไฟล์</p>
                                         </div>
-                                    ) : (
+                                    ) : ( */}
+                                    {newImageFile ? (
+                                            <div className="flex flex-col items-center w-full animate-fade-in z-10">
+                                                <div className="relative w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center mb-4 min-h-[200px]">
+                                                    <FilePreviewRender file={newImageFile} />
+                                                </div>
+                                                <span className="font-bold text-base lg:text-lg text-slate-800 mb-1 truncate max-w-[90%]">{newImageFile.name}</span>
+                                                <span className="text-xs lg:text-sm font-medium text-green-600 bg-green-100 px-3 py-1 rounded-full flex items-center gap-1">
+                                                    <CheckCircle2 size={12}/> พร้อมอัปโหลด
+                                                </span>
+                                                <p className="text-xs text-slate-400 mt-2 font-medium">แตะเพื่อเปลี่ยนไฟล์</p>
+                                            </div>
+                                        ) : (
                                         <div className="flex flex-col items-center z-10 p-4 lg:p-6 transition-transform duration-300 group-hover:scale-105 text-center">
                                             <div className="w-16 h-16 lg:w-20 lg:h-20 bg-white rounded-2xl mb-4 lg:mb-6 flex items-center justify-center shadow-sm border border-slate-100 group-hover:shadow-md group-hover:text-indigo-600 group-hover:border-indigo-100 transition-all text-slate-300"><UploadCloud size={32} className="lg:w-10 lg:h-10" strokeWidth={1.5} /></div>
                                             <h4 className="font-bold text-base lg:text-lg text-slate-700 mb-2 group-hover:text-indigo-700 transition-colors">เลือกไฟล์มีเดีย</h4>
@@ -929,26 +1007,20 @@ export default function ManageCase() {
                                 <div className="w-full max-w-xl text-center animate-fade-in">
                                     <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">Step 3: สรุปผลและระบุเหตุผล</h3>
                                     <p className="text-slate-500 mb-6 lg:mb-8 text-xs lg:text-sm">ระบุสาเหตุในการเปลี่ยนแปลงไฟล์ <span className="font-bold text-indigo-600">{selectedImageToReplace?.type}</span></p>
+                                    
                                     {newImageFile && (
                                         <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col items-center">
                                             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">ไฟล์ใหม่ที่จะใช้งาน</p>
                                             <div className="relative w-full rounded-lg overflow-hidden shadow-md border border-slate-200 bg-white flex items-center justify-center min-h-[150px]">
-                                                {getMediaTypeFromFile(newImageFile) === 'video' ? (
-                                                    <div className="relative w-full bg-black">
-                                                        <video src={URL.createObjectURL(newImageFile)} className="w-full max-h-[50vh] object-contain mx-auto" controls playsInline />
-                                                    </div>
-                                                ) : getMediaTypeFromFile(newImageFile) === 'audio' ? (
-                                                    <div className="flex flex-col items-center justify-center w-full min-h-[150px] bg-amber-50 p-4">
-                                                        <FileAudio size={32} className="text-amber-500 mb-2" />
-                                                        <audio src={URL.createObjectURL(newImageFile)} controls className="w-full scale-90" />
-                                                    </div>
-                                                ) : (
-                                                    <img src={URL.createObjectURL(newImageFile)} className="w-full max-h-[50vh] object-contain" />
-                                                )}
+                                                {/* เปลี่ยนจากการเช็คเงื่อนไขซ้ำซ้อน มาใช้ Component ตัวเดียวกับหน้า Upload */}
+                                                <FilePreviewRender file={newImageFile} />
                                             </div>
-                                            <p className="text-xs text-slate-400 mt-2">{newImageFile.name}</p>
+                                            <p className="text-xs text-slate-400 mt-2 font-medium">{newImageFile.name}</p>
+                                            {/* เพิ่มการแสดงขนาดไฟล์เพื่อให้ Admin ตรวจสอบก่อนกดยืนยัน */}
+                                            <p className="text-[10px] text-slate-300">Size: {(newImageFile.size / 1024).toFixed(2)} KB</p>
                                         </div>
                                     )}
+
                                     <div className="relative">
                                         <textarea 
                                             className="textarea textarea-bordered w-full h-32 lg:h-40 text-base lg:text-lg shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10" 
