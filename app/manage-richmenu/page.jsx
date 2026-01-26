@@ -7,6 +7,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '@/firebaseConfig';
 import '@fortawesome/fontawesome-free/css/all.css';
 import { LogOut, Menu, X, Mail, Briefcase, LayoutGrid } from 'lucide-react';
+import './richmenu-home.css';
 
 export default function RichMenuHome() {
   const router = useRouter();
@@ -130,13 +131,15 @@ export default function RichMenuHome() {
             let roles = [];
             if (Array.isArray(myProfile.roles)) {
                 roles = myProfile.roles;
-            } else if (myProfile.role) {
+            }
+            else if (myProfile.role) {
                 roles = [myProfile.role];
             }
             setCurrentRoles(roles);
         }
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.error("Error loading admins:", error);
     }
   };
@@ -174,16 +177,19 @@ export default function RichMenuHome() {
             const menuRes = await fetch(`/api/richmenu/current?botKey=${bot.key}`);
             const menuData = await menuRes.json();
             menusData[bot.key] = menuData.currentMenuId || null;
-          } catch (err) {
+          }
+          catch (err) {
             console.error(`Error fetching menu for ${bot.key}:`, err);
           }
         }
         setCurrentMenus(menusData);
         localStorage.setItem('cachedMenus', JSON.stringify(menusData));
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Error fetching bots:', error);
-    } finally {
+    }
+    finally {
       setIsRefreshing(false);
     }
   }
@@ -193,7 +199,8 @@ export default function RichMenuHome() {
       await signOut(auth);
       localStorage.removeItem('current_admin_id');
       router.push('/');
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Logout error:', error);
     }
   };
@@ -440,23 +447,6 @@ export default function RichMenuHome() {
           </div>
         </div>
       </div>
-
-      <style jsx global>{`
-        @keyframes slide-in-left {
-          from { transform: translateX(-100%); }
-          to { transform: translateX(0); }
-        }
-        .animate-slide-in-left {
-          animation: slide-in-left 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fadeIn 0.4s ease-out forwards;
-        }
-      `}</style>
     </div>
   );
 }
