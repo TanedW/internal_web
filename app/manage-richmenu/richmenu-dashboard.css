@@ -144,7 +144,7 @@
 
 /* BUTTONS */
 .php-btn-primary {
-  background: var(--php-primary); 
+  background: var(--php-primary) !important; 
   color: white; 
   border: none; 
   width: 100%; 
