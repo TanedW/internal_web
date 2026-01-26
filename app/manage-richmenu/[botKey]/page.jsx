@@ -7,7 +7,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '@/firebaseConfig';
 import '@fortawesome/fontawesome-free/css/all.css';
 import { LogOut, Menu, X, Mail, Briefcase, LayoutGrid, ArrowLeft } from 'lucide-react'; 
-import '../../richmenu-dashboard.css';
+import '../richmenu-dashboard.css';
 
 export default function RichMenuDashboard() {
   const params = useParams();
@@ -777,6 +777,6 @@ export default function RichMenuDashboard() {
           </div>
         </div>
       </div>
-
-
-      
+    </div>
+  );
+}
