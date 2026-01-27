@@ -19,7 +19,7 @@ export default function ManageOrg() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // --- State ข้อมูลหน่วยงาน ---
-  const [searchId, setSearchId] = useState(""); // สำหรับค้นหา
+  const [searchId, setSearchId] = useState(""); // สำหรับช่องค้นหา
   const [orgId, setOrgId] = useState("");       // ID ของหน่วยงานที่กำลังแก้ไข
   const [orgName, setOrgName] = useState("");
   const [logoPreview, setLogoPreview] = useState(null);
@@ -72,11 +72,9 @@ export default function ManageOrg() {
     } catch (e) { console.error("Error fetching roles:", e); }
   };
 
-  // ดึงข้อมูลหน่วยงาน (กรณีโหลดครั้งแรก หรือค้นหา)
   const fetchOrgData = async (targetId = null) => {
     if (!API_URL_ORG) return;
     try {
-      // ตัวอย่าง: API_URL_ORG?org_id=123
       const url = targetId ? `${API_URL_ORG}?org_id=${targetId}` : API_URL_ORG;
       const res = await fetch(url);
       const data = await res.json();
@@ -98,7 +96,7 @@ export default function ManageOrg() {
   };
 
   const handleSearch = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!searchId.trim()) return;
     fetchOrgData(searchId.trim());
   };
@@ -127,7 +125,7 @@ export default function ManageOrg() {
     setStatus({ type: '', message: '' });
     try {
       const formData = new FormData();
-      formData.append('org_id', orgId); // ส่ง ID ไปด้วยเพื่อให้อัปเดตถูก Record
+      formData.append('org_id', orgId);
       formData.append('org_name', orgName);
       if (logoFile) formData.append('logo', logoFile);
 
@@ -184,7 +182,7 @@ export default function ManageOrg() {
       <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
       <script src="https://cdn.tailwindcss.com"></script>
 
-      {/* --- SIDEBARS (คงเดิม) --- */}
+      {/* --- SIDEBARS --- */}
       {/* Mobile Sidebar */}
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
@@ -204,12 +202,6 @@ export default function ManageOrg() {
               {hasAccess(['admin', 'editor', 'editor_manage_menu']) && <Link href="/manage-richmenu" className={getMenuClass('/manage-richmenu')}><LayoutGrid size={20} /><span className="text-sm font-bold">จัดการ Menu</span></Link>}
               <Link href="/manage-org" className={getMenuClass('/manage-org')}><Users size={20} /><span className="text-sm font-bold">จัดการ ORG</span></Link>
             </div>
-            <div className="mt-auto pt-4 border-t border-slate-100">
-                <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 w-full">
-                    <LogOut className="text-red-500" size={20} />
-                    <span className="text-red-600 font-bold tracking-wide text-[15px]">Logout</span>
-                </button>
-            </div>
           </div>
         </div>
       )}
@@ -225,7 +217,7 @@ export default function ManageOrg() {
           <SidebarRoleDisplay />
         </div>
         <div className="flex flex-col gap-2 flex-1">
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 pl-4">Main Navigation</div>
+          <div className="text-xs font-bold text-slate-700 uppercase tracking-[0.2em] mb-4 pl-4">Menu</div>
           <Link href="/manage" className={getMenuClass('/manage')}><Mail size={20} /><span className="font-bold text-sm">จัดการ Email</span></Link>
           {hasAccess(['admin', 'editor', 'editor_manage_case']) && <Link href="/manage-case" className={getMenuClass('/manage-case')}><Briefcase size={20} /><span className="font-bold text-sm">จัดการ Case</span></Link>}
           {hasAccess(['admin', 'editor', 'editor_manage_menu']) && <Link href="/manage-richmenu" className={getMenuClass('/manage-richmenu')}><LayoutGrid size={20} /><span className="font-bold text-sm">จัดการ Menu</span></Link>}
@@ -244,7 +236,6 @@ export default function ManageOrg() {
         {!isDesktopSidebarOpen && (
           <button onClick={() => setIsDesktopSidebarOpen(true)} className="hidden lg:flex fixed top-8 left-8 btn btn-square bg-white border-slate-200 shadow-lg z-30"><Menu /></button>
         )}
-        {/* Toggle Mobile Menu Button */}
         <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden fixed top-6 left-6 btn btn-square bg-white border-slate-200 shadow-md z-30"><Menu /></button>
 
         <div className="mb-6 flex items-center gap-5">
@@ -257,30 +248,33 @@ export default function ManageOrg() {
           </div>
         </div>
 
-        {/* SEARCH SECTION */}
-<div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 mb-8">
-  <form onSubmit={handleSearch} className="flex gap-3">
-    <div className="relative flex-1">
-      {/* ไอคอนแว่นขยาย - ปรับตำแหน่งให้ไม่ทับตัวหนังสือ */}
-      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-        <Search className="h-5 w-5 text-slate-400" />
-      </div>
-      <input 
-        type="text" 
-        placeholder="ค้นหาด้วยรหัสหน่วยงาน (Org ID)..." 
-        className="input input-bordered w-full pl-11 h-14 bg-slate-50 border-slate-200 rounded-2xl font-medium focus:bg-white focus:border-indigo-500 transition-all text-slate-600"
-        value={searchId}
-        onChange={(e) => setSearchId(e.target.value)}
-      />
-    </div>
-    <button 
-      type="submit" 
-      className="btn h-14 px-8 rounded-2xl bg-indigo-600 hover:bg-indigo-700 border-none text-white font-bold transition-all shadow-lg shadow-indigo-100"
-    >
-      ค้นหา
-    </button>
-  </form>
-</div>
+        {/* SEARCH SECTION - กด Enter เพื่อค้นหาได้ทันที */}
+        <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 mb-8">
+          <form onSubmit={handleSearch} className="flex gap-3">
+            <label className="input input-bordered flex items-center gap-3 flex-1 h-14 bg-slate-50 border-slate-200 rounded-2xl focus-within:border-indigo-500 focus-within:ring-0 transition-all">
+              <svg 
+                className="h-5 w-5 opacity-50 text-slate-500" 
+                xmlns="http://www.w3.org/2000/svg" 
+                viewBox="0 0 24 24"
+              >
+                <g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2.5" fill="none" stroke="currentColor">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <path d="m21 21-4.3-4.3"></path>
+                </g>
+              </svg>
+              <input 
+                type="search" 
+                className="grow border-none focus:ring-0 text-slate-600 font-medium" 
+                placeholder="พิมพ์รหัสหน่วยงาน แล้วกด Enter เพื่อค้นหา..." 
+                value={searchId}
+                onChange={(e) => setSearchId(e.target.value)}
+              />
+            </label>
+            <button type="submit" className="btn h-14 px-8 rounded-2xl bg-green-600 hover:bg-green-700 text-white border-none">
+              ค้นหา
+            </button>
+          </form>
+        </div>
 
         {status.message && (
           <div className={`mb-8 p-4 rounded-2xl border-2 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 ${status.type === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
@@ -293,7 +287,6 @@ export default function ManageOrg() {
           <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
             <div className="p-8 lg:p-12 space-y-10">
               
-              {/* Logo Section */}
               <div className="flex flex-col items-center justify-center">
                 <div className="relative group">
                   <div className="w-32 h-32 lg:w-44 lg:h-44 rounded-full overflow-hidden bg-slate-50 border-4 border-white shadow-2xl ring-1 ring-slate-200">
@@ -318,7 +311,6 @@ export default function ManageOrg() {
 
               <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent w-full"></div>
 
-              {/* Name Input Section */}
               <div className="form-control w-full">
                 <label className="label mb-1">
                   <span className="label-text font-black text-slate-700 text-base">ชื่อหน่วยงานที่แสดงในระบบ</span>
@@ -334,7 +326,6 @@ export default function ManageOrg() {
               </div>
             </div>
 
-            {/* Submit Button */}
             <div className="bg-slate-50/80 p-10 flex justify-center border-t border-slate-100">
               <button 
                 type="submit" 
