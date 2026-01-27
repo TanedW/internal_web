@@ -54,7 +54,6 @@ export default function ManageOrg() {
     return currentRoles.some(myRole => requiredRoles.includes(myRole));
   };
 
-  // --- Derived Permissions ---
   const showCaseMenu = hasAccess(['admin', 'editor', 'editor_manage_case']);
   const showMenuMenu = hasAccess(['admin', 'editor', 'editor_manage_menu']);
   const showORGMenu = hasAccess(['admin', 'editor', 'editor_manage_org']);
@@ -94,39 +93,43 @@ export default function ManageOrg() {
     setIsSearching(true);
     setOrgId(""); 
     setStatus({ type: '', message: '' });
-try {
-    // 1. เปลี่ยนตัวแปรเป็น 'q' ตามที่ API search_org.js ต้องการ
-    const res = await fetch(`${API_URL_ORG}?q=${encodeURIComponent(targetId)}`);
-    const result = await res.json();
-
-    if (result.found && result.data) {
-      // 2. ปรับ Mapping ข้อมูลให้ตรงกับ Schema ของตาราง voice_fonduegroup
-      const mappedData = result.data.map(item => ({
-        org_id: item.id,
-        org_name: item.name,
-        logo_url: item.photo, // ใน DB ใช้ชื่อ column ว่า photo
-      }));
-      setCases(mappedData);
-    } else {
+    try {
+      const res = await fetch(`${API_URL_ORG}?q=${encodeURIComponent(targetId)}`);
+      if (!res.ok) throw new Error("API response was not ok");
+      const result = await res.json();
+      if (result.found && result.data) {
+        const mappedData = result.data.map(item => ({
+          org_id: item.id,
+          org_name: item.name,
+          logo_url: item.photo, 
+        }));
+        setCases(mappedData);
+      } else {
+        setCases([]);
+        setStatus({ type: 'error', message: 'ไม่พบข้อมูลหน่วยงาน' });
+      }
+    } catch (e) {
+      console.error("Fetch error:", e);
       setCases([]);
-      setStatus({ type: 'error', message: 'ไม่พบข้อมูลหน่วยงาน' });
+      setStatus({ type: 'error', message: 'เกิดข้อผิดพลาดในการเชื่อมต่อ' });
+    } finally { 
+      setIsSearching(false); 
     }
-  } catch (e) {
-    console.error("Fetch error:", e);
-    // กรณี Error ให้ล้างข้อมูลเดิม
-    setCases([]);
-    setStatus({ type: 'error', message: 'เกิดข้อผิดพลาดในการเชื่อมต่อ' });
-  } finally { 
-    setIsSearching(false); 
-  }
   };
 
   const handleSelectCase = (item) => {
-    setOrgId(item.org_id);
-    setOrgName(item.org_name || item.name);
-    setLogoPreview(item.logo_url);
-    setLogoFile(null);
-    document.getElementById('edit-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (orgId === item.org_id) {
+      setOrgId("");
+      setOrgName("");
+      setLogoPreview(null);
+      setLogoFile(null);
+    } else {
+      setOrgId(item.org_id);
+      setOrgName(item.org_name || item.name);
+      setLogoPreview(item.logo_url);
+      setLogoFile(null);
+      document.getElementById('edit-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -216,19 +219,17 @@ try {
     <div className="min-h-screen bg-[#F4F6F8] font-sans overflow-x-hidden">
       <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" />
 
-      {/* ✅ Added: NAVBAR MOBILE HEADER */}
+      {/* NAVBAR MOBILE HEADER */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#F4F6F8]/95 backdrop-blur-sm z-40 px-5 flex justify-between items-center border-b border-slate-200/50">
         <div className="flex items-center gap-3">
           <button onClick={() => setIsMobileMenuOpen(true)} className="btn btn-square btn-ghost btn-sm text-slate-800">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-            </svg>
+            <Menu className="w-6 h-6" />
           </button>
           <h1 className="font-bold text-slate-800 text-lg">Manage ORG</h1>
         </div>
       </div>
 
-      {/* ================= MOBILE SIDEBAR DRAWER ================= */}
+      {/* MOBILE SIDEBAR */}
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
@@ -255,7 +256,7 @@ try {
         </div>
       )}
 
-      {/* ================= DESKTOP SIDEBAR ================= */}
+      {/* DESKTOP SIDEBAR */}
       <div className={`hidden lg:flex fixed top-4 bottom-4 left-4 w-72 bg-white rounded-[2rem] shadow-xl border border-slate-100 flex-col py-8 px-6 z-50 transition-all duration-300 ${isDesktopSidebarOpen ? "translate-x-0 opacity-100" : "-translate-x-[120%] opacity-0 pointer-events-none"}`}>
         <button onClick={() => setIsDesktopSidebarOpen(false)} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-all"><X size={20}/></button>
         <div className="flex flex-col items-center text-center mb-10 mt-2">
@@ -282,13 +283,7 @@ try {
 
       <main className={`transition-all duration-300 pt-24 lg:pt-12 pb-24 ${isDesktopSidebarOpen ? "lg:pl-80" : "lg:pl-12"}`}>
         <div className="max-w-4xl mx-auto px-4 lg:px-6">
-          {!isDesktopSidebarOpen && (
-            <div className="hidden lg:flex items-center gap-4 fixed top-8 left-8 z-30 animate-in slide-in-from-left-4">
-              <button onClick={() => setIsDesktopSidebarOpen(true)} className="btn btn-square btn-ghost bg-white border border-slate-200 shadow-lg text-slate-800"><Menu size={24} /></button>
-              <h1 className="text-2xl font-bold text-slate-800">Manage ORG</h1>
-            </div>
-          )}
-
+          
           <header className="flex flex-col sm:flex-row items-center sm:items-start gap-4 mb-8 text-center sm:text-left">
             <div className="p-4 bg-slate-900 rounded-3xl text-white shadow-xl shadow-slate-200"><Building2 size={32} /></div>
             <div>
@@ -297,9 +292,9 @@ try {
             </div>
           </header>
 
-          {/* ================= SEARCH BAR (EXTRA LONG BUTTON) ================= */}
+          {/* SEARCH BAR */}
           <div className="flex flex-row items-center gap-4 mb-10 w-full">
-            <section className="flex-1 flex items-center bg-white rounded-full shadow-lg shadow-slate-200/60 border border-slate-100 p-2 h-16 min-w-0">
+            <section className="flex-1 flex items-center bg-white rounded-full shadow-lg border border-slate-100 p-2 h-16 min-w-0">
               <div className="flex items-center px-6 gap-3 w-full">
                 <Search className="text-slate-400 shrink-0" size={24} strokeWidth={2.5} />
                 <input 
@@ -310,15 +305,9 @@ try {
                   onChange={(e) => setSearchId(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && fetchOrgData(searchId)}
                 />
-                {searchId && (
-                  <button onClick={() => setSearchId("")} className="p-1.5 hover:bg-slate-100 rounded-full text-slate-300 shrink-0 transition-colors">
-                    <X size={18} />
-                  </button>
-                )}
               </div>
             </section>
-
-            <button 
+             <button 
               onClick={() => fetchOrgData(searchId)} 
               disabled={isSearching} 
               style={{ 
@@ -336,78 +325,128 @@ try {
             </button>
           </div>
 
+          {/* SEARCH RESULTS */}
           <section className="mb-10">
-            <h3 className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-[0.1em] mb-4 px-2">ผลการค้นหา</h3>
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-2">ผลการค้นหา</h3>
             {cases.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {cases.map((item) => (
-                  <button key={item.org_id} onClick={() => handleSelectCase(item)} className={`p-4 rounded-2xl border-2 text-left transition-all flex items-center gap-4 ${orgId === item.org_id ? 'border-indigo-500 bg-white shadow-md' : 'border-slate-100 bg-white'}`}>
-                    <div className="w-12 h-12 rounded-xl bg-slate-50 flex-shrink-0 overflow-hidden border">
-                      <img src={item.logo_url || getAvatarUrl(item.org_id)} className="w-full h-full object-cover" alt="org" />
+                  <div 
+                    key={item.org_id}
+                    onClick={() => handleSelectCase(item)}
+                    className={`card bg-white shadow-sm cursor-pointer transition-all border-2 ${
+                      orgId === item.org_id ? 'border-indigo-500 ring-4 ring-indigo-50' : 'border-transparent hover:border-slate-200'
+                    }`}
+                  >
+                    <figure className="px-4 pt-4">
+                      <div className="w-full h-32 bg-slate-50 rounded-xl overflow-hidden flex items-center justify-center border border-slate-100">
+                        <img src={item.logo_url || getAvatarUrl(item.org_id)} alt="Logo" className="h-full object-contain p-4" onError={(e) => e.target.src = getAvatarUrl(item.org_id)} />
+                      </div>
+                    </figure>
+                    <div className="card-body p-5">
+                      <h2 className="card-title text-slate-800 font-black text-lg">
+                        {item.org_name || "ไม่ระบุชื่อ"}
+                        {orgId === item.org_id && <div className="badge badge-secondary uppercase text-[10px]">Selected</div>}
+                      </h2>
+                      <div className="card-actions justify-end">
+                        <div className="badge badge-outline text-slate-400 font-bold text-[10px]">ID: {item.org_id}</div>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-bold text-slate-400">ID: {item.org_id}</p>
-                      <h4 className="font-bold text-slate-800 truncate text-sm">{item.org_name || item.name}</h4>
-                    </div>
-                    <ChevronRight size={18} className={orgId === item.org_id ? 'text-indigo-600' : 'text-slate-300'} />
-                  </button>
+                  </div>
                 ))}
               </div>
             ) : (
-              <div className="bg-white border-2 border-dashed border-slate-200 rounded-[2.5rem] py-16 flex flex-col items-center text-center px-6 shadow-inner">
+              <div className="bg-white border-2 border-dashed border-slate-200 rounded-[2.5rem] py-16 flex flex-col items-center text-center px-6">
                 <MousePointerClick size={48} className="text-slate-200 mb-4" />
-                <p className="text-slate-400 text-base font-bold">ระบุรหัสหน่วยงานเพื่อเริ่มต้นการจัดการ</p>
+                <p className="text-slate-400 text-base font-bold">ระบุรหัสหน่วยงานเพื่อเริ่มต้น</p>
               </div>
             )}
           </section>
 
-          <section id="edit-card" className="relative mb-10">
+          {/* ✅ EDIT CARD SECTION */}
+          <section id="edit-card" className="relative mb-20">
             {!orgId && (
-              <div className="absolute inset-0 z-10 bg-white/40 backdrop-blur-[2px] rounded-[2.5rem] flex items-center justify-center">
-                <div className="bg-white p-6 rounded-2xl shadow-2xl border flex flex-col items-center gap-3">
-                  <div className="p-3 bg-slate-900 text-white rounded-xl"><Lock size={20} /></div>
-                  <p className="font-bold text-slate-600 text-sm">เลือกหน่วยงานเพื่อแก้ไขข้อมูล</p>
+              <div className="absolute inset-0 z-10 bg-white/60 backdrop-blur-[3px] rounded-[2.5rem] flex items-center justify-center">
+                <div className="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 flex flex-col items-center gap-3 animate-pulse">
+                  <Lock size={28} className="text-slate-400" />
+                  <p className="font-bold text-slate-500 text-sm">กรุณาเลือกหน่วยงานเพื่อดำเนินการ</p>
                 </div>
               </div>
             )}
-            <div className={`bg-white rounded-[2.5rem] shadow-xl border overflow-hidden transition-all duration-500 ${!orgId ? 'opacity-40 grayscale' : 'opacity-100'}`}>
+            
+            <div className={`bg-white rounded-[3rem] shadow-xl border border-slate-100 overflow-hidden transition-all duration-500 ${!orgId ? 'opacity-40 grayscale' : 'opacity-100'}`}>
               <form onSubmit={handleSubmit}>
-                <div className="p-6 lg:p-10">
-                  <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center lg:items-start">
-                    <div className="flex flex-col items-center shrink-0">
-                      <div className="relative group">
-                        <div className="w-40 h-40 lg:w-48 lg:h-48 rounded-[2.5rem] overflow-hidden bg-slate-50 border-4 border-white shadow-lg flex items-center justify-center">
-                          {logoPreview ? <img src={logoPreview} className="w-full h-full object-cover" alt="logo" /> : <ImageIcon size={48} className="text-slate-200" />}
-                        </div>
-                        <label className="absolute -bottom-2 -right-2 bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-2xl shadow-xl cursor-pointer">
-                          <Upload size={20} />
-                          <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
-                        </label>
+                <div className="p-10 lg:p-14">
+                  <div className="flex flex-col md:flex-row gap-12 items-center">
+                    
+                    {/* Logo Section */}
+                    <div className="relative group shrink-0">
+                      <div className="w-44 h-44 lg:w-52 lg:h-52 rounded-[2.5rem] overflow-hidden bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center p-8 transition-all group-hover:border-indigo-400 group-hover:bg-white">
+                        {logoPreview ? (
+                          <img src={logoPreview} className="w-full h-full object-contain" alt="logo" />
+                        ) : (
+                          <ImageIcon size={50} className="text-slate-300" />
+                        )}
                       </div>
+                      <label className="absolute -bottom-2 -right-2 bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-2xl shadow-xl cursor-pointer transition-transform active:scale-90">
+                        <Upload size={22} strokeWidth={2.5} />
+                        <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} disabled={!orgId} />
+                      </label>
                     </div>
-                    <div className="flex-1 w-full space-y-6">
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Display Name</label>
+
+                    {/* Content Section */}
+                    <div className="flex-1 w-full space-y-8">
+                      <div className="space-y-3">
+                        <label className="text-[11px] font-black text-indigo-500 uppercase tracking-[0.2em] ml-2">
+                          Display Name
+                        </label>
                         <input 
                           type="text" 
                           value={orgName} 
                           onChange={(e) => setOrgName(e.target.value)} 
-                          className="w-full h-14 bg-slate-50 border focus:bg-white focus:border-indigo-500 rounded-2xl text-base font-bold text-slate-800 px-6 outline-none"
+                          className="w-full h-16 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 rounded-3xl text-xl font-bold text-slate-800 px-8 outline-none transition-all shadow-inner"
+                          placeholder="ชื่อหน่วยงาน..."
                           required
                           disabled={!orgId}
                         />
                       </div>
-                      <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex items-start gap-3">
-                        <AlertCircle size={20} className="text-amber-600 shrink-0" />
-                        <p className="text-[11px] text-amber-800 font-bold">การเปลี่ยนแปลงข้อมูลจะส่งผลต่อการแสดงผลบน LINE และ Dashboard ทันที</p>
+
+                      {/* Warning Alert */}
+                      <div className="flex items-center gap-5 p-6 bg-amber-50 rounded-[2rem] border border-amber-100 shadow-sm">
+                        <div className="w-12 h-12 rounded-full bg-amber-200 flex items-center justify-center shrink-0">
+                          <AlertCircle size={24} className="text-amber-600" />
+                        </div>
+                        <p className="text-[14px] text-amber-900 font-bold leading-relaxed">
+                          การเปลี่ยนแปลงจะส่งผลต่อ LINE และ Dashboard ทันที
+                        </p>
                       </div>
                     </div>
                   </div>
                 </div>
-                <div className="px-6 py-8 bg-slate-50 border-t flex justify-center">
-                  <button type="submit" disabled={!orgId || isSubmitting} className="flex items-center justify-center gap-3 w-full sm:w-auto min-w-[240px] h-14 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-lg rounded-2xl shadow-xl disabled:bg-slate-300">
-                    {isSubmitting ? <Loader2 size={24} className="animate-spin" /> : <Save size={24} />}
-                    {isSubmitting ? 'กำลังบันทึก...' : 'ยืนยันการอัปเดตข้อมูล'}
+
+                {/* ✅ BIG GREEN BUTTON (FORCED COLOR WITH INLINE STYLE) */}
+                <div className="px-10 pb-14 flex justify-center">
+                  <button 
+                    type="submit" 
+                    disabled={!orgId || isSubmitting} 
+                    style={{ 
+                      backgroundColor: !orgId || isSubmitting ? '#cbd5e1' : '#22c55e',
+                      color: 'white',
+                      boxShadow: !orgId || isSubmitting ? 'none' : '0 10px 25px -5px rgba(34, 197, 94, 0.4)'
+                    }}
+                    className="group flex items-center justify-center gap-4 w-full max-w-lg h-20 font-black text-xl lg:text-2xl rounded-[2rem] transition-all active:scale-[0.97] border-none"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 size={28} className="animate-spin text-white" />
+                        <span>กำลังบันทึกข้อมูล...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 size={28} className="group-hover:rotate-12 transition-transform text-white" />
+                        <span>ยืนยันการอัปเดตข้อมูล</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
@@ -415,10 +454,6 @@ try {
           </section>
         </div>
       </main>
-      <style jsx global>{`
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
     </div>
   );
 }
