@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '@/firebaseConfig';
 import '@fortawesome/fontawesome-free/css/all.css';
-import { LogOut, Menu, X, Mail, Briefcase, LayoutGrid, ArrowLeft } from 'lucide-react'; 
+import { LogOut, Menu, X, Mail, Briefcase, LayoutGrid, Users } from 'lucide-react';
 import '../richmenu-dashboard.css';
 
 export default function RichMenuDashboard() {
@@ -60,7 +60,7 @@ export default function RichMenuDashboard() {
       return storedId.replace(/^"|"$/g, ''); 
     }
     return null;
-  };
+  }; 
 
   const hasAccess = (requiredRoles) => {
       return currentRoles.some(myRole => requiredRoles.includes(myRole));
@@ -68,14 +68,14 @@ export default function RichMenuDashboard() {
 
   const showCaseMenu = hasAccess(['admin', 'editor', 'editor_manage_case']);
   const showMenuMenu = hasAccess(['admin', 'editor', 'editor_manage_menu']);
-
+  const showORGMenu = hasAccess(['admin', 'editor', 'editor_manage_org']);
   const getMenuClass = (targetPath) => {
       // Logic: Highlight if path starts with target
       const isActive = pathname === targetPath || (targetPath === '/manage-richmenu' && pathname.includes('/manage-richmenu'));
       return `flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-200 ${
         isActive 
           ? "bg-[#111827] !text-white shadow-lg shadow-slate-300 scale-[1.02]" 
-          : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+          : "text-slate-900 hover:bg-slate-50 "
       }`;
   };
 
@@ -435,6 +435,12 @@ export default function RichMenuDashboard() {
                             <span className="font-bold text-sm">จัดการ Menu</span>
                         </Link>
                     )}
+                     {showORGMenu && (
+                  <Link href="/manage-org" className={getMenuClass('/manage-org')}>
+                      <Users size={20} />
+                      <span className="font-bold text-sm">จัดการ ORG</span>
+                  </Link>
+              )}
                 </div>
 
                 <div className="mt-auto pt-4 border-t border-slate-100">
@@ -493,6 +499,12 @@ export default function RichMenuDashboard() {
                   <Link href="/manage-richmenu" className={getMenuClass('/manage-richmenu')}>
                       <LayoutGrid size={20} />
                       <span className="font-bold text-sm">จัดการ Menu</span>
+                  </Link>
+              )}
+               {showORGMenu && (
+                  <Link href="/manage-org" className={getMenuClass('/manage-org')}>
+                      <Users size={20} />
+                      <span className="font-bold text-sm">จัดการ ORG</span>
                   </Link>
               )}
           </div>
