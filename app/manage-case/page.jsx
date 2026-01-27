@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { 
   LogOut, Search, CheckCircle2, AlertCircle, UploadCloud, 
   ArrowLeft, ArrowRight, X, ImageIcon, Music, FileAudio, 
-  MapPin, Calendar
+  MapPin, Calendar, Users ,Mail, Briefcase, LayoutGrid
 } from "lucide-react"; 
 import Link from 'next/link';
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -187,6 +187,8 @@ export default function ManageCase() {
   // Logic: Menu Visibility
   const showCaseMenu = hasAccess(['admin', 'editor', 'editor_manage_case']);
   const showMenuMenu = hasAccess(['admin', 'editor', 'editor_manage_menu']);
+  // ✅ เพิ่มสิทธิ์สำหรับเมนู ORG
+  const showORGMenu = hasAccess(['admin', 'editor', 'editor_manage_org']);
 
   // ✅ Component SidebarRoleDisplay (Logic เดียวกับหน้า Manage)
   const SidebarRoleDisplay = () => (
@@ -425,7 +427,7 @@ export default function ManageCase() {
 
     try {
         const base64String = await fileToBase64(newImageFile);
-        const newViewedValue = getMediaTypeValue(newImageFile); // <--- เพิ่มบรรทัดนี้        
+        const newViewedValue = getMediaTypeValue(newImageFile); // <--- เพิ่มบรรทัดนี้         
         const payload = {
             folder_path: `attachment/Test_internal_web/case_${currentCase.id}`, 
             image: base64String
@@ -447,11 +449,10 @@ export default function ManageCase() {
              const dbPayload = {
                 current_admin_id: adminId.toString().replace(/['"]+/g, ''), 
                 photo_id: selectedImageToReplace.id.toString().replace(/['"]+/g, ''), 
-                file_url: result.photo_link,          
+                file_url: result.photo_link,           
                 description: reason,
                 viewed: newViewedValue,
                 old_url: selectedImageToReplace.url
-
              };
 
              const caseIdParam = currentCase.dbId || currentCase.id;
@@ -542,21 +543,29 @@ export default function ManageCase() {
                     <div className="text-xs font-bold text-slate-700 uppercase tracking-widest mb-2 pl-4">Menu</div>
                     
                     <Link href="/manage" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage')}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+                        <Mail size={20} />
                         <span className="font-bold text-sm">จัดการ Email</span>
                     </Link>
                     
                     {showCaseMenu && (
                         <Link href="/manage-case" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-case')}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                            <Briefcase size={20} />
                             <span className="font-bold text-sm">จัดการ Case</span>
                         </Link>
                     )}
                     
                     {showMenuMenu && (
                         <Link href="/manage-richmenu" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-richmenu')}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"></path></svg>
+                            <LayoutGrid size={20} />
                             <span className="font-bold text-sm">จัดการ Menu</span>
+                        </Link>
+                    )}
+
+                    {/* ✅ เพิ่มลิงก์ไปยังหน้า จัดการ ORG (Mobile) */}
+                    {showORGMenu && (
+                        <Link href="/manage-org" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-org')}>
+                            <Users size={20} />
+                            <span className="font-bold text-sm">จัดการ ORG</span>
                         </Link>
                     )}
                 </div>
@@ -608,21 +617,29 @@ export default function ManageCase() {
               <div className="text-xs font-bold text-slate-700 uppercase tracking-widest mb-2 pl-4">Menu</div>
               
               <Link href="/manage" className={getMenuClass('/manage')}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+                  <Mail size={20} />
                   <span className="font-bold text-sm">จัดการ Email</span>
               </Link>
               
               {showCaseMenu && (
                   <Link href="/manage-case" className={getMenuClass('/manage-case')}>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                     <Briefcase size={20} />
                       <span className="font-bold text-sm">จัดการ Case</span>
                   </Link>
               )}
               
               {showMenuMenu && (
                   <Link href="/manage-richmenu" className={getMenuClass('/manage-richmenu')}>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"></path></svg>
+                      <LayoutGrid size={20} />
                       <span className="font-bold text-sm">จัดการ Menu</span>
+                  </Link>
+              )}
+
+              {/* ✅ เพิ่มลิงก์ไปยังหน้า จัดการ ORG (Desktop) */}
+              {showORGMenu && (
+                  <Link href="/manage-org" className={getMenuClass('/manage-org')}>
+                      <Users size={20} />
+                      <span className="font-bold text-sm">จัดการ ORG</span>
                   </Link>
               )}
           </div>
@@ -879,7 +896,7 @@ export default function ManageCase() {
                                                                                 <UploadCloud size={32} />
                                                                                 <span className="text-[10px] font-bold mt-1 uppercase">{img.url.split('.').pop()}</span>
                                                                             </div>
-                                                                        ) : (                                                        
+                                                                        ) : (                                                            
                                                                             <img src={img.url} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt={img.type} />
                                                                         )}
                                                                         {!isSelected && (
@@ -953,30 +970,7 @@ export default function ManageCase() {
                                             if(e.target.files[0]) setNewImageFile(e.target.files[0]);
                                         }} 
                                     />
-                                    {/* {newImageFile ? (
-                                        <div className="flex flex-col items-center w-full animate-fade-in z-10">
-                                            <div className="relative w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center mb-4 min-h-[200px]">
-                                                {getMediaTypeFromFile(newImageFile) === 'video' ? (
-                                                    <div className="relative w-full bg-black">
-                                                        <video src={URL.createObjectURL(newImageFile)} className="w-full max-h-[50vh] object-contain mx-auto" controls autoPlay muted playsInline />
-                                                    </div>
-                                                ) : getMediaTypeFromFile(newImageFile) === 'audio' ? (
-                                                    <div className="w-full min-h-[200px] flex flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100 text-orange-600 px-6 py-4">
-                                                        <FileAudio size={48} className="mb-3 drop-shadow-sm" />
-                                                        <p className="text-xs font-bold text-center break-all mb-3 max-w-full">{newImageFile.name}</p>
-                                                        <audio src={URL.createObjectURL(newImageFile)} controls className="w-full shadow-sm rounded-lg" />
-                                                    </div>
-                                                ) : (
-                                                    <img src={URL.createObjectURL(newImageFile)} className="w-full max-h-[50vh] object-contain" alt="Preview" />
-                                                )}
-                                            </div>
-                                            <span className="font-bold text-base lg:text-lg text-slate-800 mb-1 drop-shadow-sm truncate max-w-[90%]">{newImageFile.name}</span>
-                                            <span className="text-xs lg:text-sm font-medium text-green-600 bg-green-100 px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                                                <CheckCircle2 size={12}/> พร้อมอัปโหลด
-                                            </span><br></br>
-                                            <p className="text-xs text-slate-400 mt-2 group-hover:text-indigo-500 transition-colors font-medium">แตะเพื่อเปลี่ยนไฟล์</p>
-                                        </div>
-                                    ) : ( */}
+                                    
                                     {newImageFile ? (
                                             <div className="flex flex-col items-center w-full animate-fade-in z-10">
                                                 <div className="relative w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center mb-4 min-h-[200px]">
