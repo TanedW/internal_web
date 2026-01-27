@@ -1,6 +1,6 @@
 {
-  "name": "my-internal-web",
-  "version": "0.1.0",
+  "name": "fondue-internal-portal",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -15,6 +15,7 @@
     "cally": "^0.9.0",
     "daisyui": "^5.5.14",
     "firebase": "^12.7.0",
+    "inits": "^1.6.2",
     "lucide-react": "^0.562.0",
     "next": "16.1.1",
     "next-auth": "^4.24.13",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/react": "19.2.10",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
