@@ -38,7 +38,7 @@ export default function ManageOrg() {
   const [status, setStatus] = useState({ type: '', message: '' });
 
   const API_URL_ADMIN = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
-  const API_URL_ORG = process.env.NEXT_PUBLIC_ORG_CONFIG_API_URL || ""; 
+  const API_URL_ORG = process.env.NEXT_PUBLIC_DB_SEARCH_ORG_API_URL || ""; 
   const getAvatarUrl = (seed) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed || "Admin")}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
 
   // --- Helper Functions ---
@@ -94,13 +94,31 @@ export default function ManageOrg() {
     setIsSearching(true);
     setOrgId(""); 
     setStatus({ type: '', message: '' });
-    try {
-      const res = await fetch(`${API_URL_ORG}?org_id=${targetId}`);
-      const data = await res.json();
-      setCases(Array.isArray(data) ? data : [data]);
-    } catch (e) {
-      setCases([{ org_id: targetId || 'DEMO', org_name: 'หน่วยงานทดสอบ', logo_url: null }]);
-    } finally { setIsSearching(false); }
+try {
+    // 1. เปลี่ยนตัวแปรเป็น 'q' ตามที่ API search_org.js ต้องการ
+    const res = await fetch(`${API_URL_ORG}?q=${encodeURIComponent(targetId)}`);
+    const result = await res.json();
+
+    if (result.found && result.data) {
+      // 2. ปรับ Mapping ข้อมูลให้ตรงกับ Schema ของตาราง voice_fonduegroup
+      const mappedData = result.data.map(item => ({
+        org_id: item.id,
+        org_name: item.name,
+        logo_url: item.photo, // ใน DB ใช้ชื่อ column ว่า photo
+      }));
+      setCases(mappedData);
+    } else {
+      setCases([]);
+      setStatus({ type: 'error', message: 'ไม่พบข้อมูลหน่วยงาน' });
+    }
+  } catch (e) {
+    console.error("Fetch error:", e);
+    // กรณี Error ให้ล้างข้อมูลเดิม
+    setCases([]);
+    setStatus({ type: 'error', message: 'เกิดข้อผิดพลาดในการเชื่อมต่อ' });
+  } finally { 
+    setIsSearching(false); 
+  }
   };
 
   const handleSelectCase = (item) => {
