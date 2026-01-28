@@ -1005,18 +1005,17 @@ export default function ManageCase() {
                                     <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">Step 3: สรุปผลและระบุเหตุผล</h3>
                                     <p className="text-slate-500 mb-6 lg:mb-8 text-xs lg:text-sm">ระบุสาเหตุในการเปลี่ยนแปลงไฟล์ <span className="font-bold text-indigo-600">{selectedImageToReplace?.type}</span></p>
                                     
-                                    {newImageFile && (
+                                {/* {newImageFile && (
                                         <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col items-center">
                                             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">ไฟล์ใหม่ที่จะใช้งาน</p>
                                             <div className="relative w-full rounded-lg overflow-hidden shadow-md border border-slate-200 bg-white flex items-center justify-center min-h-[150px]">
-                                                {/* เปลี่ยนจากการเช็คเงื่อนไขซ้ำซ้อน มาใช้ Component ตัวเดียวกับหน้า Upload */}
                                                 <FilePreviewRender file={newImageFile} />
                                             </div>
                                             <p className="text-xs text-slate-400 mt-2 font-medium">{newImageFile.name}</p>
-                                            {/* เพิ่มการแสดงขนาดไฟล์เพื่อให้ Admin ตรวจสอบก่อนกดยืนยัน */}
                                             <p className="text-[10px] text-slate-300">Size: {(newImageFile.size / 1024).toFixed(2)} KB</p>
                                         </div>
-                                    )}
+                                    )} 
+                                */}
 
                                     <div className="relative">
                                         <textarea 
