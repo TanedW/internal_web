@@ -5,7 +5,6 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../../firebaseConfig"; 
-// ✅ เพิ่มการ Import ไอคอนที่จำเป็น
 import { 
   Mail, 
   Briefcase, 
@@ -43,6 +42,9 @@ export default function Manage() {
 
   // State สำหรับ Modal ดู Role
   const [roleModalData, setRoleModalData] = useState(null);
+
+  // ✅ State สำหรับเก็บ Email ที่เลือกดูบน Mobile
+  const [selectedEmailForMobile, setSelectedEmailForMobile] = useState("");
 
   // State สำหรับ Toggle การแสดง Role ใน Sidebar
   const [isSidebarRolesExpanded, setIsSidebarRolesExpanded] = useState(false);
@@ -189,6 +191,14 @@ export default function Manage() {
 
   const hasAccess = (requiredRoles) => {
      return currentRoles.some(myRole => requiredRoles.includes(myRole));
+  };
+
+  // ✅ ฟังก์ชันเปิด Modal บนมือถือ
+  const handleEmailMobileClick = (email) => {
+    if (window.innerWidth < 1024) {
+      setSelectedEmailForMobile(email);
+      document.getElementById('email_mobile_modal').showModal();
+    }
   };
 
   const showCaseMenu = hasAccess(['admin', 'editor', 'editor_manage_case']);
@@ -498,11 +508,22 @@ export default function Manage() {
                             />
                         </div>
 
-                        <h3 className={`font-bold text-slate-800 mb-2 break-all w-full px-1 ${
-                             isDesktopSidebarOpen ? "text-[10px] mb-1" : "text-sm mb-2"
-                        }`} title={item.email}>
-                            {item.email}
-                        </h3>
+                        {/* ✅ แก้ไขส่วนแสดง Email: 
+                            - บน PC: ใช้ tooltip แสดงเมลเต็มเมื่อเอาเมาส์ชี้
+                            - บน Mobile: คลิกเพื่อเปิด Modal แสดงเมลเต็ม 
+                        */}
+                        <div 
+                          className="w-full px-1 cursor-pointer lg:cursor-default" 
+                          onClick={() => handleEmailMobileClick(item.email)}
+                        >
+                          <div className="tooltip lg:tooltip-bottom w-full before:text-[10px]" data-tip={item.email}>
+                            <h3 className={`font-bold text-slate-800 truncate whitespace-nowrap overflow-hidden ${
+                                isDesktopSidebarOpen ? "text-[10px] mb-1" : "text-sm mb-2"
+                            }`}>
+                                {item.email}
+                            </h3>
+                          </div>
+                        </div>
                         
                         <div className="lg:hidden mt-2 w-full px-2 flex flex-wrap gap-2 justify-center items-center">
                             {userRoles.length > 0 && (
@@ -512,7 +533,8 @@ export default function Manage() {
                             )}
                             {userRoles.length > 1 && (
                                 <button 
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                        e.stopPropagation(); // กันไม่ให้ไป trigger คลิกเมล
                                         setRoleModalData(userRoles);
                                         document.getElementById('role_modal').showModal();
                                     }}
@@ -610,6 +632,21 @@ export default function Manage() {
             </div>
             <form method="dialog" className="modal-backdrop bg-slate-900/40 backdrop-blur-sm"><button>close</button></form>
         </dialog>
+
+        {/* ✅ ✅ NEW: MODAL สำหรับแสดงเมลเต็มบนมือถือ (ต่อท้ายสุด) ✅ ✅ */}
+        <dialog id="email_mobile_modal" className="modal modal-bottom sm:modal-middle z-[99999]">
+            <div className="modal-box bg-white p-6 rounded-t-[2rem] sm:rounded-2xl text-center">
+                <h3 className="font-bold text-lg text-slate-400 mb-2 uppercase tracking-widest text-xs">Email Address</h3>
+                <p className="text-slate-800 font-bold text-xl break-all">{selectedEmailForMobile}</p>
+                <div className="modal-action justify-center mt-6">
+                    <form method="dialog">
+                        <button className="btn btn-primary rounded-xl px-10 text-white font-bold h-12 shadow-lg shadow-indigo-100">ปิด</button>
+                    </form>
+                </div>
+            </div>
+            <form method="dialog" className="modal-backdrop bg-slate-900/40 backdrop-blur-sm"><button>close</button></form>
+        </dialog>
+
     </div>
   );
 }
