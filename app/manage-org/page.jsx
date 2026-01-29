@@ -184,15 +184,10 @@ export default function ManageOrgPage() {
       {/* MOBILE NAVBAR */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#F4F6F8]/95 backdrop-blur-sm z-40 px-5 flex justify-between items-center border-b border-slate-200/50">
            <div className="flex items-center gap-3">
-              <button 
-                onClick={() => setIsMobileMenuOpen(true)} 
-                className="group flex flex-col gap-[3.5px] items-center justify-center w-10 h-10 bg-white rounded-xl shadow-sm border border-slate-200/50 transition-all duration-200 active:scale-95"
-              >
-                  <span className="block w-[18px] h-[3px] bg-[#1e293b] rounded-full"></span>
-                  <span className="block w-[18px] h-[3px] bg-[#1e293b] rounded-full"></span>
-                  <span className="block w-[18px] h-[3px] bg-[#1e293b] rounded-full"></span>
+              <button onClick={() => setIsMobileMenuOpen(true)} className="btn btn-square btn-ghost btn-sm text-slate-800">
+                  <Menu className="w-6 h-6" />
               </button>
-              <h1 className="font-bold text-slate-800 text-lg">จัดการหน่วยงาน</h1>
+              <h1 className="font-bold text-slate-800 text-lg">Team</h1>
            </div>
       </div>
 
