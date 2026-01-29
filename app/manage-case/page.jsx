@@ -870,42 +870,26 @@ export default function ManageCase() {
                                                                 }
                                                             `}
                                                         >
-                                                                {/* Media Content */}
+                                            {/* Media Content - ปรับปรุงใหม่ให้ใช้ FilePreviewRender */}
                                                                 <div className="aspect-video w-full flex items-center justify-center bg-slate-900/5 relative overflow-hidden rounded-t-lg">
-                                                                        {img.mediaType === 'video' ? (
-                                                                            <div className="relative w-full h-full bg-slate-900 flex items-center justify-center">
-                                                                                    <video 
-                                                                                        src={img.url} 
-                                                                                        className="w-full h-full object-contain bg-black" 
-                                                                                        controls={false}
-                                                                                        playsInline
-                                                                                    />
-                                                                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                                                                            <div className="w-10 h-10 bg-black/30 rounded-full flex items-center justify-center backdrop-blur-sm">
-                                                                                                    <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1"></div>
-                                                                                            </div>
-                                                                                    </div>
-                                                                            </div>
-                                                                        ) : img.mediaType === 'audio' ? (
-                                                                            <div className="w-full h-full flex flex-col items-center justify-center bg-amber-50 text-amber-500">
-                                                                                    <Music size={28} />
-                                                                                    <span className="text-xs font-bold mt-2">AUDIO</span>
-                                                                            </div>
-                                                                        ) : img.mediaType === 'file' ? (
-                                                                            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-400">
-                                                                                <UploadCloud size={32} />
-                                                                                <span className="text-[10px] font-bold mt-1 uppercase">{img.url.split('.').pop()}</span>
-                                                                            </div>
-                                                                        ) : (                                                            
-                                                                            <img src={img.url} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt={img.type} />
-                                                                        )}
-                                                                        {!isSelected && (
-                                                                            <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-all duration-300">
-                                                                                    <span className="opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 bg-white/90 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
-                                                                                        เลือกรายการนี้
-                                                                                    </span>
-                                                                            </div>
-                                                                        )}
+                                                                    
+                                                                    {/* ใช้งาน FilePreviewRender แทนการเช็คเงื่อนไขซ้ำซ้อน */}
+                                                                    <div className="w-full h-full pointer-events-auto">
+                                                                        <FilePreviewRender file={{
+                                                                            url: img.url,
+                                                                            name: img.url,
+                                                                            type: img.mediaType // ส่ง hint ประเภทไฟล์ไปด้วย
+                                                                        }} />
+                                                                    </div>
+
+                                                                    {/* Overlay สำหรับสถานะที่ไม่ได้เลือก (ทำให้ดูเหมือนปุ่มกดมากขึ้น) */}
+                                                                    {!isSelected && (
+                                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/10 transition-all duration-300 pointer-events-none">
+                                                                            <span className="opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 bg-white/90 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
+                                                                                เลือกรายการนี้
+                                                                            </span>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                                 {/* Info Strip */}
                                                                 <div className={`p-3 flex justify-between items-center transition-colors ${isSelected ? 'bg-indigo-50' : 'bg-white/50 group-hover:bg-indigo-50/30'}`}>
@@ -1005,18 +989,17 @@ export default function ManageCase() {
                                     <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">Step 3: สรุปผลและระบุเหตุผล</h3>
                                     <p className="text-slate-500 mb-6 lg:mb-8 text-xs lg:text-sm">ระบุสาเหตุในการเปลี่ยนแปลงไฟล์ <span className="font-bold text-indigo-600">{selectedImageToReplace?.type}</span></p>
                                     
-                                    {newImageFile && (
+                                {/* {newImageFile && (
                                         <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col items-center">
                                             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">ไฟล์ใหม่ที่จะใช้งาน</p>
                                             <div className="relative w-full rounded-lg overflow-hidden shadow-md border border-slate-200 bg-white flex items-center justify-center min-h-[150px]">
-                                                {/* เปลี่ยนจากการเช็คเงื่อนไขซ้ำซ้อน มาใช้ Component ตัวเดียวกับหน้า Upload */}
                                                 <FilePreviewRender file={newImageFile} />
                                             </div>
                                             <p className="text-xs text-slate-400 mt-2 font-medium">{newImageFile.name}</p>
-                                            {/* เพิ่มการแสดงขนาดไฟล์เพื่อให้ Admin ตรวจสอบก่อนกดยืนยัน */}
                                             <p className="text-[10px] text-slate-300">Size: {(newImageFile.size / 1024).toFixed(2)} KB</p>
                                         </div>
-                                    )}
+                                    )} 
+                                */}
 
                                     <div className="relative">
                                         <textarea 
