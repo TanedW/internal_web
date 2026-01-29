@@ -187,7 +187,7 @@ export default function ManageOrgPage() {
               <button onClick={() => setIsMobileMenuOpen(true)} className="btn btn-square btn-ghost btn-sm text-slate-800">
                   <Menu className="w-6 h-6" />
               </button>
-              <h1 className="font-bold text-slate-800 text-lg">Team</h1>
+           
            </div>
       </div>
 
