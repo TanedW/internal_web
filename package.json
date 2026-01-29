@@ -11,10 +11,11 @@
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.1.0",
     "@neondatabase/serverless": "^1.0.2",
-    "@next-auth/firebase-adapter": "^1.0.3",
+    "@next-auth/firebase-adapter": "^2.0.1",
     "cally": "^0.9.0",
     "daisyui": "^5.5.14",
-    "firebase": "^9.23.0",
+    "firebase": "^12.8.0",
+    "flex-render": "^0.1.8",
     "inits": "^1.6.2",
     "lucide-react": "^0.562.0",
     "next": "^16.1.6",

@@ -140,8 +140,59 @@ const SidebarComponent = ({
 // =====================================================================================
 
 const INITIAL_DATA = [
-  { id: "1", name: "User Profile", description: "Basic user profile structure", content: { type: "bubble", body: { type: "box", layout: "vertical", contents: [] } }, updatedAt: new Date() },
-  { id: "2", name: "Notification Alert", description: "System notification template", content: { type: "bubble", styles: { header: { backgroundColor: "#FF6B6B" } } }, updatedAt: new Date() },
+  {
+    id: "1",
+    name: "Welcome Card",
+    description: "Standard welcome message",
+    content: {
+      "type": "bubble",
+      "hero": {
+        "type": "image",
+        "url": "https://scdn.line-apps.com/n/channel_devcenter/img/fx/01_1_cafe.png",
+        "size": "full",
+        "aspectRatio": "20:13",
+        "aspectMode": "cover"
+      },
+      "body": {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "text",
+            "text": "Brown Cafe",
+            "weight": "bold",
+            "size": "xl"
+          },
+          {
+            "type": "text",
+            "text": "Hello, World!",
+            "size": "sm",
+            "color": "#aaaaaa",
+            "wrap": true
+          }
+        ]
+      },
+      "footer": {
+        "type": "box",
+        "layout": "vertical",
+        "spacing": "sm",
+        "contents": [
+          {
+            "type": "button",
+            "style": "primary",
+            "height": "sm",
+            "action": {
+              "type": "uri",
+              "label": "WEBSITE",
+              "uri": "https://linecorp.com"
+            }
+          }
+        ]
+      }
+    },
+    updatedAt: new Date(),
+  },
+  // ... รายการอื่นๆ
 ];
 
 export default function Home() {
