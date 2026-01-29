@@ -13,6 +13,27 @@ import {
   ChevronRight, MousePointerClick, Menu 
 } from "lucide-react";
 
+
+const MIME_TYPE_MAP = {
+  'jpg': 'image/jpeg',
+  'jpeg': 'image/jpeg',
+  'png': 'image/png',
+  'gif': 'image/gif',
+  'webp': 'image/webp',
+};
+
+const fileToBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    const extension = file.name.split('.').pop().toLowerCase();
+    const mimeType = MIME_TYPE_MAP[extension] || file.type;
+    const reader = new FileReader();
+    reader.readAsDataURL(file); 
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+  });
+};
+
+
 // --- Firebase Configuration ---
 const firebaseConfig = typeof __firebase_config !== 'undefined' 
   ? JSON.parse(__firebase_config) 
@@ -42,6 +63,7 @@ export default function ManageOrgPage() {
   const [currentRoles, setCurrentRoles] = useState([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchId, setSearchId] = useState("");
   const [cases, setCases] = useState([]); 
@@ -49,9 +71,16 @@ export default function ManageOrgPage() {
   const [orgName, setOrgName] = useState("");
   const [logoPreview, setLogoPreview] = useState(null);
   const [logoFile, setLogoFile] = useState(null);
+  const [selectedImageToReplace, setSelectedImageToReplace] = useState(null);
+  // const [reason, setReason] = useState("");
+
+
 
   const API_URL_ADMIN = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
   const API_URL_ORG = process.env.NEXT_PUBLIC_DB_SEARCH_ORG_API_URL || ""; 
+  const uploadApiUrl = process.env.NEXT_PUBLIC_FILE_UPLOAD_API_URL;
+  const dbManageUrl = process.env.NEXT_PUBLIC_DB_MANAGE_ORG_API_URL
+
   
   const getAvatarUrl = (seed) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed || "User")}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
   const getUserAvatar = (u) => u?.photoURL || getAvatarUrl("Admin");
@@ -155,15 +184,180 @@ export default function ManageOrgPage() {
     } finally { setIsSearching(false); }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!orgId) return;
-    setIsSubmitting(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-    } catch (error) { console.error(error); } 
-    finally { setIsSubmitting(false); }
-  };
+// const handleSubmit = async (e) => {
+//   e.preventDefault();
+//   if (!orgId) return;
+  
+//   setIsSubmitting(true);
+//   try {
+//     // let finalLogoUrl = logoPreview; // ค่าเดิม (URL จาก API)
+//     // console.log("Logo File:", finalLogoUrl);
+
+//     // ถ้ามีการเลือกไฟล์ใหม่ (logoFile ไม่เป็น null)
+//     if (logoFile) {
+//       // 1. แปลงไฟล์เป็น Base64
+//       const base64Image = await fileToBase64(logoFile, );
+//       console.log("Org Id:", orgId);
+//       const payload = {
+//             folder_path: `attachment/Test_internal_web/org_${orgId}`, 
+//             image: base64Image
+//         };
+
+//       const response = await fetch(uploadApiUrl, {
+//             method: 'POST',
+//             headers: { 'Content-Type': 'application/json' },
+//             body: JSON.stringify(payload), 
+//         });
+        
+//         const result = await response.json();
+//         // console.log("Upload API Response:", result);
+
+      
+//       // 2. เก็บลง LocalStorage (จำลองการแปลง URL)
+//       // ในการใช้งานจริง มักจะส่ง base64 นี้ไปที่ API เพื่อให้ Server อัปโหลดขึ้น Cloud Storage
+
+
+//      if (response.ok && result.photo_link) {
+//              localStorage.setItem(`org_logo_${orgId}`, result.photo_link);
+             
+//              const adminId = localStorage.getItem("current_admin_id") || "unknown_admin";
+
+
+//              console.log("Admin ID:", `current_admin_id: ${adminId.toString().replace(/['"]+/g, '')}`);
+//              console.log("Photo Link:", result.photo_link);
+//              console.log("Old URL:", selectedImageToReplace.url);
+
+
+//              const dbPayload = {
+//                 current_admin_id: adminId.toString().replace(/['"]+/g, ''),
+//                 name: orgName, 
+//                 file_url: result.photo_link,           
+//                 // description: reason,
+//                 old_url: selectedImageToReplace.url
+//              };
+
+//              const orgIdParam = orgId;
+
+//              const dbResponse = await fetch(`${dbManageUrl}?id=${orgIdParam}`, {
+//                 method: 'PUT',
+//                 headers: { 'Content-Type': 'application/json' },
+//                 body: JSON.stringify(dbPayload)
+//              });
+
+//              const dbResult = await dbResponse.json();
+
+//             if (dbResponse.ok && (dbResult.success === undefined || dbResult.success)) {
+//                 localStorage.removeItem("photo_link");
+//                 setIsSuccess(true);
+//             } else {
+//                 throw new Error(dbResult.message || "Database update failed");
+//             }
+//     }
+
+
+//       // localStorage.setItem(`org_logo_${orgId}`, result.photo_link);
+      
+//       // console.log("Saved Base64 to LocalStorage for Org:", orgId);
+//     }
+
+//     // จำลองการเรียก API อัปเดตข้อมูล
+//     // const updatePayload = {
+//     //   id: orgId, 
+//     //   name: orgName,
+//     //   logo: result.photo_link 
+//     // };
+    
+//     // console.log("Updating organization...", updatePayload);
+//     await new Promise(resolve => setTimeout(resolve, 1500));
+    
+//     alert("อัปเดตข้อมูลหน่วยงานสำเร็จ!");
+    
+//   } catch (error) {
+//     console.error("Update Error:", error);
+//     alert("เกิดข้อผิดพลาดในการอัปโหลด");
+//   } finally {
+//     setIsSubmitting(false);
+//   }
+// };
+
+// ... ภายในฟังก์ชัน handleSubmit ...
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!orgId) return;
+  
+  setIsSubmitting(true);
+  try {
+    let currentPhotoUrl = selectedImageToReplace.url;
+    let hasImageChanged = false;
+
+    // 1. ถ้ามีการเลือกไฟล์ใหม่ ให้ Upload ก่อน
+    if (logoFile) {
+      const base64Image = await fileToBase64(logoFile);
+      const payload = {
+        folder_path: `attachment/Test_internal_web/org_${orgId}`, 
+        image: base64Image
+      };
+
+      const response = await fetch(uploadApiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload), 
+      });
+      
+      const result = await response.json();
+      if (response.ok && result.photo_link) {
+        currentPhotoUrl = result.photo_link;
+        hasImageChanged = true;
+      }
+    }
+
+    const adminId = localStorage.getItem("current_admin_id") || "unknown_admin";
+    
+    // หาค่า Org เดิมจากลิสต์ cases เพื่อส่ง old_name
+    const originalOrg = cases.find(c => c.org_id === orgId);
+
+    // 2. เตรียม Payload ส่งไป Update DB
+    const dbPayload = {
+      current_admin_id: adminId.toString().replace(/['"]+/g, ''),
+      name: orgName, 
+      file_url: currentPhotoUrl,           
+      old_url: selectedImageToReplace.url,
+      old_name: originalOrg?.org_name || "" // เพิ่มการส่งชื่อเก่า
+    };
+
+    const dbResponse = await fetch(`${dbManageUrl}?id=${orgId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dbPayload)
+    });
+
+    const dbResult = await dbResponse.json();
+
+    if (dbResponse.ok) {
+      setIsSuccess(true);
+      alert("อัปเดตข้อมูลหน่วยงานสำเร็จ!");
+      // อาจจะสั่ง fetchOrgData อีกครั้งเพื่อ refresh UI
+
+      // 1. ดึงข้อมูลใหม่จาก API เพื่อให้ UI อัปเดตเป็นค่าล่าสุด
+      await fetchOrgData(orgId); 
+
+      // 2. เคลียร์สถานะไฟล์ที่เลือกค้างไว้ (Optional)
+      setLogoFile(null); 
+      
+      // 3. ปิดกล่องแก้ไขข้อมูล (ถ้าต้องการ) หรือเปิดค้างไว้ก็ได้
+      // setOrgId("");
+      
+      // window.location.reload();
+    } else {
+      throw new Error(dbResult.message || "Database update failed");
+    }
+  } catch (error) {
+    console.error("Update Error:", error);
+    alert("เกิดข้อผิดพลาด: " + error.message);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -298,8 +492,10 @@ export default function ManageOrgPage() {
                     onClick={() => { 
                       if (orgId === item.org_id) {
                         setOrgId(""); setOrgName(""); setLogoPreview(null);
+                        setSelectedImageToReplace(null); // ล้างค่า
                       } else {
                         setOrgId(item.org_id); setOrgName(item.org_name); setLogoPreview(item.logo_url); 
+                        setSelectedImageToReplace({ url: item.logo_url });
                       }
                     }} 
                     className={`relative bg-white rounded-[1.2rem] sm:rounded-[2rem] overflow-hidden cursor-pointer transition-all duration-300 border-2 flex flex-col ${
@@ -344,7 +540,21 @@ export default function ManageOrgPage() {
                   </div>
                   <label className="absolute -bottom-2 -right-2 w-9 h-9 bg-black hover:bg-slate-800 text-white rounded-xl shadow-xl flex items-center justify-center cursor-pointer transition-all active:scale-90 border-4 border-white">
                     <Upload size={16} strokeWidth={3} />
-                    <input type="file" className="hidden" accept="image/*" onChange={(e) => { const file = e.target.files[0]; if (file) { setLogoFile(file); const reader = new FileReader(); reader.onloadend = () => setLogoPreview(reader.result); reader.readAsDataURL(file); } }} />
+                    {/* <input type="file" className="hidden" accept="image/*" onChange={(e) => { const file = e.target.files[0]; if (file) { setLogoFile(file); const reader = new FileReader(); reader.onloadend = () => setLogoPreview(reader.result); reader.readAsDataURL(file); } }} /> */}
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*" 
+                      onChange={(e) => { 
+                        const file = e.target.files[0]; 
+                        if (file) { 
+                          setLogoFile(file); // เก็บไฟล์ต้นฉบับไว้เพื่อแปลง Base64 ตอนกด Submit
+                          const reader = new FileReader(); 
+                          reader.onloadend = () => setLogoPreview(reader.result); // แสดง Preview ทันที
+                          reader.readAsDataURL(file); 
+                        } 
+                      }} 
+                    />
                   </label>
                 </div>
                 <div className="flex-1 space-y-5 w-full">
