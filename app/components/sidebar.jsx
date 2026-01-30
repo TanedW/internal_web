@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
-import { Mail, Briefcase, LayoutGrid, Users, X, LogOut, Menu } from "lucide-react";
+import { Mail, Briefcase, LayoutGrid, Users, X, LogOut, Menu, MessageSquareCode } from "lucide-react";
 
 // --- Firebase Configuration ---
 const firebaseConfig = {
@@ -180,6 +180,12 @@ export default function Sidebar({ isDesktopSidebarOpen, setIsDesktopSidebarOpen 
                   <span className="text-[15px] font-bold">จัดการ ORG</span>
                 </Link>
               )}
+              {hasAccess(['admin', 'editor', 'editor_manage_flex']) && (
+                <Link href="/manage-flex-message" className={getMenuClass('/manage-flex-message')} onClick={() => setIsMobileMenuOpen(false)}>
+                  <MessageSquareCode size={20} />
+                  <span className="text-[15px] font-bold">จัดการ Flex Message</span>
+                </Link>
+              )}
             </nav>
             <div className="mt-auto pt-4 border-t border-slate-100">
                 <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 w-full text-red-600 font-bold text-[15px]">
@@ -220,6 +226,13 @@ export default function Sidebar({ isDesktopSidebarOpen, setIsDesktopSidebarOpen 
             <Link href="/manage-org" className={getMenuClass('/manage-org')}>
               <Users size={20} />
               <span className="font-bold text-[15px]">จัดการ ORG</span>
+            </Link>
+          )}
+
+          {hasAccess(['admin', 'editor', 'editor_manage_flex']) && (
+            <Link href="/manage-flex-message" className={getMenuClass('/manage-flex-message')}>
+              <MessageSquareCode size={20} />
+              <span className="font-bold text-[15px]">จัดการ Flex Message</span>
             </Link>
           )}
         </nav>
