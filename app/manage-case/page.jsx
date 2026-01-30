@@ -5,11 +5,14 @@ import { useRouter, usePathname } from "next/navigation";
 import { 
   LogOut, Search, CheckCircle2, AlertCircle, UploadCloud, 
   ArrowLeft, ArrowRight, X, ImageIcon, Music, FileAudio, 
-  MapPin, Calendar, Users ,Mail, Briefcase, LayoutGrid
+  MapPin, Calendar, Users ,Mail, Briefcase, LayoutGrid, Menu
 } from "lucide-react"; 
 import Link from 'next/link';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../../firebaseConfig"; 
+
+// ✅ นำเข้า Sidebar จากไฟล์ภายนอกตามที่คุณต้องการ
+import Sidebar from "../components/sidebar"; 
 
 // --- Config: MIME Types ---
 const MIME_TYPE_MAP = {
@@ -140,14 +143,10 @@ export default function ManageCase() {
   const [loading, setLoading] = useState(true);
   
   // --- State สำหรับ Menu & Permission ---
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentRoles, setCurrentRoles] = useState([]); 
 
   // State สำหรับ Desktop Sidebar (Toggle)
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
-
-  // ✅ State สำหรับ Toggle การแสดง Role (Sidebar)
-  const [isSidebarRolesExpanded, setIsSidebarRolesExpanded] = useState(false);
 
   // --- State Business Logic ---
   const [searchId, setSearchId] = useState("");
@@ -167,8 +166,6 @@ export default function ManageCase() {
   
   const API_URL_ADMIN = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
 
-  const getAvatarUrl = (seed) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
-
   // Helper: ดึง ID ตัวเองจาก LocalStorage
   const getCurrentAdminId = () => {
     if (typeof window !== "undefined") {
@@ -178,63 +175,6 @@ export default function ManageCase() {
     }
     return null;
   };
-
-  // Helper: Check Permission
-  const hasAccess = (requiredRoles) => {
-      return currentRoles.some(myRole => requiredRoles.includes(myRole));
-  };
-
-  // Logic: Menu Visibility
-  const showCaseMenu = hasAccess(['admin', 'editor', 'editor_manage_case']);
-  const showMenuMenu = hasAccess(['admin', 'editor', 'editor_manage_menu']);
-  // ✅ เพิ่มสิทธิ์สำหรับเมนู ORG
-  const showORGMenu = hasAccess(['admin', 'editor', 'editor_manage_org']);
-
-  // ✅ Component SidebarRoleDisplay (Logic เดียวกับหน้า Manage)
-  const SidebarRoleDisplay = () => (
-    <div className="flex flex-col items-center mt-2 px-2 w-full">
-        {currentRoles.length > 0 ? (
-            <>
-                {/* --- 1. กรณีขยาย (Expanded) --- */}
-                {isSidebarRolesExpanded ? (
-                    <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-1 duration-200 w-full items-center">
-                        {currentRoles.map((role, idx) => (
-                            <span key={idx} className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 truncate max-w-[160px]">
-                                {role.replace(/_/g, ' ')}
-                            </span>
-                        ))}
-                        <button 
-                            onClick={() => setIsSidebarRolesExpanded(false)}
-                            className="btn btn-xs h-7 min-h-0 bg-white border border-indigo-500 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-600 rounded-full px-3 text-[10px] font-bold tracking-wide uppercase shadow-sm"
-                        >
-                            Show less
-                        </button>
-                    </div>
-                ) : (
-                    /* --- 2. กรณีปกติ (Collapsed) --- */
-                    <div className="flex flex-wrap gap-2 justify-center items-center">
-                        {/* Role แรก */}
-                        <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 truncate max-w-[150px]">
-                            {currentRoles[0].replace(/_/g, ' ')}
-                        </span>
-
-                        {/* ปุ่ม +X more */}
-                        {currentRoles.length > 1 && (
-                            <button
-                                onClick={() => setIsSidebarRolesExpanded(true)}
-                                className="btn btn-xs h-7 min-h-0 bg-white border border-indigo-500 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-600 rounded-full px-3 text-[10px] font-bold tracking-wide uppercase shadow-sm"
-                            >
-                                +{currentRoles.length - 1} more
-                            </button>
-                        )}
-                    </div>
-                )}
-            </>
-        ) : (
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Guest</span>
-        )}
-    </div>
-  );
 
   // Function: Fetch Admin Roles
   const fetchAdmins = async () => {
@@ -282,25 +222,6 @@ export default function ManageCase() {
     });
     return () => unsubscribe();
   }, [router, API_URL_ADMIN]);
-
-  const handleLogout = async () => {
-    try {
-        await signOut(auth);
-        localStorage.removeItem("current_admin_id");
-        router.push("/");
-    } catch (error) {
-        console.error("Logout error", error);
-    }
-  };
-
-  const getMenuClass = (targetPath) => {
-      const isActive = pathname === targetPath;
-      return `flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-200 ${
-        isActive 
-          ? "bg-[#111827] !text-white shadow-lg shadow-slate-300 scale-[1.02]" 
-          : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-      }`;
-  };
 
   const handleSearch = async (e) => {
     e?.preventDefault(); 
@@ -427,7 +348,7 @@ export default function ManageCase() {
 
     try {
         const base64String = await fileToBase64(newImageFile);
-        const newViewedValue = getMediaTypeValue(newImageFile); // <--- เพิ่มบรรทัดนี้         
+        const newViewedValue = getMediaTypeValue(newImageFile);      
         const payload = {
             folder_path: `attachment/Test_internal_web/case_${currentCase.id}`, 
             image: base64String
@@ -497,173 +418,19 @@ export default function ManageCase() {
       <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
       <script src="https://cdn.tailwindcss.com"></script>
 
-      {/* ================= NAVBAR MOBILE HEADER ================= */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#F4F6F8]/95 backdrop-blur-sm z-40 px-5 flex justify-between items-center border-b border-slate-200/50">
-           <div className="flex items-center gap-3">
-              <button onClick={() => setIsMobileMenuOpen(true)} className="btn btn-square btn-ghost btn-sm text-slate-800">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                  </svg>
-              </button>
-              <h1 className="font-bold text-slate-800 text-lg">Case Manage</h1>
-           </div>
-      </div>
-
-     {/* ================= MOBILE SIDEBAR DRAWER ================= */}
-     {isMobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex">
-            <div 
-                className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300"
-                onClick={() => setIsMobileMenuOpen(false)}
-            ></div>
-
-            <div className="relative w-[280px] h-full bg-white shadow-2xl flex flex-col p-6 animate-slide-in-left rounded-r-[2rem]">
-                <button 
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-600 bg-slate-50 rounded-full"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-
-                <div className="flex flex-col items-center text-center mb-8 mt-6">
-                      <div className="w-24 h-24 rounded-full p-1 border-2 border-dashed border-indigo-200 mb-4">
-                        <div className="w-full h-full rounded-full overflow-hidden bg-slate-50">
-                            <img src={user?.photoURL || getAvatarUrl("Admin")} alt="User" className="object-cover w-full h-full"/>
-                        </div>
-                      </div>
-                      <h2 className="text-lg font-extrabold text-slate-800 break-words w-full px-2">{user?.displayName || "Admin"}</h2>
-                      
-                      {/* ✅ เรียกใช้ SidebarRoleDisplay (Mobile) */}
-                      <SidebarRoleDisplay />
-                </div>
-
-                <div className="flex flex-col gap-2 w-full flex-1 overflow-y-auto">
-                    <div className="text-xs font-bold text-slate-700 uppercase tracking-widest mb-2 pl-4">Menu</div>
-                    
-                    <Link href="/manage" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage')}>
-                        <Mail size={20} />
-                        <span className="font-bold text-sm">จัดการ Email</span>
-                    </Link>
-                    
-                    {showCaseMenu && (
-                        <Link href="/manage-case" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-case')}>
-                            <Briefcase size={20} />
-                            <span className="font-bold text-sm">จัดการ Case</span>
-                        </Link>
-                    )}
-                    
-                    {showMenuMenu && (
-                        <Link href="/manage-richmenu" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-richmenu')}>
-                            <LayoutGrid size={20} />
-                            <span className="font-bold text-sm">จัดการ Menu</span>
-                        </Link>
-                    )}
-
-                    {/* ✅ เพิ่มลิงก์ไปยังหน้า จัดการ ORG (Mobile) */}
-                    {showORGMenu && (
-                        <Link href="/manage-org" onClick={() => setIsMobileMenuOpen(false)} className={getMenuClass('/manage-org')}>
-                            <Users size={20} />
-                            <span className="font-bold text-sm">จัดการ ORG</span>
-                        </Link>
-                    )}
-                </div>
-
-                <div className="mt-auto pt-4 border-t border-slate-100">
-                    <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 w-full">
-                        <div className="p-1.5 bg-red-100/50 rounded-lg group-hover:bg-red-100 transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-500 transition-transform group-hover:translate-x-0.5">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                <polyline points="16 17 21 12 16 7"></polyline>
-                                <line x1="21" y1="12" x2="9" y2="12"></line>
-                            </svg>
-                        </div>
-                        <span className="text-red-600 font-bold tracking-wide text-[15px]">Logout</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-     )}
-
-      {/* ================= DESKTOP SIDEBAR ================= */}
-      <div className={`hidden lg:flex fixed top-4 bottom-4 left-4 w-72 bg-white rounded-[2rem] shadow-[0_0_40px_-10px_rgba(0,0,0,0.05)] border border-slate-100 flex-col py-8 px-6 z-50 overflow-y-auto no-scrollbar transition-all duration-300 ease-in-out ${
-          isDesktopSidebarOpen ? "translate-x-0 opacity-100" : "-translate-x-[120%] opacity-0 pointer-events-none"
-      }`}>
-          
-          <button 
-                onClick={() => setIsDesktopSidebarOpen(false)}
-                className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-all duration-200"
-                title="Close Sidebar"
-          >
-               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-               </svg>
-          </button>
-
-          <div className="flex flex-col items-center text-center mb-10 mt-2">
-              <div className="w-24 h-24 rounded-full p-1 border-2 border-dashed border-slate-200 mb-4">
-                  <div className="w-full h-full rounded-full overflow-hidden bg-slate-50">
-                      <img src={user?.photoURL || getAvatarUrl("Admin")} alt="User" className="object-cover w-full h-full"/>
-                  </div>
-              </div>
-              <h2 className="text-lg font-extrabold text-slate-800 px-2 break-words w-full">{user?.displayName || "Admin"}</h2>
-              
-              {/* ✅ เรียกใช้ SidebarRoleDisplay (Desktop) */}
-              <SidebarRoleDisplay />
-          </div>
-
-          <div className="flex flex-col gap-2 w-full flex-1">
-              <div className="text-xs font-bold text-slate-700 uppercase tracking-widest mb-2 pl-4">Menu</div>
-              
-              <Link href="/manage" className={getMenuClass('/manage')}>
-                  <Mail size={20} />
-                  <span className="font-bold text-sm">จัดการ Email</span>
-              </Link>
-              
-              {showCaseMenu && (
-                  <Link href="/manage-case" className={getMenuClass('/manage-case')}>
-                     <Briefcase size={20} />
-                      <span className="font-bold text-sm">จัดการ Case</span>
-                  </Link>
-              )}
-              
-              {showMenuMenu && (
-                  <Link href="/manage-richmenu" className={getMenuClass('/manage-richmenu')}>
-                      <LayoutGrid size={20} />
-                      <span className="font-bold text-sm">จัดการ Menu</span>
-                  </Link>
-              )}
-
-              {/* ✅ เพิ่มลิงก์ไปยังหน้า จัดการ ORG (Desktop) */}
-              {showORGMenu && (
-                  <Link href="/manage-org" className={getMenuClass('/manage-org')}>
-                      <Users size={20} />
-                      <span className="font-bold text-sm">จัดการ ORG</span>
-                  </Link>
-              )}
-          </div>
-
-          <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-2 rounded-xl hover:bg-red-50 transition-all duration-200">
-                <div className="p-1.5 bg-red-100/50 rounded-lg group-hover:bg-red-100 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-500 transition-transform group-hover:translate-x-0.5">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                        <polyline points="16 17 21 12 16 7"></polyline>
-                        <line x1="21" y1="12" x2="9" y2="12"></line>
-                    </svg>
-                </div>
-                <span className="text-red-600 font-bold tracking-wide text-[15px]">Logout</span>
-          </button>
-      </div>
-
+      {/* ✅ เรียกใช้คอมโพเนนต์ Sidebar ที่ดึงมาจากภายนอกเพียงจุดเดียว */}
+      <Sidebar 
+        isDesktopSidebarOpen={isDesktopSidebarOpen} 
+        setIsDesktopSidebarOpen={setIsDesktopSidebarOpen} 
+      />
 
       {/* ================= MAIN CONTENT ================= */}
-      {/* ✅ ปรับ Padding ซ้าย (pl) ให้ขยับตามสถานะ Sidebar */}
+      {/* ส่วน Content จะขยับ Padding ตามสถานะการเปิด/ปิด Sidebar จากคอมโพเนนต์ภายนอก */}
       <div className={`container mx-auto px-4 pt-24 lg:pt-8 max-w-7xl transition-all duration-300 pb-24 ${
           isDesktopSidebarOpen ? "lg:pl-80" : "lg:pl-8"
       }`}>
         
-        {/* ✅ 2. ปุ่ม Open (Hamburger) แสดงเฉพาะตอน Sidebar ปิด + ข้อความ Manage Case */}
+        {/* ปุ่ม Open Hamburger สำหรับ Desktop กรณีที่ Sidebar ถูกปิด */}
         {!isDesktopSidebarOpen && (
              <div className="hidden lg:flex items-center gap-4 fixed top-8 left-8 z-30 animate-slide-in-left">
                 <button 
@@ -671,10 +438,7 @@ export default function ManageCase() {
                     className="btn btn-square btn-ghost bg-white border border-slate-200 shadow-lg shadow-indigo-100/50 text-slate-800 hover:bg-slate-50 transition-all duration-300"
                     title="Open Sidebar"
                 >
-                    {/* ไอคอน Hamburger (3 ขีด) */}
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
-                         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                    </svg>
+                    <Menu className="w-6 h-6" />
                 </button>
                 <h1 className="text-2xl font-bold text-slate-800 tracking-tight drop-shadow-sm">
                     Manage Case
@@ -682,19 +446,17 @@ export default function ManageCase() {
              </div>
         )}
         
-        {/* --- Header & Search Section --- */}
+        {/* --- Logic เดิมที่คงไว้ทั้งหมด ห้ามแก้ไข --- */}
         {!currentCase && (
             <div className="flex flex-col justify-start relative w-full max-w-2xl mx-auto overflow-hidden rounded-3xl animate-fade-in pt-12 lg:mt-24">
         
                 <div className="flex flex-col items-center text-center space-y-5 relative z-10 px-4">
-                    {/* Text Group */}
                     <div className="space-y-2 px-2">
                         <p className="text-slate-500 text-sm lg:text-base max-w-md mx-auto leading-relaxed">
                             กรอกรหัส Case ID เพื่อค้นหาและแก้ไขรูปภาพ<br className="hidden sm:block"/> วิดีโอ หรือไฟล์เสียง (สำหรับ Admin)
                         </p>
                     </div>
 
-                    {/* Form Container */}
                     <div className="w-full relative max-w-lg mx-auto pb-4">
                         <form 
                             onSubmit={handleSearch} 
@@ -746,11 +508,9 @@ export default function ManageCase() {
             </div>
         )}
 
-        {/* --- Wizard Content (Step 1, 2, 3) --- */}
         {currentCase && (
            <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-100 p-5 lg:p-10 relative overflow-hidden transition-all duration-300 mb-6 animate-fade-in-up">
                 
-                {/* Wizard Progress */}
                 {!isSuccess && (
                     <div className="mb-8 lg:mb-12">
                         <div className="flex items-center justify-center relative">
@@ -770,7 +530,6 @@ export default function ManageCase() {
                     </div>
                 )}
 
-                {/* Step Content */}
                 <div className="min-h-[300px] flex flex-col items-center justify-center animate-[fadeIn_0.5s_ease-out]">
                     
                     {isSuccess ? (
@@ -789,20 +548,16 @@ export default function ManageCase() {
                         </div>
                     ) : (
                         <>
-                        {/* STEP 1: Select */}
                         {wizardStep === 1 && (
                             <div className="w-full max-w-3xl animate-fade-in">
                                 <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 overflow-hidden">
                                     <div className="p-5 md:p-8">
-                                        {/* Header */}
                                         <div className="text-center mb-8">
                                             <h3 className="text-xl lg:text-2xl font-bold text-slate-800">Step 1: เลือกรายการที่ต้องการแก้ไข</h3>
                                             <p className="text-slate-500 text-sm mt-1">คลิกเลือกรูปภาพ, วิดีโอ หรือไฟล์เสียงที่ต้องการดำเนินการ</p>
                                         </div>
                                         
-                                        {/* --- Case Info Card --- */}
                                         <div className="bg-slate-100 rounded-2xl p-5 border border-slate-200 mb-8 flex flex-col gap-4">
-                                            {/* Row 1: ID & Status */}
                                             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-2"> 
                                                 <div className="flex items-center justify-between w-full gap-3"> 
                                                     <div className="flex items-center gap-1.5 min-w-0 overflow-hidden"> 
@@ -816,10 +571,7 @@ export default function ManageCase() {
                                                     </span>
                                                 </div>
                                             </div>
-                                            {/* Separator Line */}
                                             <div className="h-px bg-slate-200 w-full"></div>
-
-                                            {/* Row 2: Title & Date */}
                                             <div>
                                                 <h4 className="text-lg font-bold text-slate-800 leading-tight">
                                                     {currentCase.title}
@@ -829,8 +581,6 @@ export default function ManageCase() {
                                                     <span>แจ้งเมื่อ: {currentCase.date}</span>
                                                 </div>
                                             </div>
-
-                                            {/* Row 3: Address */}
                                             <div className="bg-white rounded-xl p-3 border border-slate-200/60 flex items-start gap-3 shadow-sm">
                                                 <MapPin size={18} className="text-indigo-500 mt-0.5 shrink-0"/>
                                                 <div className="text-sm text-slate-600 leading-relaxed">
@@ -839,7 +589,6 @@ export default function ManageCase() {
                                             </div>
                                         </div>
 
-                                        {/* --- Media Section --- */}
                                         <div>
                                             <div className="flex items-center gap-2 mb-4 px-1">
                                                 <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
@@ -848,7 +597,6 @@ export default function ManageCase() {
                                                 <h5 className="font-bold text-slate-800 text-base">รายการไฟล์ประกอบ:</h5>
                                             </div>
 
-                                            {/* Grid Layout */}
                                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                                                 {currentCase.allImages.map((img) => {
                                                     const isSelected = selectedImageToReplace?.id === img.id;
@@ -870,19 +618,14 @@ export default function ManageCase() {
                                                                 }
                                                             `}
                                                         >
-                                            {/* Media Content - ปรับปรุงใหม่ให้ใช้ FilePreviewRender */}
                                                                 <div className="aspect-video w-full flex items-center justify-center bg-slate-900/5 relative overflow-hidden rounded-t-lg">
-                                                                    
-                                                                    {/* ใช้งาน FilePreviewRender แทนการเช็คเงื่อนไขซ้ำซ้อน */}
                                                                     <div className="w-full h-full pointer-events-auto">
                                                                         <FilePreviewRender file={{
                                                                             url: img.url,
                                                                             name: img.url,
-                                                                            type: img.mediaType // ส่ง hint ประเภทไฟล์ไปด้วย
+                                                                            type: img.mediaType
                                                                         }} />
                                                                     </div>
-
-                                                                    {/* Overlay สำหรับสถานะที่ไม่ได้เลือก (ทำให้ดูเหมือนปุ่มกดมากขึ้น) */}
                                                                     {!isSelected && (
                                                                         <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/10 transition-all duration-300 pointer-events-none">
                                                                             <span className="opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 bg-white/90 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
@@ -891,7 +634,6 @@ export default function ManageCase() {
                                                                         </div>
                                                                     )}
                                                                 </div>
-                                                                {/* Info Strip */}
                                                                 <div className={`p-3 flex justify-between items-center transition-colors ${isSelected ? 'bg-indigo-50' : 'bg-white/50 group-hover:bg-indigo-50/30'}`}>
                                                                         <span className={`text-xs font-bold truncate max-w-[45%] ${isSelected ? 'text-indigo-700' : 'text-slate-700'}`}>
                                                                             {img.type}
@@ -903,9 +645,9 @@ export default function ManageCase() {
                                                                                     </span>
                                                                                 )}
                                                                                 {isSelected ? (
-                                                                                    <CheckCircle2 size={20} className="text-indigo-600 animate-[bounceIn_0.3s_ease-out] shrink-0"/>
+                                                                                    <CheckCircle2 size={20} className="text-indigo-600 shrink-0"/>
                                                                                 ) : (
-                                                                                    <div className="w-5 h-5 rounded-full border-2 border-slate-200 group-hover:border-indigo-300 transition-colors bg-blue-100 shrink-0"></div>
+                                                                                    <div className="w-5 h-5 rounded-full border-2 border-slate-200 bg-blue-100 shrink-0"></div>
                                                                                 )}
                                                                         </div>
                                                                 </div>
@@ -918,7 +660,6 @@ export default function ManageCase() {
                                 </div>
                             </div>
                         )}
-                            {/* STEP 2: Upload */}
                             {wizardStep === 2 && (
                                 <div className="w-full max-w-xl mx-auto animate-fade-in">
                                     <div className="text-center mb-6 lg:mb-8">
@@ -931,15 +672,12 @@ export default function ManageCase() {
                                             <p className="text-[10px] font-bold mb-3 flex items-center gap-1 uppercase tracking-[0.2em] text-slate-400">
                                                 <AlertCircle size={12}/> กำลังแก้ไขไฟล์เดิม
                                             </p>
-                                            
-                                            {/* Preview Box */}
                                             <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 flex items-center justify-center shadow-inner">
                                                 <FilePreviewRender file={{
                                                     url: selectedImageToReplace.url,
                                                     name: selectedImageToReplace.url
                                                 }} /> 
                                             </div>
-                                            
                                             <p className="text-xs font-bold mt-3 text-slate-500">
                                                 {selectedImageToReplace.type}
                                             </p>
@@ -954,7 +692,6 @@ export default function ManageCase() {
                                             if(e.target.files[0]) setNewImageFile(e.target.files[0]);
                                         }} 
                                     />
-                                    
                                     {newImageFile ? (
                                             <div className="flex flex-col items-center w-full animate-fade-in z-10">
                                                 <div className="relative w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center mb-4 min-h-[200px]">
@@ -971,11 +708,6 @@ export default function ManageCase() {
                                             <div className="w-16 h-16 lg:w-20 lg:h-20 bg-white rounded-2xl mb-4 lg:mb-6 flex items-center justify-center shadow-sm border border-slate-100 group-hover:shadow-md group-hover:text-indigo-600 group-hover:border-indigo-100 transition-all text-slate-300"><UploadCloud size={32} className="lg:w-10 lg:h-10" strokeWidth={1.5} /></div>
                                             <h4 className="font-bold text-base lg:text-lg text-slate-700 mb-2 group-hover:text-indigo-700 transition-colors">เลือกไฟล์มีเดีย</h4>
                                             <p className="text-slate-400 text-xs lg:text-sm mb-4 lg:mb-6">แตะเพื่อเลือกไฟล์ รูปภาพ, วิดีโอ หรือเสียง</p>
-                                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                                <span className="bg-white px-2 py-1 rounded border border-slate-100">IMG</span>
-                                                <span className="bg-white px-2 py-1 rounded border border-slate-100">VID</span>
-                                                <span className="bg-white px-2 py-1 rounded border border-slate-100">MP3</span>
-                                            </div>
                                         </div>
                                     )}
                                     {!newImageFile && (<div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-20 pointer-events-none"></div>)}
@@ -983,24 +715,11 @@ export default function ManageCase() {
                                 </div>
                             )}
 
-                            {/* STEP 3: Reason */}
                             {wizardStep === 3 && (
                                 <div className="w-full max-w-xl text-center animate-fade-in">
                                     <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">Step 3: สรุปผลและระบุเหตุผล</h3>
                                     <p className="text-slate-500 mb-6 lg:mb-8 text-xs lg:text-sm">ระบุสาเหตุในการเปลี่ยนแปลงไฟล์ <span className="font-bold text-indigo-600">{selectedImageToReplace?.type}</span></p>
-                                    
-                                {/* {newImageFile && (
-                                        <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col items-center">
-                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">ไฟล์ใหม่ที่จะใช้งาน</p>
-                                            <div className="relative w-full rounded-lg overflow-hidden shadow-md border border-slate-200 bg-white flex items-center justify-center min-h-[150px]">
-                                                <FilePreviewRender file={newImageFile} />
-                                            </div>
-                                            <p className="text-xs text-slate-400 mt-2 font-medium">{newImageFile.name}</p>
-                                            <p className="text-[10px] text-slate-300">Size: {(newImageFile.size / 1024).toFixed(2)} KB</p>
-                                        </div>
-                                    )} 
-                                */}
-
+                                    <br></br>
                                     <div className="relative">
                                         <textarea 
                                             className="textarea textarea-bordered w-full h-32 lg:h-40 text-base lg:text-lg shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10" 
@@ -1016,10 +735,8 @@ export default function ManageCase() {
                     )}
                 </div>
 
-                {/* --- FOOTER BUTTONS --- */}
                 {!isSuccess && (
                     <div className="flex flex-row justify-between items-center mt-8 lg:mt-10 pt-6 border-t border-slate-100 gap-4">
-                        {/* Left Button (Cancel/Back) */}
                         {wizardStep === 1 ? (
                             <button 
                                 onClick={resetForm} 
@@ -1040,7 +757,6 @@ export default function ManageCase() {
                             </button>
                         )}
 
-                        {/* Right Button (Next/Submit) */}
                         {wizardStep < 3 ? (
                             <button 
                                 onClick={() => setWizardStep(p => p + 1)} 
@@ -1068,8 +784,9 @@ export default function ManageCase() {
                 )}
            </div>
         )}
-
       </div>
+
+      {/* Global CSS สำหรับการทำอนิเมชั่นเล็ก ๆ น้อย ๆ */}
       <style jsx global>{`@keyframes bounceIn { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(1); } } @keyframes slide-in-left { from { transform: translateX(-100%); } to { transform: translateX(0); } } .animate-slide-in-left { animation: slide-in-left 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }`}</style>
     </div>
   );
