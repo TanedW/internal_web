@@ -1,85 +1,156 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { X, Save, Trash2, Code, Eye, Copy } from "lucide-react";
-import FlexRender from "./FlexRender"; // เรียกใช้ตัว Render ที่เพิ่งแก้
+import React, { useState, useEffect, useRef } from "react";
+import { X, Save, Trash2, Code, Eye, Check, Edit2, FileText, FileJson, History, ArrowLeft } from "lucide-react"; 
+import FlexRender from "./FlexRender"; 
 
 export default function EditorModal({ item, isOpen, onClose, onSave, onDelete }) {
-  // สร้าง state เก็บ JSON String เพื่อแสดงใน Textarea
   const [jsonContent, setJsonContent] = useState("");
   const [parseError, setParseError] = useState(null);
+  
+  // Data State
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState(""); 
+  const [changeNote, setChangeNote] = useState(""); 
+  
+  // UI State
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [isSaveMode, setIsSaveMode] = useState(false);
+  
+  // 🟢 Mobile State: 'preview' | 'code' (เริ่มที่ preview)
+  const [mobileTab, setMobileTab] = useState("preview");
+
+  const nameInputRef = useRef(null);
 
   useEffect(() => {
-    if (item && item.content) {
-      setJsonContent(JSON.stringify(item.content, null, 2));
+    if (item && isOpen) {
+      setJsonContent(item.content ? JSON.stringify(item.content, null, 2) : "");
+      setEditName(item.name || "");        
+      setEditDesc(item.description || ""); 
+      setChangeNote(""); 
+      setIsSaveMode(false);
+      setIsRenaming(false);
+      setParseError(null);
+      setMobileTab("preview"); // Reset tab เมื่อเปิดใหม่
     }
-  }, [item]);
+  }, [item, isOpen]);
+
+  useEffect(() => {
+    if (isRenaming && nameInputRef.current) {
+      nameInputRef.current.focus();
+    }
+  }, [isRenaming]);
 
   const handleJsonChange = (e) => {
     const val = e.target.value;
     setJsonContent(val);
     try {
-      JSON.parse(val); // ตรวจสอบ syntax
+      JSON.parse(val); 
       setParseError(null);
     } catch (err) {
       setParseError(err.message);
     }
   };
 
-  const handleSave = () => {
+  const handleNameKeyDown = (e) => {
+    if (e.key === 'Enter') setIsRenaming(false);
+  };
+
+  const handlePreSave = () => {
     try {
-      const parsed = JSON.parse(jsonContent);
-      onSave(item.id, jsonContent, item.description);
-      onClose();
+      JSON.parse(jsonContent); 
+      setIsSaveMode(true); 
     } catch (e) {
-      alert("Cannot save: Invalid JSON");
+      setParseError("Invalid JSON: Please fix before saving.");
+      setMobileTab("code"); // ดีดไปหน้า Code อัตโนมัติถ้ามี error
     }
+  };
+
+  const handleFinalSave = () => {
+    onSave(item.id, jsonContent, editName, editDesc, changeNote);
+    onClose();
   };
 
   if (!isOpen) return null;
 
-  // แปลง String กลับเป็น Object เพื่อส่งให้ Render
   let previewData = null;
-  try {
-    previewData = JSON.parse(jsonContent);
-  } catch (e) {}
+  try { previewData = JSON.parse(jsonContent); } catch (e) {}
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-white w-full max-w-[1400px] h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+    // 🟢 Container หลัก: ใช้ flex-col และเต็มจอในมือถือ
+    <div className="fixed inset-0 z-[100] flex flex-col md:flex-row items-center justify-center bg-white md:bg-black/70 md:backdrop-blur-sm md:p-4">
+      
+      {/* --- Main Window --- */}
+      <div className="bg-white w-full h-full md:max-w-[1400px] md:h-[90vh] md:rounded-2xl md:shadow-2xl flex flex-col overflow-hidden relative">
         
-        {/* Header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-white">
-          <h2 className="text-xl font-bold text-slate-800">{item?.name || "Editor"}</h2>
-          <div className="flex gap-2">
-             <button onClick={() => onDelete(item.id)} className="btn btn-ghost btn-sm text-red-500 hover:bg-red-50"><Trash2 size={18}/></button>
-             <button onClick={onClose} className="btn btn-ghost btn-sm text-slate-400"><X size={24} /></button>
+        {/* Header: Compact บนมือถือ */}
+        <div className="flex justify-between items-center px-4 py-3 md:px-6 md:py-4 border-b border-gray-100 bg-white shrink-0 z-20">
+          <div className="flex items-center gap-3 overflow-hidden w-full">
+            {/* ปุ่ม Back สำหรับมือถือ */}
+            <button onClick={onClose} className="md:hidden p-2 -ml-2 text-slate-500 active:bg-slate-50 rounded-full"><ArrowLeft size={22}/></button>
+
+            {isRenaming ? (
+                <div className="flex items-center gap-2 animate-in fade-in duration-200 w-full md:w-auto">
+                    <input 
+                        ref={nameInputRef}
+                        type="text" 
+                        className="input input-sm input-bordered text-lg font-bold w-full md:w-[300px]"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onBlur={() => setIsRenaming(false)}
+                        onKeyDown={handleNameKeyDown}
+                    />
+                    <button onClick={() => setIsRenaming(false)} className="btn btn-xs btn-square btn-success text-white shrink-0">
+                        <Check size={14}/>
+                    </button>
+                </div>
+            ) : (
+                <div className="flex flex-col group cursor-pointer overflow-hidden" onClick={() => setIsRenaming(true)}>
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-lg md:text-xl font-bold text-slate-800 hover:text-indigo-600 transition-colors truncate">
+                            {editName || "Untitled Message"}
+                        </h2>
+                        <button className="text-slate-300 hover:text-indigo-500 opacity-0 group-hover:opacity-100 transition-all hidden md:block">
+                            <Edit2 size={16}/>
+                        </button>
+                    </div>
+                    {/* ซ่อนคำอธิบายเล็กบนมือถือเพื่อให้ Header ไม่รก */}
+                    <p className="text-[10px] md:text-xs text-slate-400 truncate hidden md:block">Click name to edit</p>
+                </div>
+            )}
+          </div>
+
+          <div className="flex gap-2 shrink-0">
+             <button onClick={() => onDelete(item.id)} className="btn btn-ghost btn-sm text-red-500 hover:bg-red-50"><Trash2 size={20} className="md:w-[18px] md:h-[18px]"/></button>
+             {/* ปุ่ม Close โชว์เฉพาะ Desktop (มือถือใช้ปุ่ม Back) */}
+             <button onClick={onClose} className="btn btn-ghost btn-sm text-slate-400 hidden md:flex"><X size={24} /></button>
           </div>
         </div>
 
-        {/* Body Split View */}
-        <div className="flex-1 flex overflow-hidden">
+        {/* Body Split View (Mobile: Show one at a time / Desktop: Show both) */}
+        <div className="flex-1 flex overflow-hidden relative flex-col md:flex-row pb-[60px] md:pb-0">
             
-            {/* Left: Preview (Visual) */}
-            <div className="flex-1 bg-[#EAF2FA] relative flex items-center justify-center overflow-auto p-10 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px]">
-                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full text-xs font-bold text-slate-600 flex items-center gap-2 shadow-sm border border-slate-200">
-                    <Eye size={14} className="text-indigo-500" /> Live Preview
+            {/* 1. Left: Preview Panel */}
+            <div className={`
+                flex-1 bg-[#EAF2FA] relative items-center justify-center overflow-auto p-4 md:p-10 
+                bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px]
+                ${mobileTab === 'preview' ? 'flex' : 'hidden md:flex'} 
+            `}>
+                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full text-xs font-bold text-slate-600 flex items-center gap-2 shadow-sm border border-slate-200 z-10">
+                    <Eye size={14} className="text-indigo-500" /> <span className="hidden md:inline">Live</span> Preview
                 </div>
                 
-                {/* Area แสดงผล Flex Message */}
-                <div className="transform transition-all duration-300">
-                    {previewData ? (
-                        <FlexRender json={previewData} />
-                    ) : (
-                        <div className="text-red-500 font-mono text-sm bg-red-50 p-4 rounded border border-red-200 shadow-sm">
-                            Invalid JSON Syntax
-                        </div>
-                    )}
+                {/* Scale Down บนมือถือเพื่อไม่ให้ล้นจอ */}
+                <div className="transform transition-all duration-300 scale-[0.85] md:scale-90 origin-center w-full flex justify-center min-h-[50vh]">
+                    {previewData ? <FlexRender json={previewData} /> : <div className="text-red-500">Invalid JSON</div>}
                 </div>
             </div>
 
-            {/* Right: Code Editor */}
-            <div className="w-[500px] flex flex-col border-l border-gray-200 bg-white shadow-xl z-10">
-                <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 bg-gray-50">
+            {/* 2. Right: Code Editor Panel */}
+            <div className={`
+                w-full md:w-[500px] flex-col border-l border-gray-200 bg-white shadow-xl z-10 relative h-full
+                ${mobileTab === 'code' ? 'flex' : 'hidden md:flex'}
+            `}>
+                <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 bg-gray-50 shrink-0">
                     <span className="text-xs font-bold text-slate-500 flex items-center gap-2"><Code size={14}/> JSON Source</span>
                     <button onClick={() => navigator.clipboard.writeText(jsonContent)} className="text-xs text-indigo-600 hover:underline">Copy</button>
                 </div>
@@ -89,19 +160,129 @@ export default function EditorModal({ item, isOpen, onClose, onSave, onDelete })
                         value={jsonContent}
                         onChange={handleJsonChange}
                         spellCheck="false"
+                        autoCapitalize="off" 
+                        autoCorrect="off"
                     />
                     {parseError && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-red-50 text-red-600 text-xs p-3 border-t border-red-100 font-mono">
+                        <div className="absolute bottom-0 left-0 right-0 bg-red-50 text-red-600 text-xs p-3 border-t border-red-100 font-mono z-20">
                             Error: {parseError}
                         </div>
                     )}
                 </div>
-                <div className="p-4 border-t border-gray-100 bg-white flex justify-end gap-3">
-                    <button onClick={onClose} className="btn btn-ghost btn-sm">Cancel</button>
-                    <button onClick={handleSave} disabled={!!parseError} className="btn btn-neutral btn-sm px-6">Save Changes</button>
+                
+                {/* Desktop Footer Actions */}
+                <div className="p-4 border-t border-gray-100 bg-white hidden md:flex justify-end gap-4">
+                    <button onClick={onClose} className="btn btn-ghost btn-sm bg-[#e3243b] text-white rounded-[16px] hover:bg-[#900603] px-[14px]">
+                        Cancel
+                    </button>
+                    <button onClick={handlePreSave} disabled={!!parseError} className="btn btn-neutral btn-sm px-6 rounded-[16px] flex items-center gap-4 bg-[#111827] text-white hover:bg-[#272e38] shadow-lg shadow-[#111827]/20">
+                        <Save size={16}/> Save Changes
+                    </button>
                 </div>
             </div>
         </div>
+
+        {/* 🟢 MOBILE BOTTOM BAR (Tab Switcher & Save) */}
+        <div className="md:hidden absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 flex items-center justify-between gap-3 z-30 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+            
+            <div className="flex bg-gray-100 p-1 rounded-xl">
+                <button 
+                    onClick={() => setMobileTab('preview')}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${mobileTab === 'preview' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}
+                >
+                    <Eye size={16}/> Preview
+                </button>
+                <button 
+                    onClick={() => setMobileTab('code')}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${mobileTab === 'code' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}
+                >
+                    <Code size={16}/> Code
+                </button>
+            </div>
+
+            <button 
+                onClick={handlePreSave} 
+                disabled={!!parseError} 
+                className="btn btn-sm bg-[#111827] text-white rounded-xl shadow-lg flex-1 h-10 flex items-center justify-center gap-2 text-sm"
+            >
+                <Save size={18} className="shrink-0" /> 
+                <span>Save</span>
+            </button>
+        </div>
+
+        {/* --- 🟢 SAVE POPUP (Responsive Bottom Sheet) --- */}
+        {isSaveMode && (
+          <div className="absolute inset-0 z-50 flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm p-0 md:p-4 animate-in fade-in duration-200">
+            {/* Mobile: Rounded Top Only, Desktop: All Rounded */}
+            <div className="bg-white w-full max-w-lg rounded-t-2xl md:rounded-2xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 duration-200 max-h-[85vh]">
+              
+              <div className="px-6 py-4 border-b border-gray-100 bg-slate-50/50 flex justify-between items-center shrink-0">
+                 <h3 className="font-bold text-lg text-slate-800">Finalize Saving</h3>
+                 <button onClick={() => setIsSaveMode(false)} className="btn btn-sm btn-circle btn-ghost text-slate-400 hover:bg-slate-200">
+                    <X size={20}/>
+                 </button>
+              </div>
+
+              <div className="p-6 flex flex-col gap-5 overflow-y-auto">
+                 
+                 <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center gap-3">
+                    <div className="bg-white p-2 rounded-full shadow-sm text-indigo-600"><FileJson size={20} /></div>
+                    <div className="min-w-0">
+                        <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">Template Name</p>
+                        <p className="font-bold text-indigo-900 text-sm truncate">{editName || "Untitled"}</p>
+                    </div>
+                 </div>
+
+                 {/* Description */}
+                 <div className="form-control">
+                    <label className="label pt-0">
+                        <span className="label-text font-bold text-slate-700 flex items-center gap-2">
+                            <FileText size={16} className="text-slate-500"/> Description
+                        </span>
+                    </label>
+                    <textarea 
+                      className="textarea textarea-bordered h-20 resize-none text-sm w-full focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" 
+                      placeholder="Brief description..."
+                      value={editDesc}
+                      onChange={(e) => setEditDesc(e.target.value)}
+                    ></textarea>
+                 </div>
+
+                 {/* Change Log */}
+                 <div className="form-control">
+                    <label className="label pt-0">
+                        <span className="label-text font-bold text-slate-700 flex items-center gap-2">
+                            <History size={16} className="text-orange-500"/> Change Log
+                        </span>
+                    </label>
+                    <textarea 
+                      className="textarea textarea-bordered h-24 resize-none text-sm w-full bg-orange-50/20 focus:border-orange-500 focus:ring-1 focus:ring-orange-500" 
+                      placeholder="What changed?"
+                      value={changeNote}
+                      onChange={(e) => setChangeNote(e.target.value)}
+                    ></textarea>
+                 </div>
+
+              </div>
+
+              <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 shrink-0 pb-safe">
+                    <button 
+                        onClick={() => setIsSaveMode(false)} 
+                        className="btn btn-ghost btn-sm px-6 rounded-xl text-white bg-[#e3243b] hover:bg-[#900603]"
+                    >
+                        Cancel
+                    </button>
+
+                    <button 
+                        onClick={handleFinalSave} 
+                        className="btn btn-sm px-6 gap-2 shadow-lg bg-[#111827] text-white hover:bg-[#5bb450] flex items-center rounded-xl"
+                    >
+                        <Check size={16}/> Confirm
+                    </button>
+                </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

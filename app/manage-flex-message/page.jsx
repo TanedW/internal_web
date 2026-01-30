@@ -4,21 +4,20 @@ import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation"; 
 import Link from "next/link";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "../../firebaseConfig"; // ⚠️ ตรวจสอบ Path นี้ให้ถูกต้อง
+import { auth } from "../../firebaseConfig";
 
-// Components ย่อย
+// Components
 import EditorModal from "./components/EditorModal"; 
 import CreateModal from "./components/CreateModal"; 
 import FlexRender from "./components/FlexRender";   
 
-// Icons
 import { 
   Mail, Briefcase, LayoutGrid, Users, LogOut, 
   Search, Plus, Trash2, X, Menu, FileJson, Copy, Edit
 } from "lucide-react";
 
 // =====================================================================================
-// 1. INLINE SIDEBAR COMPONENT
+// 1. INLINE SIDEBAR COMPONENT (คงเดิม แต่ปรับ z-index)
 // =====================================================================================
 const SidebarComponent = ({ 
   user, role, onLogout, 
@@ -28,10 +27,8 @@ const SidebarComponent = ({
   const pathname = usePathname();
   const [isSidebarRolesExpanded, setIsSidebarRolesExpanded] = useState(false);
 
-  // Helper
   const getAvatarUrl = (seed) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed || 'User'}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
 
-  // Logic Role
   const currentRoles = Array.isArray(role) && role.length > 0 ? role : (role ? [String(role)] : ["MEMBER"]);
   const hasAccess = (reqRoles) => currentRoles.some(r => reqRoles.includes(r));
   
@@ -39,15 +36,12 @@ const SidebarComponent = ({
   const showMenuMenu = hasAccess(['admin', 'editor', 'editor_manage_menu']);
   const showORGMenu = hasAccess(['admin', 'editor', 'editor_manage_org']);
 
-  // 🔥🔥🔥 Function ตัวจัดการ Style ปุ่ม (แก้ไขให้ Highlight ตรงปก) 🔥🔥🔥
   const getMenuClass = (targetPath) => {
-    // เช็คว่า Path ปัจจุบัน ตรงกับ Target หรือไม่ (หรือถ้าเป็นหน้าย่อยก็ให้ Active)
     const isActive = pathname === targetPath || pathname.startsWith(`${targetPath}/`);
-    
     return `flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-200 font-bold text-sm mb-1 ${
       isActive 
-        ? "bg-[#111827] text-white shadow-lg shadow-slate-300 scale-[1.02]" // Active: สีดำเงา ตัวขาว
-        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"          // Inactive: เทา Hover แล้วพื้นจางๆ
+        ? "bg-[#111827] text-white shadow-lg shadow-slate-300 scale-[1.02]" 
+        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
     }`;
   };
 
@@ -70,19 +64,15 @@ const SidebarComponent = ({
             </div>
         </div>
 
-        {/* --- MENU SECTION --- */}
         <div className="flex flex-col gap-1 w-full flex-1 overflow-y-auto px-3 pb-4">
             <div className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 pl-4">Menu</div>
             
-            {/* 🔴 แก้ไข Link ให้ตรงกับหน้าปัจจุบัน เพื่อให้ Active ทำงาน */}
             <Link href="/manage-flex-message" className={getMenuClass('/manage-flex-message')}>
                 <FileJson size={20} /><span>Flex Messages</span>
             </Link>
-
             <Link href="/manage" className={getMenuClass('/manage')}>
                 <Mail size={20} /><span>Manage Email</span>
             </Link>
-            
             {showCaseMenu && (
                 <Link href="/manage-case" className={getMenuClass('/manage-case')}>
                     <Briefcase size={20} /><span>Manage Case</span>
@@ -111,7 +101,6 @@ const SidebarComponent = ({
 
   return (
     <>
-      {/* Mobile Drawer */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-[60] lg:hidden">
             <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsMobileMenuOpen(false)} />
@@ -122,12 +111,11 @@ const SidebarComponent = ({
         </div>
       )}
 
-      {/* Desktop Fixed Sidebar */}
       <aside className={`hidden lg:flex fixed top-0 left-0 bottom-0 w-72 bg-white border-r border-slate-100 flex-col z-50 transition-transform duration-300 shadow-[4px_0_24px_rgba(0,0,0,0.02)] ${
           isDesktopSidebarOpen ? "translate-x-0" : "-translate-x-full"
       }`}>
           <div className="px-4 py-4 flex justify-end">
-             <button onClick={() => setIsDesktopSidebarOpen(false)} className="p-2 text-slate-400 hover:bg-slate-50 rounded-lg transition-colors" title="Collapse Sidebar"><X size={18} /></button>
+             <button onClick={() => setIsDesktopSidebarOpen(false)} className="p-2 text-slate-400 hover:bg-slate-50 rounded-lg transition-colors"><X size={18} /></button>
           </div>
           <SidebarContent />
       </aside>
@@ -144,67 +132,19 @@ const INITIAL_DATA = [
     id: "1",
     name: "Welcome Card",
     description: "Standard welcome message",
-    content: {
-      "type": "bubble",
-      "hero": {
-        "type": "image",
-        "url": "https://scdn.line-apps.com/n/channel_devcenter/img/fx/01_1_cafe.png",
-        "size": "full",
-        "aspectRatio": "20:13",
-        "aspectMode": "cover"
-      },
-      "body": {
-        "type": "box",
-        "layout": "vertical",
-        "contents": [
-          {
-            "type": "text",
-            "text": "Brown Cafe",
-            "weight": "bold",
-            "size": "xl"
-          },
-          {
-            "type": "text",
-            "text": "Hello, World!",
-            "size": "sm",
-            "color": "#aaaaaa",
-            "wrap": true
-          }
-        ]
-      },
-      "footer": {
-        "type": "box",
-        "layout": "vertical",
-        "spacing": "sm",
-        "contents": [
-          {
-            "type": "button",
-            "style": "primary",
-            "height": "sm",
-            "action": {
-              "type": "uri",
-              "label": "WEBSITE",
-              "uri": "https://linecorp.com"
-            }
-          }
-        ]
-      }
-    },
+    content: { "type": "bubble", "body": { "type": "box", "layout": "vertical", "contents": [{ "type": "text", "text": "Hello World" }] } },
     updatedAt: new Date(),
   },
-  // ... รายการอื่นๆ
 ];
 
 export default function Home() {
   const router = useRouter();
   
-  // Content States
   const [items, setItems] = useState(INITIAL_DATA);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  // Sidebar & Auth States
   const [user, setUser] = useState(null);
   const [currentRoles, setCurrentRoles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -213,12 +153,12 @@ export default function Home() {
 
   const API_URL = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
 
-  // --- Auth Logic ---
+  // --- Auth Logic (ย่อ) ---
   const getCurrentAdminId = () => {
     if (typeof window !== "undefined") {
-      const storedId = localStorage.getItem("current_admin_id");
-      if (!storedId) return null;
-      try { return JSON.parse(storedId); } catch (e) { return storedId.replace(/^"|"$/g, ''); }
+        const storedId = localStorage.getItem("current_admin_id");
+        if (!storedId) return null;
+        try { return JSON.parse(storedId); } catch (e) { return storedId.replace(/^"|"$/g, ''); }
     }
     return null;
   };
@@ -247,10 +187,8 @@ export default function Home() {
       if (currentUser) {
         setUser(currentUser);
         fetchAdmins();
-        setLoading(false);
-      } else {
-        setLoading(false); 
       }
+      setLoading(false);
     });
     return () => unsubscribe();
   }, [router, API_URL]);
@@ -263,20 +201,37 @@ export default function Home() {
     } catch (e) { console.error(e); }
   };
 
-  // --- Flex Content Logic ---
   const filteredItems = items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  
   const handleCreate = (name, desc, jsonStr) => {
     try {
       const newItem = { id: Date.now().toString(), name, description: desc, content: JSON.parse(jsonStr), updatedAt: new Date() };
       setItems([...items, newItem]);
     } catch (e) { alert("Invalid JSON"); }
   };
-  const handleUpdate = (id, newJson, newDesc) => {
+
+  const handleUpdate = (id, newJson, newName, newDesc, changeNote) => {
     try {
       const parsed = JSON.parse(newJson);
-      setItems(items.map(item => item.id === id ? { ...item, content: parsed, description: newDesc } : item));
-    } catch (e) { alert("Invalid JSON"); }
+      setItems(items.map(item => 
+        item.id === id 
+          ? { 
+              ...item, 
+              content: parsed, 
+              name: newName,        
+              description: newDesc, 
+              updatedAt: new Date() 
+            } 
+          : item
+      ));
+      
+      console.log("Saving with Note:", changeNote); // พร้อมส่ง DB
+      setSelectedItem(null); 
+    } catch (e) { 
+      alert("Invalid JSON"); 
+    }
   };
+  
   const handleDelete = (id) => setItems(items.filter(item => item.id !== id));
 
   if (loading) return <div className="min-h-screen flex justify-center items-center bg-gray-50"><span className="loading loading-spinner text-primary"></span></div>;
@@ -284,48 +239,41 @@ export default function Home() {
   return (
     <div className="flex min-h-screen bg-[#F8FAFC] font-sans text-slate-900">
       
-      {/* 1. Sidebar Component */}
       <SidebarComponent 
         user={user} role={currentRoles} onLogout={handleLogout} 
         isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen}
         isDesktopSidebarOpen={isDesktopSidebarOpen} setIsDesktopSidebarOpen={setIsDesktopSidebarOpen}
       />
 
-      {/* 2. Main Content Area */}
       <main className={`flex-1 transition-all duration-300 min-h-screen flex flex-col ${
           isDesktopSidebarOpen ? "lg:pl-72" : "lg:pl-0"
       }`}>
         
-        {/* Mobile Navbar */}
+        {/* 🟢 Mobile Navbar (เพิ่มปุ่ม + ลัด) */}
         <div className="lg:hidden h-16 bg-white border-b border-slate-200 flex items-center px-4 justify-between sticky top-0 z-30 shadow-sm">
             <div className="flex items-center gap-3">
                 <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 bg-slate-100 rounded-lg active:scale-95 transition-transform"><Menu size={20}/></button>
                 <span className="font-bold text-lg text-slate-800">Flex Manager</span>
             </div>
+            {/* ปุ่มสร้างใหม่ (Mobile) */}
+            <button onClick={() => setIsCreateOpen(true)} className="p-2 bg-slate-900 text-white rounded-lg shadow-md active:scale-95 transition-transform"><Plus size={20}/></button>
         </div>
 
-        {/* Desktop Toggle Button */}
+        {/* Desktop Toggle */}
         {!isDesktopSidebarOpen && (
-            <button 
-                onClick={() => setIsDesktopSidebarOpen(true)}
-                className="hidden lg:flex fixed top-6 left-6 z-40 p-2.5 bg-white shadow-lg border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-600 transition-all hover:scale-105"
-                title="Expand Sidebar"
-            >
-                <Menu size={20} />
-            </button>
+            <button onClick={() => setIsDesktopSidebarOpen(true)} className="hidden lg:flex fixed top-6 left-6 z-40 p-2.5 bg-white shadow-lg border border-slate-100 rounded-xl hover:bg-slate-50 text-slate-600 transition-all hover:scale-105"><Menu size={20} /></button>
         )}
 
-        {/* Content Body */}
-        <div className="flex-1 p-6 lg:p-10 max-w-[1920px] mx-auto w-full">
+        <div className="flex-1 p-4 md:p-6 lg:p-10 max-w-[1920px] mx-auto w-full">
             
-            {/* Header Section */}
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
+            {/* 🟢 Header Section (Responsive Stack) */}
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-10 gap-4 md:gap-6">
                 <div>
-                    <h1 className="flex items-center gap-3 text-3xl font-extrabold text-slate-900 tracking-tight">
-                        <div className="p-2.5 bg-slate-900 text-white rounded-xl shadow-lg shadow-slate-200"><FileJson size={24} /></div>
+                    <h1 className="flex items-center gap-3 text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
+                        <div className="p-2 md:p-2.5 bg-slate-900 text-white rounded-xl shadow-lg shadow-slate-200"><FileJson size={20} className="md:w-6 md:h-6" /></div>
                         JSON Collection
                     </h1>
-                    <p className="text-slate-500 mt-2 ml-1 text-sm font-medium">Manage and organize your Flex Message templates efficiently.</p>
+                    <p className="text-slate-500 mt-2 ml-1 text-xs md:text-sm font-medium">Manage and organize your Flex Message templates efficiently.</p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row w-full md:w-auto gap-3">
@@ -339,32 +287,42 @@ export default function Home() {
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
+                    {/* ปุ่ม Create (Desktop Only - เพราะมือถือมีใน Navbar แล้ว) */}
                     <button 
                         onClick={() => setIsCreateOpen(true)}
-                        className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-xl shadow-slate-200 hover:bg-slate-800 active:scale-95 transition-all"
+                        className="hidden md:flex bg-slate-900 text-white px-6 py-3 rounded-xl font-bold items-center justify-center gap-2 shadow-xl shadow-slate-200 hover:bg-slate-800 active:scale-95 transition-all"
                     >
                         <Plus size={20} /> <span>Create New</span>
                     </button>
                 </div>
             </header>
 
-            {/* Grid Section */}
+            {/* 🟢 Grid Section (Responsive Columns) */}
             {filteredItems.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-8">
                     {filteredItems.map((item) => (
-                        <div key={item.id} className="group bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-2xl hover:shadow-slate-200/50 hover:-translate-y-1.5 transition-all duration-300 flex flex-col h-[400px] overflow-hidden relative">
+                        <div key={item.id} className="group bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-2xl hover:shadow-slate-200/50 hover:-translate-y-1.5 transition-all duration-300 flex flex-col h-[380px] md:h-[400px] overflow-hidden relative">
                             
                             {/* Preview Area */}
                             <div className="flex-1 bg-slate-50/50 relative overflow-hidden flex items-center justify-center border-b border-slate-100">
                                 <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px] opacity-50 pointer-events-none" />
-                                <div className="scale-[0.7] origin-center opacity-90 group-hover:opacity-100 group-hover:scale-[0.75] transition-all duration-500 ease-out">
+                                <div className="scale-[0.6] md:scale-[0.7] origin-center opacity-90 group-hover:opacity-100 group-hover:scale-[0.65] md:group-hover:scale-[0.75] transition-all duration-500 ease-out">
                                     <FlexRender json={item.content} />
                                 </div>
-                                {/* Hover Overlay */}
-                                <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center backdrop-blur-[2px]">
+                                
+                                {/* 🟢 Mobile Click Handler (Invisible Button) */}
+                                {/* มือถือ: กดที่รูปเพื่อเปิดเลย (เพราะไม่มี Hover) */}
+                                <button 
+                                    onClick={() => setSelectedItem(item)} 
+                                    className="absolute inset-0 z-10 md:hidden active:bg-black/5" 
+                                    aria-label="Edit Template"
+                                ></button>
+
+                                {/* Desktop Hover Overlay */}
+                                <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all duration-300 hidden md:flex items-center justify-center backdrop-blur-[2px]">
                                     <button 
                                         onClick={() => setSelectedItem(item)} 
-                                        className="bg-white text-slate-900 px-6 py-2.5 rounded-full text-sm font-bold shadow-2xl transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 flex items-center gap-2 hover:bg-slate-50"
+                                        className="bg-white text-slate-900 px-6 py-2.5 rounded-full text-sm font-bold shadow-2xl flex items-center gap-2 hover:bg-slate-50"
                                     >
                                         <Edit size={14} /> View Details
                                     </button>
@@ -372,21 +330,21 @@ export default function Home() {
                             </div>
 
                             {/* Card Footer */}
-                            <div className="p-6 bg-white relative z-10 flex flex-col gap-4">
+                            <div className="p-4 md:p-6 bg-white relative z-20 flex flex-col gap-3 md:gap-4">
                                 <div>
-                                    <h3 className="font-bold text-slate-800 truncate text-lg tracking-tight group-hover:text-indigo-600 transition-colors">{item.name}</h3>
+                                    <h3 className="font-bold text-slate-800 truncate text-base md:text-lg tracking-tight group-hover:text-indigo-600 transition-colors">{item.name}</h3>
                                     <p className="text-xs text-slate-400 truncate mt-1 font-medium">{item.description || "No description provided"}</p>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3 mt-auto">
                                     <button 
                                         onClick={() => { navigator.clipboard.writeText(JSON.stringify(item.content)); alert('Copied JSON!'); }}
-                                        className="flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-600 py-2.5 rounded-xl text-xs font-bold transition-colors border border-slate-100"
+                                        className="flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-600 py-2 md:py-2.5 rounded-xl text-xs font-bold transition-colors border border-slate-100"
                                     >
-                                        <Copy size={14} /> Copy JSON
+                                        <Copy size={14} /> <span className="hidden sm:inline">Copy JSON</span><span className="sm:hidden">Copy</span>
                                     </button>
                                     <button 
                                         onClick={() => setSelectedItem(item)}
-                                        className="flex items-center justify-center gap-2 bg-slate-900 text-white py-2.5 rounded-xl text-xs font-bold hover:bg-slate-800 transition-colors shadow-md shadow-slate-200"
+                                        className="flex items-center justify-center gap-2 bg-slate-900 text-white py-2 md:py-2.5 rounded-xl text-xs font-bold hover:bg-slate-800 transition-colors shadow-md shadow-slate-200"
                                     >
                                         <Edit size={14} /> Edit
                                     </button>
@@ -396,7 +354,7 @@ export default function Home() {
                     ))}
                 </div>
             ) : (
-                <div className="flex flex-col items-center justify-center py-32 text-center">
+                <div className="flex flex-col items-center justify-center py-20 md:py-32 text-center">
                     <div className="bg-white p-6 rounded-full shadow-sm border border-slate-100 mb-6">
                         <Search size={48} className="text-slate-300" />
                     </div>
@@ -410,14 +368,18 @@ export default function Home() {
 
       {/* --- Modals --- */}
       {selectedItem && (
-        <EditorModal 
-          item={selectedItem} 
-          isOpen={!!selectedItem} 
+        <EditorModal
+          item={selectedItem}           
+          isOpen={!!selectedItem}       
           onClose={() => setSelectedItem(null)} 
-          onSave={handleUpdate} 
-          onDelete={handleDelete} 
+          onSave={handleUpdate}         
+          onDelete={(id) => {
+             handleDelete(id);
+             setSelectedItem(null);
+          }}       
         />
       )}
+      
       <CreateModal 
         isOpen={isCreateOpen} 
         onClose={() => setIsCreateOpen(false)} 
