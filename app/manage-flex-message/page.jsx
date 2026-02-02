@@ -148,13 +148,18 @@ const handleCreate = async (name, desc, jsonStr) => {
   const currentAdminId = getCurrentAdminId();
   
   try {
+
+    const fullJson = JSON.parse(jsonStr);
+    const { quickReply, ...flexDataOnly } = fullJson;
+    console.log(fullJson)
     const res = await fetch(FLEX_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         current_admin_id: currentAdminId,
         flex_name: name,
-        flex_data: jsonStr, // ส่งเป็น String JSON
+        flex_data: JSON.stringify(flexDataOnly), // ส่งเฉพาะตัว Flex
+        quick_reply: quickReply ? JSON.stringify(quickReply) : null, // ส่ง Quick Reply แยกไป
         comment: desc
       })
     });
