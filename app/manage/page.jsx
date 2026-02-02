@@ -192,6 +192,29 @@ export default function Manage() {
                   />
             </div>
         </div>
+       <div className="lg:hidden mb-6">
+            <h1 className="text-2xl font-bold text-slate-900">Contacts</h1>
+            <div className="mt-4 flex gap-3 items-center">
+                 <div className="relative flex-1 group">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                         <Search className="h-5 w-5 text-slate-400 group-focus-within:text-primary transition-colors" />
+                      </div>
+                      <input 
+                        type="text"
+                        className="input w-full !pl-12 bg-white text-slate-900 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 border-slate-200"
+                        placeholder="Search..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                 </div>
+                 <button 
+                    onClick={() => document.getElementById('add_admin_modal').showModal()}
+                    className="btn btn-primary text-white min-h-[3rem] h-12 px-4 rounded-xl shadow-md shadow-indigo-200 whitespace-nowrap"
+                  >
+                      + New
+                  </button>
+            </div>
+        </div>
 
         {/* --- GRID VIEW --- */}
         <div className={`grid grid-cols-1 gap-4 ${
