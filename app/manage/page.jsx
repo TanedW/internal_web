@@ -378,10 +378,10 @@ export default function Manage() {
                   <div className="form-control">
                       <label className="label text-slate-700 font-bold">Assign Role</label>
                       <select className="select select-bordered bg-slate-50 rounded-xl" value={newRole} onChange={(e) => setNewRole(e.target.value)}>
-                          <option value="editor_manage_email">Admin Email</option>
+                          <option value="editor_manage_user">Admin Email</option>
                           <option value="editor_manage_case">Admin Case</option>
                           <option value="editor_manage_menu">Admin Menu</option>
-                          <option value="editor_manage_org">Admin ORG</option>
+                          <option value="editor_manage_org_info">Admin ORG</option>
                       </select>
                   </div>
                   <button type="submit" className="btn btn-primary w-full mt-4 h-12 rounded-xl text-white font-bold" disabled={isSubmitting}>

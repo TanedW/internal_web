@@ -174,7 +174,7 @@ export default function Sidebar({ isDesktopSidebarOpen, setIsDesktopSidebarOpen 
                   <span className="text-[15px] font-bold">จัดการ Menu</span>
                 </Link>
               )}
-              {hasAccess(['admin', 'editor', 'editor_manage_org']) && (
+              {hasAccess(['admin', 'editor', 'editor_manage_org_info']) && (
                 <Link href="/manage-org" className={getMenuClass('/manage-org')} onClick={() => setIsMobileMenuOpen(false)}>
                   <Users size={20} />
                   <span className="text-[15px] font-bold">จัดการ ORG</span>
