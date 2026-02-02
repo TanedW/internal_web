@@ -118,7 +118,11 @@ export default function Manage() {
             setNewEmail("");
             fetchAdmins();
             document.getElementById('add_admin_modal').close();
-        }
+        }else {
+          // ✅ ดึงข้อความ Error (เช่น "อีเมลนี้มีอยู่ในระบบ...") มาแสดง
+          const errorData = await res.json();
+          alert(errorData.message || "เกิดข้อผิดพลาดในการเพิ่มข้อมูล");
+      }
     } catch (error) { console.error(error); } 
     finally { setIsSubmitting(false); }
   };
