@@ -123,18 +123,42 @@ export default function Manage() {
     finally { setIsSubmitting(false); }
   };
 
-  const handleDeleteEmail = async (targetId) => {
-    if(!confirm("ยืนยันการลบสิทธิ์นี้?")) return;
+//   const handleDeleteEmail = async (targetId) => {
+//     if(!confirm("ยืนยันการลบสิทธิ์นี้?")) return;
+//     const currentAdminId = getCurrentAdminId();
+//     try {
+//         await fetch(`${API_URL}?id=${targetId}`, {
+//             method: "DELETE",
+//             headers: { "Content-Type": "application/json" },
+//             body: JSON.stringify({ current_admin_id: currentAdminId }),
+//         });
+//         fetchAdmins();
+//     } catch (error) { console.error(error); }
+//   };
+
+    const handleDeleteEmail = async (targetId) => {
+    // ปรับข้อความให้ดู soft ลงตาม logic
+    if(!confirm("ยืนยันการระงับสิทธิ์ผู้ใช้งานนี้? (ข้อมูลจะยังคงอยู่ในระบบแต่ไม่สามารถเข้าระบบได้)")) return;
+    
     const currentAdminId = getCurrentAdminId();
     try {
-        await fetch(`${API_URL}?id=${targetId}`, {
-            method: "DELETE",
+        const res = await fetch(`${API_URL}?id=${targetId}`, {
+            method: "DELETE", // เรายังใช้ method DELETE ตาม REST API pattern ได้ แต่ข้างในเป็น soft delete
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ current_admin_id: currentAdminId }),
         });
-        fetchAdmins();
-    } catch (error) { console.error(error); }
-  };
+        
+        if (res.ok) {
+            fetchAdmins(); // Refresh ข้อมูลใหม่ รายการที่ถูก delete จะหายไปเพราะติดเงื่อนไข WHERE is_deleted = false
+        } else {
+            const err = await res.json();
+            alert(err.message || "เกิดข้อผิดพลาด");
+        }
+    } catch (error) { 
+        console.error(error); 
+        alert("ไม่สามารถติดต่อ Server ได้");
+    }
+    };
 
   const handleEmailMobileClick = (email) => {
     if (window.innerWidth < 1024) {
