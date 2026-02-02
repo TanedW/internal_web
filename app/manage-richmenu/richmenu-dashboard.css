@@ -444,3 +444,11 @@
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out;
 }
+
+/* เพิ่มใน richmenu-dashboard.css */
+.php-menu-img-fit {
+    width: 100%;
+    height: 100%;
+    object-fit: fill; /* บังคับให้ภาพขยายเต็มกรอบพรีวิว แม้สัดส่วนภาพจริงจะเพี้ยนมา */
+}
+

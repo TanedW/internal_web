@@ -3,6 +3,7 @@ import { initializeApp } from "firebase/app";
 // เพิ่ม import auth และ provider สำหรับ Google
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";
+import { getFirestore } from "firebase/firestore"; // เพิ่ม import Firestore
 
 // ดึงค่าจาก .env มาใช้ (Vercel จะเติมค่าให้เองตอน Build)
 const firebaseConfig = {
@@ -31,5 +32,8 @@ if (typeof window !== "undefined") {
   // หมายเหตุ: ถ้ายังไม่ได้เปิด Analytics ใน Console อาจจะ comment บรรทัดบนไว้ก่อนได้ครับ
 }
 
-// 4. Export ออกไปใช้ที่หน้า Login
-export { auth, googleProvider, analytics };
+// 4. Setup Firestore
+const db = getFirestore(app); // สร้าง object Firestore
+
+// 5. Export ออกไปใช้
+export { auth, googleProvider, analytics, db }; // Export db เพิ่ม
