@@ -10,7 +10,7 @@ import { auth } from "../../firebaseConfig";
 import EditorModal from "./components/EditorModal"; 
 import CreateModal from "./components/CreateModal"; 
 import FlexRender from "./components/FlexRender";
-import SidebarComponent from "../components/sidebar"; // 🟢 Import Sidebar เข้ามาแทน
+import SidebarComponent from "../components/sidebar"; 
 
 // Icons (เหลือเฉพาะที่ใช้ในหน้า Dashboard)
 import { 
@@ -30,11 +30,13 @@ const INITIAL_DATA = [
     updatedAt: new Date(),
   },
 ];
+ 
 
 export default function Home() {
   const router = useRouter();
   
-  const [items, setItems] = useState(INITIAL_DATA);
+  const [items, setItems] = useState([]);
+  const [loadingItems, setLoadingItems] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -48,6 +50,7 @@ export default function Home() {
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
 
   const API_URL = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
+  const FLEX_API_URL = process.env.NEXT_PUBLIC_DB_MANAGE_FLEX_MESSAGE_API_URL;
 
   // --- Auth Logic ---
   const getCurrentAdminId = () => {
@@ -78,11 +81,51 @@ export default function Home() {
     } catch (e) { console.error(e); }
   };
 
+  // 2. ฟังก์ชันสำหรับดึงข้อมูลจาก Database (GET)
+const fetchFlexMessages = async () => {
+  try {
+    const res = await fetch(FLEX_API_URL);
+    const json = await res.json();
+    if (json.success) {
+      const transformedData = json.data.map(item => {
+        // 1. ดึง Flex Data ออกมาเป็น Object
+        let combinedContent = typeof item.flex_data === 'string' 
+          ? JSON.parse(item.flex_data) 
+          : { ...item.flex_data };
+
+        // 2. ถ้าใน DB มี quick_reply ให้เอาไปใส่ใน Key "quickReply"
+        if (item.quick_reply) {
+          const qr = typeof item.quick_reply === 'string' 
+            ? JSON.parse(item.quick_reply) 
+            : item.quick_reply;
+          
+          combinedContent.quickReply = qr;
+        }
+
+        return {
+          id: item.id,
+          name: item.flex_name,
+          description: item.comment,
+          content: combinedContent, // ตอนนี้จะมี Quick Reply ต่อท้ายแล้ว
+          updatedAt: item.updated_on,
+          rawQuickReply: item.quick_reply // เก็บค่าดิบไว้ใช้ตอนเซฟ
+        };
+      });
+      setItems(transformedData);
+    }
+  } catch (e) {
+    console.error("Fetch Error:", e);
+  } finally {
+    setLoading(false);
+  }
+};
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
         fetchAdmins();
+        fetchFlexMessages(); 
       }
       setLoading(false);
     });
@@ -99,36 +142,105 @@ export default function Home() {
 
   const filteredItems = items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
   
-  const handleCreate = (name, desc, jsonStr) => {
-    try {
-      const newItem = { id: Date.now().toString(), name, description: desc, content: JSON.parse(jsonStr), updatedAt: new Date() };
-      setItems([...items, newItem]);
-    } catch (e) { alert("Invalid JSON"); }
-  };
+// page.jsx
 
-  const handleUpdate = (id, newJson, newName, newDesc, changeNote) => {
-    try {
-      const parsed = JSON.parse(newJson);
-      setItems(items.map(item => 
-        item.id === id 
-          ? { 
-              ...item, 
-              content: parsed, 
-              name: newName,        
-              description: newDesc, 
-              updatedAt: new Date() 
-            } 
-          : item
-      ));
-      
-      console.log("Saving with Note:", changeNote); // พร้อมส่ง DB
-      setSelectedItem(null); 
-    } catch (e) { 
-      alert("Invalid JSON"); 
-    }
-  };
+const handleCreate = async (name, desc, jsonStr) => {
+  const currentAdminId = getCurrentAdminId();
   
-  const handleDelete = (id) => setItems(items.filter(item => item.id !== id));
+  try {
+    const res = await fetch(FLEX_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        current_admin_id: currentAdminId,
+        flex_name: name,
+        flex_data: jsonStr, // ส่งเป็น String JSON
+        comment: desc
+      })
+    });
+
+    if (res.ok) {
+      // เมื่อสร้างสำเร็จ ให้ดึงข้อมูลใหม่จาก Database มาแสดง
+      await fetchFlexMessages(); 
+      setIsCreateOpen(false);
+    } else {
+      const err = await res.json();
+      alert(`สร้างไม่สำเร็จ: ${err.message}`);
+    }
+  } catch (e) {
+    console.error("Create Error:", e);
+    alert("เกิดข้อผิดพลาดในการเชื่อมต่อ API");
+  }
+};
+
+        const handleUpdate = async (id, newJsonStr, newName, newDesc, changeNote) => {
+        const currentAdminId = getCurrentAdminId();
+        const oldItem = items.find(i => i.id === id);
+
+        try {
+            const fullJson = JSON.parse(newJsonStr);
+    
+            // --- จุดสำคัญ: แยก Quick Reply ออกจาก Flex Data ---
+            // เราจะดึง Property 'quickReply' ออกมา (ถ้ามี) 
+            // และส่วนที่เหลือทั้งหมดจะกลายเป็น Flex Data หลัก
+            const { quickReply, ...flexDataOnly } = fullJson;
+            const res = await fetch(`${FLEX_API_URL}?id=${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                current_admin_id: currentAdminId,
+                flex_name: newName,
+                flex_data: JSON.stringify(flexDataOnly),
+                quick_reply: quickReply ? JSON.stringify(quickReply) : null,
+                comment: newDesc,
+                description: changeNote, // บันทึกลง Log ว่าแก้จุดไหน
+                old_flex: JSON.stringify(oldItem.content),
+                new_flex: newJsonStr
+            })
+            });
+
+            if (res.ok) {
+            alert("บันทึกการแก้ไขเรียบร้อย");
+            await fetchFlexMessages(); // Refresh ข้อมูล
+            setSelectedItem(null); 
+            } else {
+            const err = await res.json();
+            alert(`แก้ไขไม่สำเร็จ: ${err.message}`);
+            }
+        } catch (e) {
+            console.error("Update Error:", e);
+            alert("เกิดข้อผิดพลาดในการบันทึก");
+        }
+        };
+  
+// แก้ไขฟังก์ชัน handleDelete ใน Home Component
+const handleDelete = async (id) => {
+  const currentAdminId = getCurrentAdminId();
+  
+  if (!confirm("คุณแน่ใจหรือไม่ว่าต้องการลบเทมเพลตนี้?")) return;
+
+  try {
+    const res = await fetch(`${FLEX_API_URL}?id=${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        current_admin_id: currentAdminId
+      })
+    });
+
+    if (res.ok) {
+      alert("ลบข้อมูลเรียบร้อยแล้ว");
+      // อัปเดต UI โดยการดึงข้อมูลใหม่หรือกรองตัวที่ลบออก
+      setItems(items.filter(item => item.id !== id));
+    } else {
+      const err = await res.json();
+      alert(`ลบไม่สำเร็จ: ${err.message}`);
+    }
+  } catch (e) {
+    console.error("Delete Error:", e);
+    alert("เกิดข้อผิดพลาดในการเชื่อมต่อ API");
+  }
+};
 
   if (loading) return <div className="min-h-screen flex justify-center items-center bg-gray-50"><span className="loading loading-spinner text-primary"></span></div>;
 
