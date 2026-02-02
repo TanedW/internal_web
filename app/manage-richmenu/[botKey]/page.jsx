@@ -6,7 +6,11 @@ import Link from 'next/link';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '@/firebaseConfig';
 import '@fortawesome/fontawesome-free/css/all.css';
-import { Menu, X, LayoutGrid, ChevronDown, Save, Smartphone, Upload, Settings } from 'lucide-react';
+import { 
+  Menu, X, LayoutGrid, ChevronDown, Save, Smartphone, Upload, Settings, 
+  PlusCircle, ArrowRightLeft, History, User,
+  Image as ImageIcon, Check, MousePointer2 // ✅ เพิ่ม 3 ตัวนี้เข้าไป
+} from 'lucide-react';
 import '../richmenu-dashboard.css';
 
 // ✅ นำเข้า Sidebar จากไฟล์คอมโพเนนต์ภายนอก
@@ -121,6 +125,13 @@ export default function RichMenuDashboard() {
   // --- State Sidebar Toggle ---
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
 
+  // --- ✅ New State: Audit Log Modal ---
+  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+
+  // --- ✅ Refs for Scroll Targets ---
+  const uploadSectionRef = useRef(null);
+  const historySectionRef = useRef(null);
+
   const fileInputRef = useRef(null);
   const dropZoneRef = useRef(null);
   const actionPanelRef = useRef(null);
@@ -184,6 +195,24 @@ export default function RichMenuDashboard() {
 
   const currentArea = selectedTemplate.areas.find(a => a.id === selectedAreaId);
   const currentAction = actions[selectedAreaId] || { type: 'link', data: '', label: '' };
+
+  // ==========================================
+  // ✅ NEW: SCROLL HANDLERS
+  // ==========================================
+  const scrollToUpload = () => {
+    setIsUploadExpanded(true);
+    setTimeout(() => {
+        uploadSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
+  const scrollToHistory = () => {
+    historySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const openAuditLog = () => {
+    setIsLogModalOpen(true);
+  };
 
   // ==========================================
   // MAIN LOGIC
@@ -342,15 +371,42 @@ export default function RichMenuDashboard() {
               <Link href="/manage-richmenu" className="php-btn-back">
                 {getIcon('back')} กลับหน้าเลือกบอท
               </Link>
-              <div className="php-bot-badge">
-                กำลังจัดการ: {bot?.name || botKey}
-              </div>
             </div>
 
-            {/* Header */}
-            <div className="php-main-header">
-              <h1>Traffy Rich Menu Manager</h1>
-              <p>ระบบจัดการเมนู LINE Official Account</p>
+            {/* ✅ ADDED: Quick Action Buttons (วางตรงนี้ตามที่ขอ) */}
+            <div className="php-qa-grid animate-fade-in-up">
+               {/* ปุ่ม 1: เพิ่มเมนูใหม่ */}
+               <button onClick={scrollToUpload} className="php-qa-btn">
+                  <div className="php-qa-content">
+                     <h3>เพิ่มเมนูใหม่</h3>
+                     <p>Upload และสร้าง Rich Menu ใหม่</p>
+                  </div>
+                  <div className="php-qa-icon green">
+                     <PlusCircle size={20} />
+                  </div>
+               </button>
+
+               {/* ปุ่ม 2: เปลี่ยน Rich Menu */}
+               <button onClick={scrollToHistory} className="php-qa-btn">
+                  <div className="php-qa-content">
+                     <h3>เปลี่ยน Rich menu</h3>
+                     <p>สลับเมนูที่ใช้งานอยู่ปัจจุบัน</p>
+                  </div>
+                  <div className="php-qa-icon blue">
+                     <ArrowRightLeft size={20} />
+                  </div>
+               </button>
+
+               {/* ปุ่ม 3: ประวัติ */}
+               <button onClick={openAuditLog} className="php-qa-btn">
+                  <div className="php-qa-content">
+                     <h3>ประวัติการใช้งาน</h3>
+                     <p>ดูบันทึก Audit Log</p>
+                  </div>
+                  <div className="php-qa-icon amber">
+                     <History size={20} />
+                  </div>
+               </button>
             </div>
 
             {/* Alert */}
@@ -361,46 +417,8 @@ export default function RichMenuDashboard() {
               </div>
             )}
 
-            {/* ==================== CURRENT MENU STATUS CARD ==================== */}
-            <section className="php-card php-current-menu-card">
-              <div className="php-card-header flex justify-between items-center">
-                <h2 className="php-card-title flex items-center gap-2">
-                  <i className="fa-solid fa-star text-emerald-500"></i>
-                  เมนูที่ใช้งานอยู่ (Current Menu)
-                </h2>
-                {activeMenu && <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-1 rounded-md">LIVE</span>}
-              </div>
-              {activeMenu ? (
-                <div className="php-current-menu-grid">
-                  <div>
-                    <div className="php-menu-img-container shadow-md border-emerald-100">
-                      <div className="php-menu-img-placeholder">{getIcon('image')}</div>
-                      <img src={activeMenu.imageUrl || `/api/richmenu/image?botKey=${botKey}&menuId=${activeMenu.richMenuId}`} alt="Current Menu" className="php-menu-img" />
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-3">
-                    <div>
-                      <h3 className="text-xl font-bold text-slate-800">{activeMenu.name}</h3>
-                      <div className="flex items-center gap-2 text-slate-400 mt-1">
-                        <i className="fa-regular fa-id-card"></i>
-                        <span className="font-mono text-xs">{activeMenu.richMenuId}</span>
-                      </div>
-                    </div>
-                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 relative overflow-hidden">
-                      <span className="text-xs font-bold text-slate-400 uppercase block mb-1">Chat Bar Text</span>
-                      <p className="font-medium text-slate-700 text-lg">"{activeMenu.chatBarText}"</p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-10 text-slate-400 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
-                  <p>ยังไม่มีเมนูที่ตั้งค่าเป็น Default</p>
-                </div>
-              )}
-            </section>
-
             {/* ==================== ADVANCED UPLOAD SECTION ==================== */}
-            <section className="php-card transition-all duration-300">
+            <section ref={uploadSectionRef} className="php-card transition-all duration-300">
               <div className={`php-upload-header cursor-pointer flex justify-between items-center -m-6 p-6 rounded-t-xl transition-all ${!isUploadExpanded ? '!rounded-b-xl !mb-[-24px]' : 'border-b border-gray-100'}`} onClick={() => setIsUploadExpanded(!isUploadExpanded)}>
                 <h2 className="php-card-title flex items-center gap-2 text-base font-semibold m-0 text-slate-700">
                   <i className="fa-solid fa-cloud-arrow-up text-slate-400"></i> สร้างเมนูใหม่ (Upload New)
@@ -415,14 +433,31 @@ export default function RichMenuDashboard() {
                     <div className="w-full lg:w-80 bg-white rounded-xl border border-slate-200 flex flex-col h-full overflow-y-auto">
                       <div className="p-6 space-y-6 flex-1">
                         <div className="space-y-4">
-                          <div className="space-y-2">
-                            <label className="text-sm font-bold text-slate-700">ชื่อเมนู (Menu Name)</label>
-                            <input type="text" value={menuName} onChange={(e) => setMenuName(e.target.value)} placeholder="เช่น โปรโมชั่น" className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-green-500 outline-none" />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-sm font-bold text-slate-700">ข้อความบนแถบเมนู</label>
-                            <input type="text" value={chatBarText} onChange={(e) => setChatBarText(e.target.value)} maxLength={14} className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-green-500 outline-none" />
-                          </div>
+                        <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-700">ชื่อเมนู (Menu Name)</label>
+                        <div className="php-input-group">
+                          <input 
+                            type="text" 
+                            value={menuName} 
+                            onChange={(e) => setMenuName(e.target.value)} 
+                            placeholder="เช่น โปรโมชั่น" 
+                            className="php-input-field" 
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-700">ข้อความบนแถบเมนู</label>
+                        <div className="php-input-group">
+                          <input 
+                            type="text" 
+                            value={chatBarText} 
+                            onChange={(e) => setChatBarText(e.target.value)} 
+                            maxLength={14} 
+                            className="php-input-field"
+                          />
+                        </div>
+                      </div>
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-bold text-slate-700">เทมเพลต (Template)</label>
@@ -446,9 +481,9 @@ export default function RichMenuDashboard() {
                         </button>
                       </div>
                     </div>
-
+                  
                     {/* CENTER PANEL */}
-                    <div className="flex-1 bg-slate-100 flex flex-col overflow-hidden rounded-xl border border-slate-200 shadow-md">
+                    {/* <div className="flex-1 bg-slate-100 flex flex-col overflow-hidden rounded-xl border border-slate-200 shadow-md">
                       <div className="h-14 bg-white border-b border-slate-200 flex justify-between items-center px-4 shrink-0">
                         <span className="text-xs font-bold text-slate-400 flex items-center gap-2"><Smartphone size={14} /> Preview & Mapping</span>
                       </div>
@@ -465,10 +500,83 @@ export default function RichMenuDashboard() {
                           <div className="bg-[#f8f8f8] text-slate-500 text-[10px] text-center py-1.5 font-medium border-t border-slate-200">{chatBarText} ▼</div>
                         </div>
                       </div>
-                    </div>
+                    </div> */}
 
                     {/* RIGHT PANEL */}
-                    <div ref={actionPanelRef} className="w-full lg:w-80 bg-white rounded-xl border border-slate-200 flex flex-col h-full z-20 shadow-md lg:shadow-none relative">
+                    <div className="canvas-container">
+  {/* Toolbar */}
+  <div className="canvas-toolbar">
+    <span className="text-xs font-bold text-slate-400 uppercase flex items-center gap-2">
+      <Smartphone size={14} /> Preview (Mobile Fit)
+    </span>
+  </div>
+
+  {/* Canvas Area */}
+  <div className="canvas-viewport">
+    <div className="richmenu-editor-card shadow-xl">
+      <div 
+      className="relative w-full bg-slate-100" 
+      style={{ aspectRatio: `${selectedTemplate.width}/${selectedTemplate.height}` }}
+    >
+      {uploadedImage ? (
+        <img src={uploadedImage} className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none" />
+      ) : (
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-300">
+          <ImageIcon size={48} />
+          <span className="text-xs mt-2">ยังไม่มีรูปภาพ</span>
+        </div>
+      )}
+
+        {/* GRID OVERLAY */}
+        {selectedTemplate.areas.map((area) => {
+  const isSelected = selectedAreaId === area.id;
+  const hasAction = actions[area.id]?.type && actions[area.id]?.type !== 'no_action';
+
+  // คำนวณ % เทียบกับขนาดจริงของ Template อัตโนมัติ
+  const left = (area.x / selectedTemplate.width) * 100;
+  const top = (area.y / selectedTemplate.height) * 100;
+  const width = (area.w / selectedTemplate.width) * 100;
+  const height = (area.h / selectedTemplate.height) * 100;
+
+  return (
+    <div
+      key={area.id}
+      onClick={() => setSelectedAreaId(area.id)}
+      className={`area-grid-item ${isSelected ? 'active' : ''}`}
+      style={{
+        left: `${left}%`,
+        top: `${top}%`,
+        width: `${width}%`,
+        height: `${height}%`,
+      }}
+    >
+      <div className="area-badge">
+        {area.id.toUpperCase()}
+      </div>
+
+      {hasAction && (
+        <div className="absolute bottom-1 right-1 bg-slate-800/80 text-white p-0.5 rounded-full">
+          <Check size={8} />
+        </div>
+      )}
+    </div>
+  );
+})}
+      </div>
+
+      {/* แถบข้อความด้านล่าง (Chat Bar) */}
+      <div className="php-chatbar">
+      {chatBarText || 'เมนูหลัก'} ▼
+      </div>
+    </div>
+
+    {/* Tooltip ด้านล่าง */}
+    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur px-4 py-1.5 rounded-full text-xs text-slate-500 flex items-center gap-2 shadow-md border border-slate-100">
+      <MousePointer2 size={12} /> คลิกที่ช่องเพื่อกำหนด Action
+    </div>
+  </div>
+</div>
+                    {/* <div ref={actionPanelRef} className="w-full lg:w-80 bg-white rounded-xl border border-slate-200 flex flex-col h-full z-20 shadow-md lg:shadow-none relative">
                       <div className="p-4 border-b border-slate-100 bg-slate-50 rounded-t-xl">
                         <h3 className="font-bold text-slate-700 flex items-center gap-2 text-sm"><Settings size={16} className="text-[#06C755]" /> ตั้งค่าการทำงาน (Action)</h3>
                         <p className="text-xs text-slate-500 mt-1">พื้นที่ที่เลือก: <span className="font-bold bg-green-100 text-green-700 px-1.5 rounded uppercase">{selectedAreaId}</span></p>
@@ -494,38 +602,107 @@ export default function RichMenuDashboard() {
                       <div className="p-4 border-t border-slate-100 bg-slate-50">
                         <button onClick={() => setActions(prev => { const n = { ...prev }; delete n[selectedAreaId]; return n; })} className="w-full py-2 text-xs text-white font-bold bg-red-500 rounded-lg hover:bg-red-600">ล้างค่า (Clear Action)</button>
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               )}
             </section>
 
             {/* Template Selection Modal */}
-            {isTemplateModalOpen && (
-              <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-                  <div className="p-4 border-b flex justify-between items-center">
-                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><LayoutGrid className="text-[#06C755]" /> เลือกรูปแบบ Rich Menu</h3>
-                    <button onClick={() => setIsTemplateModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full"><X size={20} /></button>
+{isTemplateModalOpen && (
+  <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+      <div className="p-4 border-b flex justify-between items-center">
+        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+          <LayoutGrid className="text-slate-400" /> เลือกรูปแบบ Rich Menu
+        </h3>
+        <button onClick={() => setIsTemplateModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full">
+          <X size={20} />
+        </button>
+      </div>
+      
+      <div className="p-6 overflow-y-auto bg-slate-50">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {TEMPLATES.map(t => (
+            <button 
+              key={t.id} 
+              onClick={() => handleTemplateChange(t)} 
+              className={`relative bg-white border-2 rounded-xl p-4 transition-all ${
+                selectedTemplate.id === t.id 
+                ? 'border-slate-400 php-template-card-active' 
+                : 'border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              {/* ส่วนแสดงตัวอย่างกรอบสีเทา */}
+              <div className="php-template-preview mb-3">
+                {t.areas.map((a, i) => (
+                  <div 
+                    key={i} 
+                    className="php-template-area-border" 
+                    style={{ 
+                      left: `${(a.x / t.width) * 100}%`, 
+                      top: `${(a.y / t.height) * 100}%`, 
+                      width: `${(a.w / t.width) * 100}%`, 
+                      height: `${(a.h / t.height) * 100}%` 
+                    }}
+                  >
+                    {a.id.toUpperCase()}
                   </div>
-                  <div className="p-6 overflow-y-auto bg-slate-50">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      {TEMPLATES.map(t => (
-                        <button key={t.id} onClick={() => handleTemplateChange(t)} className={`relative bg-white border-2 rounded-xl p-4 transition-all ${selectedTemplate.id === t.id ? 'border-[#06C755] ring-1 ring-[#06C755]' : 'border-slate-200'}`}>
-                          <div className="aspect-[2500/1686] bg-slate-100 rounded-lg mb-3 border border-slate-200 overflow-hidden relative">
-                            {t.areas.map((a, i) => <div key={i} className="absolute bg-white border border-slate-300" style={{ left: `${(a.x / t.width) * 100}%`, top: `${(a.y / t.height) * 100}%`, width: `${(a.w / t.width) * 100}%`, height: `${(a.h / t.height) * 100}%` }} />)}
+                ))}
+              </div>
+              <div className="text-left">
+                <div className="font-bold text-slate-700 text-sm">{t.name}</div>
+                <div className="text-[10px] text-slate-400">{t.desc}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+            {/* ✅ NEW: Audit Log Modal (เพิ่มใหม่) */}
+            {isLogModalOpen && (
+              <div className="php-modal-overlay" onClick={() => setIsLogModalOpen(false)}>
+                <div className="php-modal-content" onClick={e => e.stopPropagation()}>
+                  <div className="php-modal-header">
+                    <h3><Settings size={20} className="text-amber-500" /> ประวัติการใช้งาน (Audit Log)</h3>
+                    <button onClick={() => setIsLogModalOpen(false)} className="php-modal-close"><X size={20} /></button>
+                  </div>
+                  <div className="php-modal-body">
+                    {/* Mock Data */}
+                    {[
+                      { user: 'Admin 1', action: 'เปลี่ยน Rich Menu Active', detail: 'Promotion_Feb -> Main_Menu', time: '10 นาทีที่แล้ว' },
+                      { user: 'Admin 2', action: 'อัปโหลดเมนูใหม่', detail: 'Promotion_March_2024', time: '2 ชั่วโมงที่แล้ว' },
+                      { user: 'System', action: 'ลบเมนูเก่า', detail: 'Test_Menu_v1', time: 'เมื่อวาน, 14:30' },
+                      { user: 'Admin 1', action: 'เข้าสู่ระบบ', detail: 'Login via Firebase', time: 'เมื่อวาน, 09:00' },
+                    ].map((log, index) => (
+                      <div key={index} className="php-log-item">
+                        <div className="php-log-icon"><User size={18} /></div>
+                        <div className="php-log-info">
+                          <div className="php-log-top">
+                            <span className="php-log-user">{log.user}</span>
+                            <span className="php-log-time">{log.time}</span>
                           </div>
-                          <div className="text-left font-bold text-slate-700 text-sm">{t.name}</div>
-                        </button>
-                      ))}
+                          <div className="php-log-action">{log.action}</div>
+                          <div className="php-log-detail">{log.detail}</div>
+                        </div>
+                      </div>
+                    ))}
+                    <div style={{padding: '30px', textAlign: 'center', color: '#94a3b8', fontSize: '12px', fontStyle: 'italic'}}>
+                       (ข้อมูลจำลอง - ระบบ Audit Log ยังไม่เปิดใช้งานจริง)
                     </div>
+                  </div>
+                  <div className="php-modal-footer">
+                    <button onClick={() => setIsLogModalOpen(false)} className="php-btn-close-modal">ปิดหน้าต่าง</button>
                   </div>
                 </div>
               </div>
             )}
 
             {/* ==================== HISTORY SECTION ==================== */}
-            <section className="php-card">
+            <section ref={historySectionRef} className="php-card">
               <div className="php-card-header"><h2 className="php-card-title">ประวัติ Rich Menu</h2></div>
               {menus.length > 0 ? (
                 <>
