@@ -305,7 +305,7 @@ export default function Manage() {
                         </div>
 
                         <div className="w-full px-1"> 
-                            <div className=" lg:tooltip-bottom w-full before:text-[10px]" data-tip={item.email}>
+                            <div className="tooltip lg:tooltip-bottom w-full before:text-[10px]" data-tip={item.email}>
                                 <h3 className={`font-bold text-slate-800 truncate whitespace-nowrap overflow-hidden ${
                                     isDesktopSidebarOpen ? "text-[10px] mb-1" : "text-sm mb-2"
                                 }`}>
