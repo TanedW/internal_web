@@ -31,8 +31,9 @@ export default function Manage() {
   const [roleModalData, setRoleModalData] = useState(null);
   const [selectedEmailForMobile, setSelectedEmailForMobile] = useState("");
   const [newEmail, setNewEmail] = useState("");
-  const [newRole, setNewRole] = useState("editor_manage_user"); 
+  const [newRole, setNewRole] = useState(""); 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sidebarKey, setSidebarKey] = useState(0);
 
   const API_URL = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
 
@@ -102,6 +103,10 @@ export default function Manage() {
   const handleAddEmail = async (e) => {
     e.preventDefault();
     if (!newEmail.trim() || !newEmail.includes("@")) return;
+    if (!newRole) {
+        alert("กรุณาเลือกบทบาท (Role) สำหรับผู้ใช้งานนี้ก่อนดำเนินการครับ");
+        return;
+    }
     const currentAdminId = getCurrentAdminId();
     setIsSubmitting(true);
     try {
@@ -116,7 +121,9 @@ export default function Manage() {
         });
         if (res.ok) {
             setNewEmail("");
+            setNewRole(""); // ล้างค่า Role หลังสำเร็จ
             fetchAdmins();
+            setSidebarKey(prev => prev + 1);
             document.getElementById('add_admin_modal').close();
         }else {
           // ✅ ดึงข้อความ Error (เช่น "อีเมลนี้มีอยู่ในระบบ...") มาแสดง
@@ -180,6 +187,7 @@ export default function Manage() {
 
       {/* ✅ เรียกใช้ Sidebar คอมโพเนนต์ที่แยกออกมา */}
       <Sidebar 
+        key={sidebarKey}
         isDesktopSidebarOpen={isDesktopSidebarOpen} 
         setIsDesktopSidebarOpen={setIsDesktopSidebarOpen} 
       />
@@ -296,18 +304,15 @@ export default function Manage() {
                             />
                         </div>
 
-                        <div 
-                          className="w-full px-1 cursor-pointer lg:cursor-default" 
-                          onClick={() => handleEmailMobileClick(item.email)}
-                        >
-                          <div className="tooltip lg:tooltip-bottom w-full before:text-[10px]" data-tip={item.email}>
-                            <h3 className={`font-bold text-slate-800 truncate whitespace-nowrap overflow-hidden ${
-                                isDesktopSidebarOpen ? "text-[10px] mb-1" : "text-sm mb-2"
-                            }`}>
-                                {item.email}
-                            </h3>
-                          </div>
-                        </div>
+                        <div className="w-full px-1"> 
+                            <div className=" lg:tooltip-bottom w-full before:text-[10px]" data-tip={item.email}>
+                                <h3 className={`font-bold text-slate-800 truncate whitespace-nowrap overflow-hidden ${
+                                    isDesktopSidebarOpen ? "text-[10px] mb-1" : "text-sm mb-2"
+                                }`}>
+                                    {item.email}
+                                </h3>
+                            </div>
+                            </div>
                         
                         <div className="lg:hidden mt-2 w-full px-2 flex flex-wrap gap-2 justify-center items-center">
                             {userRoles.length > 0 && (
@@ -378,6 +383,7 @@ export default function Manage() {
                   <div className="form-control">
                       <label className="label text-slate-700 font-bold">Assign Role</label>
                       <select className="select select-bordered bg-slate-50 rounded-xl" value={newRole} onChange={(e) => setNewRole(e.target.value)}>
+                          <option value="" disabled>-- กรุณาเลือกบทบาท --</option>
                           <option value="editor_manage_user">Admin Email</option>
                           <option value="editor_manage_case">Admin Case</option>
                           <option value="editor_manage_menu">Admin Menu</option>
