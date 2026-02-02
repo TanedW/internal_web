@@ -19,6 +19,12 @@ const getSize = (size, type) => {
   return size;
 };
 
+// 🟢 NEW: Accurate Corner Radius Mapping
+const getCornerRadius = (size) => {
+  const radiusMap = { none: '0px', xs: '2px', sm: '4px', md: '8px', lg: '12px', xl: '16px', xxl: '20px' };
+  return radiusMap[size] || size || '0px';
+};
+
 // --- 2. Common Styles ---
 const getCommonStyles = (node, parentLayout) => {
   const style = {};
@@ -35,6 +41,7 @@ const getCommonStyles = (node, parentLayout) => {
 
   if (node.margin && node.position !== 'absolute') {
     const mVal = getSpacing(node.margin);
+    // 🟢 LINE Logic: Margins apply to top/left based on layout
     if (parentLayout === 'horizontal' || parentLayout === 'baseline') {
       style.marginLeft = mVal;
     } else {
@@ -43,12 +50,12 @@ const getCommonStyles = (node, parentLayout) => {
   }
 
   if (node.position !== 'absolute') {
-    if (node.flex === 0) style.flex = '0 1 auto';
+    if (node.flex === 0) style.flex = '0 0 auto';
     else if (typeof node.flex === 'number') style.flex = `${node.flex} 1 0%`;
+    // Default flex behavior for LINE components
     else if (parentLayout === 'horizontal') style.flex = '0 1 auto';
   }
 
-  // Justify & Align (Base)
   if (parentLayout === 'vertical') {
      if (node.align === 'center') style.alignSelf = 'center';
      if (node.align === 'end') style.alignSelf = 'flex-end';
@@ -61,16 +68,24 @@ const getCommonStyles = (node, parentLayout) => {
      if (node.gravity === 'top') style.alignSelf = 'flex-start';
   }
 
+  // 🟢 FIX: Generic Action Handling (Any node with action gets pointer cursor)
+  if (node.action) {
+    style.cursor = 'pointer';
+  }
+
   if (node.shadow) style.boxShadow = node.shadow;
   if (node.boxShadow) style.boxShadow = node.boxShadow;
 
   return style;
 };
 
-// --- 3. FlexBox ---
+// --- 3. FlexBox (The Pure Logic) ---
 const FlexBox = ({ node, parentLayout }) => {
   const isHorizontal = node.layout === 'horizontal' || node.layout === 'baseline';
+  
+  // 🟢 Layout Defaults: Vertical boxes usually take full width
   let defaultWidth = node.layout === 'vertical' ? '100%' : 'auto';
+  if (node.width) defaultWidth = getSize(node.width, 'width');
   if (node.position === 'absolute') defaultWidth = (!node.contents || node.contents.length === 0) ? '100%' : 'auto';
 
   const style = {
@@ -79,67 +94,26 @@ const FlexBox = ({ node, parentLayout }) => {
     flexDirection: isHorizontal ? 'row' : 'column',
     boxSizing: 'border-box',
     backgroundColor: node.backgroundColor || 'transparent',
-    width: node.width || defaultWidth,
+    width: defaultWidth,
     height: node.height || 'auto',
   };
 
-  // ============================================================
-  // 🎯 SMART INTERCEPT: Fixes Margin & Color
-  // ============================================================
-  
-  const isTargetButton = node.action && node.paddingBottom === '3px';
-
-  let childrenToRender = node.contents;
-
-  if (isTargetButton) {
-      // 1. Force Border Thickness (Padding)
-      style.paddingTop = '2px';
-      style.paddingLeft = '2px';
-      style.paddingRight = '2px';
-      // 🔴 FIX: Override the bottom margin to be thicker (4px) to create the shadow effect
-      style.paddingBottom = '4px'; 
-
-      // 2. Fix Inner Content (Color & Text)
-      if (childrenToRender) {
-          childrenToRender = childrenToRender.map(child => {
-              const modifiedChild = { ...child };
-              
-              if (modifiedChild.type === 'box') {
-                  // Force inner background to white
-                  modifiedChild.backgroundColor = '#FFFFFF';
-                  
-                  // Force text to black
-                  if (modifiedChild.contents) {
-                      modifiedChild.contents = modifiedChild.contents.map(grandChild => {
-                          if (grandChild.type === 'text') {
-                              return { ...grandChild, color: '#000000' };
-                          }
-                          return grandChild;
-                      });
-                  }
-              }
-              return modifiedChild;
-          });
-      }
-  }
-
-  // Padding Logic (Standard)
+  // 🟢 PADDING: Trust the JSON fully. 
+  // If JSON says paddingBottom: 6px, we do it. This creates the shadow area on colored boxes.
   if (node.paddingAll) {
     style.padding = getSpacing(node.paddingAll);
   } else {
-    // Only apply if not already set by the interceptor
-    if (!style.paddingTop) style.paddingTop = getSpacing(node.paddingTop);
-    if (!style.paddingRight) style.paddingRight = getSpacing(node.paddingEnd);
-    
-    // Ensure we don't overwrite our manual fix (4px) with the JSON's default (3px)
-    if (!style.paddingBottom) style.paddingBottom = getSpacing(node.paddingBottom);
-
-    if (!style.paddingLeft) style.paddingLeft = getSpacing(node.paddingStart);
+    if (node.paddingTop) style.paddingTop = getSpacing(node.paddingTop);
+    if (node.paddingRight) style.paddingRight = getSpacing(node.paddingEnd || node.paddingRight);
+    if (node.paddingBottom) style.paddingBottom = getSpacing(node.paddingBottom);
+    if (node.paddingLeft) style.paddingLeft = getSpacing(node.paddingStart || node.paddingLeft);
   }
 
+  // 🟢 BORDER RADIUS: Critical for the rounded button look
   if (node.cornerRadius) {
-      style.borderRadius = node.cornerRadius;
-      if (!node.shadow && !node.boxShadow) style.overflow = 'hidden';
+      style.borderRadius = getCornerRadius(node.cornerRadius);
+      // Overflow hidden ensures the child (button face) clips to the parent's rounded corners
+      style.overflow = 'hidden'; 
   }
 
   if (node.borderColor) style.borderColor = node.borderColor;
@@ -150,18 +124,33 @@ const FlexBox = ({ node, parentLayout }) => {
 
   const justifyMap = { 'flex-start':'flex-start', 'center':'center', 'flex-end':'flex-end', 'space-between':'space-between' };
   const alignMap = { 'flex-start':'flex-start', 'center':'center', 'flex-end':'flex-end', 'baseline':'baseline' };
+  
   style.justifyContent = justifyMap[node.justifyContent] || 'flex-start';
   style.alignItems = alignMap[node.alignItems] || (isHorizontal ? 'center' : 'stretch'); 
+  
   if (node.spacing) style.gap = getSpacing(node.spacing);
 
+  // Gradient Background Support
   const bgStyle = {};
   if (node.background?.type === 'linearGradient') {
       bgStyle.background = `linear-gradient(${node.background.angle || '0deg'}, ${node.background.startColor}, ${node.background.endColor})`;
   }
 
+  // 🟢 Handle Actions (Click events)
+  const handleClick = () => {
+    if (node.action) {
+      console.log('Action triggered:', node.action);
+      // alert(`Action: ${node.action.label || node.action.type}`);
+    }
+  };
+
   return (
-    <div style={{...style, ...bgStyle}}>
-      {childrenToRender?.map((child, i) => <FlexNode key={i} node={child} parentLayout={node.layout} />)}
+    <div 
+      style={{...style, ...bgStyle}} 
+      onClick={handleClick}
+      className={node.action ? "hover:opacity-90 active:scale-[0.99] transition-all duration-100" : ""}
+    >
+      {node.contents?.map((child, i) => <FlexNode key={i} node={child} parentLayout={node.layout} />)}
     </div>
   );
 };
@@ -170,7 +159,7 @@ const FlexBox = ({ node, parentLayout }) => {
 const FlexText = ({ node, parentLayout }) => {
   const style = {
     ...getCommonStyles(node, parentLayout),
-    color: node.color || '#000000',
+    color: node.color || '#000000', // Uses JSON color (White), defaults to black
     fontSize: getSize(node.size, 'text'),
     fontWeight: node.weight === 'bold' ? 700 : 400,
     textAlign: node.align || 'left',
@@ -179,10 +168,13 @@ const FlexText = ({ node, parentLayout }) => {
     overflow: node.wrap ? 'visible' : 'hidden',
     textOverflow: node.wrap ? 'clip' : 'ellipsis',
     lineHeight: 1.4,
+    flexShrink: 0 // Prevent text from collapsing
   };
+  
   if (node.decoration === 'underline') style.textDecoration = 'underline';
   if (node.decoration === 'line-through') style.textDecoration = 'line-through';
   if (node.style === 'italic') style.fontStyle = 'italic';
+  
   return <div style={style}>{node.text}</div>;
 };
 
@@ -200,6 +192,7 @@ const FlexImage = ({ node, parentLayout }) => {
 };
 
 const FlexButton = ({ node, parentLayout }) => {
+    // If specific "button" type is used (less common in modern Flex, usually Box is used)
     const wrapperStyle = { ...getCommonStyles(node, parentLayout), width: '100%', cursor: 'pointer' };
     const color = node.color || '#1B437C';
     const btnStyle = {
@@ -209,6 +202,7 @@ const FlexButton = ({ node, parentLayout }) => {
     };
     if (node.style === 'primary') { btnStyle.backgroundColor = color; btnStyle.color = '#fff'; }
     else if (node.style === 'secondary') { btnStyle.border = `1px solid ${color}`; }
+    
     return (
         <div style={wrapperStyle}><div style={btnStyle}>{node.action?.label || 'Button'}</div></div>
     );
@@ -216,7 +210,7 @@ const FlexButton = ({ node, parentLayout }) => {
 
 const FlexSeparator = ({ node, parentLayout }) => {
     const color = node.color || '#eeeeee';
-    const marginVal = node.margin ? getSpacing(node.margin) : '8px';
+    const marginVal = node.margin ? getSpacing(node.margin) : '0px'; // Separator defaults to 0 margin unless specified
     const isHorizontalParent = parentLayout === 'horizontal';
     const style = { backgroundColor: color, flexShrink: 0, width: isHorizontalParent ? '1px' : '100%', height: isHorizontalParent ? '100%' : '1px' };
     if (isHorizontalParent) style.marginLeft = marginVal; else style.marginTop = marginVal;
@@ -247,11 +241,9 @@ const FlexNode = ({ node, parentLayout = 'vertical' }) => {
             borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             position: 'relative', height: '100%', flex: 1
         };
+        // Handle Bubble sizing if strictly defined
         if (node.size === 'mega') bubbleStyle.width = '300px';
-        if (node.size === 'kilo') bubbleStyle.width = '260px';
-        if (node.size === 'micro') bubbleStyle.width = '160px';
-        if (node.size === 'nano') bubbleStyle.width = '120px';
-
+        
         return (
             <div style={bubbleStyle} className="fl-bubble">
                 {node.hero && <div style={{width:'100%', lineHeight:0}}><FlexNode node={node.hero} parentLayout="vertical"/></div>}

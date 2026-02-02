@@ -436,6 +436,7 @@ const CreateModal = ({ isOpen, onClose, onCreate }) => {
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [json, setJson] = useState("{\n  \n}");
+  const [quickReply, setQuickReply] = useState(""); // 🟢 New State for Quick Reply
 
   if (!isOpen) return null;
 
@@ -444,6 +445,7 @@ const CreateModal = ({ isOpen, onClose, onCreate }) => {
     setName(template.name);
     setDesc(template.description);
     setJson(JSON.stringify(template.content, null, 2));
+    setQuickReply(""); // Reset Quick Reply when loading a template
     
     // 2. Switch back to 'scratch' view so user can edit details before creating
     setActiveTab("scratch");
@@ -451,7 +453,7 @@ const CreateModal = ({ isOpen, onClose, onCreate }) => {
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl w-[900px] max-h-[85vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-[900px] max-h-[90vh] flex flex-col overflow-hidden">
         
         {/* Header & Tabs */}
         <div className="bg-slate-50 border-b border-slate-200">
@@ -516,6 +518,8 @@ const CreateModal = ({ isOpen, onClose, onCreate }) => {
                             value={desc} onChange={e => setDesc(e.target.value)}
                         />
                     </div>
+                    
+                    {/* JSON Content Input */}
                     <div>
                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">JSON Content</label>
                         <div className="relative">
@@ -527,6 +531,24 @@ const CreateModal = ({ isOpen, onClose, onCreate }) => {
                             <div className="absolute top-2 right-2 text-[10px] bg-slate-200 px-2 py-1 rounded text-slate-500 font-bold font-mono">JSON</div>
                         </div>
                     </div>
+
+                    {/* 🟢 NEW: Quick Reply JSON Input */}
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Quick Reply</label>
+                        <div className="relative">
+                            <textarea 
+                                className="w-full h-32 p-4 border border-slate-200 rounded-xl font-mono text-xs leading-5 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all resize-none"
+                                value={quickReply} onChange={e => setQuickReply(e.target.value)}
+                                placeholder='{ "items": [ { "type": "action", "action": { "type": "message", "label": "Yes", "text": "Yes" } } ] }'
+                                spellCheck="false"
+                            />
+                            <div className="absolute top-2 right-2 text-[10px] bg-slate-200 px-2 py-1 rounded text-slate-500 font-bold font-mono">JSON</div>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-1.5">
+                            Add a Quick Reply object here. It will be attached to the message.
+                        </p>
+                    </div>
+
                 </div>
             )}
 
@@ -569,7 +591,7 @@ const CreateModal = ({ isOpen, onClose, onCreate }) => {
           
           {activeTab === "scratch" ? (
               <button 
-                onClick={() => { onCreate(name, desc, json); onClose(); }} 
+                onClick={() => { onCreate(name, desc, json, quickReply); onClose(); }} 
                 className="px-6 py-2.5 bg-black text-white text-sm font-bold rounded-xl hover:bg-slate-800 shadow-lg shadow-black/20 active:scale-95 transition-all"
               >
                 Create Message
