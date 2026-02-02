@@ -31,7 +31,7 @@ export default function Manage() {
   const [roleModalData, setRoleModalData] = useState(null);
   const [selectedEmailForMobile, setSelectedEmailForMobile] = useState("");
   const [newEmail, setNewEmail] = useState("");
-  const [newRole, setNewRole] = useState("editor"); 
+  const [newRole, setNewRole] = useState("editor_manage_user"); 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
