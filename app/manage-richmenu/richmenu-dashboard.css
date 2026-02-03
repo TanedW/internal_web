@@ -36,411 +36,343 @@
 .php-alert {
   padding: 12px 16px;
   border-radius: 8px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   display: flex;
   align-items: center;
   gap: 12px;
   font-size: 14px;
-  animation: slideDown 0.3s ease-out;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease;
 }
-.php-alert-success { 
-  background: #E8F5E9; 
-  color: #1B5E20; 
-  border: 1px solid #C8E6C9; 
-}
-.php-alert-error { 
-  background: #FFEBEE; 
-  color: #B71C1C; 
-  border: 1px solid #FFCDD2; 
-}
-@keyframes slideDown { 
-  from { transform: translateY(-10px); opacity: 0; } 
-  to { transform: translateY(0); opacity: 1; } 
-}
+.php-alert-success { background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+.php-alert-error { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
 
 /* CARDS */
 .php-card {
   background: var(--php-bg-card);
   border-radius: var(--php-radius);
   box-shadow: var(--php-shadow);
-  padding: 24px;
   margin-bottom: 24px;
-}
-.php-card-header {
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid var(--php-border);
-}
-.php-card-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0;
-  color: var(--php-text-main);
-}
-
-/* FORM */
-.php-input-label { 
-  display: block; 
-  margin-bottom: 8px; 
-  font-weight: 500; 
-  font-size: 14px; 
-  color: var(--php-text-main); 
-}
-.php-form-control {
-  width: 100%; 
-  padding: 12px; 
   border: 1px solid var(--php-border);
-  border-radius: 8px; 
-  font-size: 14px; 
-  font-family: 'Sarabun', sans-serif; 
-  transition: 0.2s; 
-  background: #fff;
+  overflow: hidden;
+  padding: 24px;
 }
-.php-form-control:focus { 
-  outline: none; 
-  border-color: var(--php-primary); 
-  box-shadow: 0 0 0 3px rgba(6, 199, 85, 0.1); 
-}
+.php-card-header { margin-bottom: 20px; }
+.php-card-title { font-size: 18px; font-weight: 600; color: var(--php-text-main); margin: 0; }
 
-/* UPLOAD ZONE - COMPACT VERSION */
-.php-upload-zone {
-  border: 2px dashed var(--php-border); 
-  border-radius: var(--php-radius); 
-  padding: 20px;
-  text-align: center; 
-  cursor: pointer; 
-  transition: 0.2s; 
-  position: relative;
-  background: #FAFAFA;
-}
-.php-upload-zone:hover { 
-  border-color: var(--php-primary); 
-  background: #F0FDF4; 
-}
-.php-upload-zone-active { 
-  border-color: var(--php-primary) !important; 
-  background: #F0FDF4 !important; 
-}
-.php-upload-text { 
-  font-weight: 500; 
-  margin-bottom: 4px; 
-  display: block; 
-}
-.php-upload-sub { 
-  font-size: 12px; 
-  color: var(--php-text-sub); 
-}
-.php-file-selected { 
-  color: var(--php-primary); 
-  font-weight: 600; 
-  margin-top: 8px; 
-  font-size: 13px;
-  display: block; 
-  background: #E8F5E9;
-  padding: 4px 8px;
-  border-radius: 4px;
-  display: inline-block;
-}
-
-/* BUTTONS */
-.php-btn-primary {
-  background: var(--php-primary) !important; 
-  color: white; 
-  border: none; 
-  width: 100%; 
-  padding: 12px;
-  border-radius: 8px; 
-  font-size: 15px; 
-  font-weight: 500; 
-  cursor: pointer; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  gap: 8px;
-  font-family: 'Sarabun', sans-serif;
-}
-.php-btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
-
-.php-btn-secondary {
-  background: transparent; 
-  border: 1px solid var(--php-border); 
-  color: var(--php-text-sub);
-  width: 100%; 
-  padding: 12px; 
-  border-radius: 8px; 
-  cursor: pointer; 
-  font-size: 14px;
-  font-weight: 500; 
-  transition: 0.2s; 
-  margin-top: 20px; 
-  display: flex; 
-  align-items: center;
-  justify-content: center; 
-  gap: 8px; 
-  font-family: 'Sarabun', sans-serif;
-}
-.php-btn-secondary:hover { 
-  background: #fff; 
-  border-color: var(--php-primary); 
-  color: var(--php-primary); 
-}
-
-/* MENU LIST */
-.php-menu-list { 
-  display: grid; 
-  gap: 16px; 
-  grid-template-columns: 1fr; 
-}
-@media (min-width: 768px) { 
-  .php-menu-list { 
-    grid-template-columns: repeat(2, 1fr); 
-  } 
-}
-
-.php-menu-item {
-  background: #fff; 
-  border: 1px solid var(--php-border); 
-  border-radius: 10px; 
-  padding: 16px;
-  display: flex; 
-  flex-direction: column; 
-  gap: 12px; 
-  transition: 0.2s;
-}
-.php-menu-item.active { 
-  border-color: var(--php-primary); 
-  background: #fff; 
-  box-shadow: 0 0 0 1px var(--php-primary); 
-}
-
-/* Image Preview Styles */
-.php-menu-img-container {
-    width: 100%;
-    aspect-ratio: 2.96; 
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    overflow: hidden;
-    border: 1px solid #eee;
-    position: relative;
-    margin-bottom: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.php-menu-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    position: relative;
-    z-index: 2;
-}
-.php-menu-img-placeholder {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    color: #d1d5db;
-    z-index: 1;
-}
-
-.php-menu-status { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: flex-start; 
-}
-.php-status-badge {
-  font-size: 11px; 
-  font-weight: 600; 
-  padding: 4px 8px; 
-  border-radius: 20px;
-  text-transform: uppercase; 
-  letter-spacing: 0.5px;
-}
-.php-status-active { 
-  background: #E8F5E9; 
-  color: var(--php-primary); 
-}
-.php-status-inactive { 
-  background: #ECEFF1; 
-  color: var(--php-text-sub); 
-}
-
-.php-menu-details h3 { 
-  margin: 0 0 4px 0; 
-  font-size: 15px; 
-  font-weight: 600; 
-}
-.php-menu-details p { 
-  margin: 0; 
-  font-size: 12px; 
-  color: var(--php-text-sub); 
-}
-.php-menu-id {
-  font-family: 'Courier New', monospace; 
-  font-size: 11px; 
-  background: #F1F2F6;
-  padding: 4px 6px; 
-  border-radius: 4px; 
-  color: #555; 
-  margin-top: 6px; 
-  display: inline-block; 
-  word-break: break-all;
-}
-
-.php-menu-actions { 
-  display: flex; 
-  gap: 8px; 
-  margin-top: 8px; 
-  padding-top: 12px; 
-  border-top: 1px solid #f0f0f0; 
-}
-.php-btn-action {
-  flex: 1; 
-  padding: 8px 12px; 
-  border-radius: 6px; 
-  font-size: 13px; 
-  border: 1px solid transparent;
-  cursor: pointer; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  gap: 6px;
-  transition: 0.2s; 
-  font-weight: 500; 
-  font-family: 'Sarabun', sans-serif;
-}
-.php-btn-switch { 
-  background: #fff; 
-  border-color: var(--php-border); 
-  color: var(--php-text-main); 
-}
-.php-btn-switch:hover { 
-  background: #f8f9fa; 
-  border-color: #ccc; 
-}
-.php-btn-delete { 
-  background: #fff; 
-  border-color: #FFEBEE; 
-  color: var(--php-danger); 
-}
-.php-btn-delete:hover { 
-  background: #FFEBEE; 
-}
-
-.php-btn-disabled { 
-  opacity: 0.5; 
-  cursor: default; 
-  background: #E8F5E9; 
-  border-color: transparent; 
-  color: var(--php-primary); 
-}
-
-.php-empty-state { 
-  text-align: center; 
-  padding: 40px; 
-  color: var(--php-text-sub); 
-}
-
-.php-nav-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    background: #fff;
-    padding: 10px 15px;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
+/* NAV BAR */
+.php-nav-bar { margin-bottom: 20px; }
 .php-btn-back {
-    text-decoration: none;
-    color: var(--php-text-main);
-    font-size: 14px;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    cursor: pointer;
-    transition: 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--php-text-sub);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.2s;
 }
 .php-btn-back:hover { color: var(--php-primary); }
-.php-bot-badge {
-    font-size: 13px;
-    background: #E8F5E9;
-    color: var(--php-primary);
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-weight: 600;
-}
-.php-main-header {
-    text-align: center;
-    padding: 10px 0 25px 0;
-}
-.php-main-header h1 {
-    font-size: 24px;
-    font-weight: 600;
-    margin: 0 0 8px 0;
-    color: var(--php-text-main);
-}
-.php-main-header p {
-    margin: 0;
-    color: var(--php-text-sub);
-    font-size: 14px;
-}
 
-/* Current Menu Card Styles */
-.php-current-menu-card {
-  border-top: 4px solid #10b981 !important;
-}
-.php-current-menu-grid {
+/* --- NEW: QUICK ACTIONS (ปุ่มทางลัด 3 ปุ่ม) --- */
+.php-qa-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 24px;
+  gap: 16px;
+  margin-bottom: 24px;
 }
 @media (min-width: 768px) {
-  .php-current-menu-grid {
-    grid-template-columns: 1fr 1fr;
+  .php-qa-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
-.php-current-status-info {
-  background: #ecfdf5;
-  border: 1px solid #d1fae5;
-  padding: 12px 16px;
-  border-radius: 8px;
+.php-qa-btn {
+  background: #FFFFFF;
+  border: 1px solid var(--php-border);
+  border-radius: var(--php-radius);
+  padding: 20px;
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  font-size: 14px;
-  color: #047857;
-  margin-top: 12px;
-}
-
-/* Upload Section Toggle */
-.php-upload-header {
+  align-items: center;
+  justify-content: space-between;
   cursor: pointer;
-  user-select: none;
+  transition: all 0.2s ease;
+  box-shadow: var(--php-shadow);
+  text-align: left;
+  width: 100%;
+}
+.php-qa-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border-color: var(--php-primary);
+}
+.php-qa-content h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--php-text-main);
+  margin: 0 0 4px 0;
+}
+.php-qa-content p {
+  font-size: 12px;
+  color: var(--php-text-sub);
+  margin: 0;
+}
+.php-qa-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.php-qa-icon.green { background: #ecfdf5; color: #059669; }
+.php-qa-icon.blue { background: #eff6ff; color: #2563eb; }
+.php-qa-icon.amber { background: #fffbeb; color: #d97706; }
+
+/* --- NEW: AUDIT LOG MODAL --- */
+.php-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.2s ease;
+}
+.php-modal-content {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+}
+.php-modal-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--php-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: -24px -24px 0 -24px;
-  padding: 24px;
-  border-radius: 12px 12px 0 0;
-  transition: 0.2s;
+  background: #f8fafc;
 }
-.php-upload-header:hover {
-  background: #f9fafb;
-}
-.php-upload-icon {
-  color: #9ca3af;
-  transition: 0.2s;
+.php-modal-header h3 { margin: 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.php-modal-close { background: none; border: none; cursor: pointer; color: #94a3b8; padding: 4px; border-radius: 50%; }
+.php-modal-close:hover { background: #e2e8f0; color: #475569; }
+.php-modal-body { overflow-y: auto; padding: 0; }
+.php-log-item { padding: 16px; border-bottom: 1px solid var(--php-border); display: flex; gap: 12px; }
+.php-log-item:last-child { border-bottom: none; }
+.php-log-icon { width: 36px; height: 36px; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 14px; flex-shrink: 0;}
+.php-log-info { flex: 1; }
+.php-log-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.php-log-user { font-weight: 700; font-size: 13px; color: var(--php-text-main); }
+.php-log-time { font-size: 11px; color: #94a3b8; }
+.php-log-action { font-size: 12px; font-weight: 600; color: var(--php-text-main); }
+.php-log-detail { font-size: 12px; color: var(--php-text-sub); margin-top: 2px; }
+.php-modal-footer { padding: 12px; background: #f8fafc; border-top: 1px solid var(--php-border); }
+.php-btn-close-modal { width: 100%; padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-weight: 600; color: #475569; cursor: pointer; transition: all 0.2s; }
+.php-btn-close-modal:hover { background: #f1f5f9; }
+
+/* Other Existing Styles */
+.php-upload-header { display: flex; justify-content: space-between; align-items: center; }
+.php-upload-zone-active { border-color: var(--php-primary) !important; background-color: #f0fdf4 !important; }
+.php-menu-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+.php-menu-item { background: white; border: 1px solid var(--php-border); border-radius: var(--php-radius); overflow: hidden; position: relative; transition: transform 0.2s; }
+.php-menu-item:hover { transform: translateY(-4px); box-shadow: var(--php-shadow); }
+.php-menu-item.active { border: 2px solid var(--php-primary); }
+.php-menu-img-container { position: relative; padding-top: 67.44%; background: #f8fafc; border-bottom: 1px solid var(--php-border); }
+.php-menu-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+.php-menu-img-placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #cbd5e1; font-size: 32px; }
+.php-menu-status { padding: 16px; display: flex; justify-content: space-between; align-items: flex-start; }
+.php-menu-details h3 { margin: 0 0 4px 0; font-size: 15px; font-weight: 600; }
+.php-menu-details p { margin: 0 0 8px 0; font-size: 13px; color: var(--php-text-sub); }
+.php-menu-id { font-size: 10px; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #64748b; font-family: monospace; display: inline-block; }
+.php-status-badge { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 20px; text-transform: uppercase; }
+.php-status-active { background: #d1fae5; color: #047857; }
+.php-status-inactive { background: #f1f5f9; color: #64748b; }
+.php-menu-actions { padding: 0 16px 16px 16px; display: flex; gap: 8px; }
+.php-btn-action { flex: 1; padding: 8px; border-radius: 8px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s; }
+.php-btn-switch { background: #eff6ff; color: #2563eb; }
+.php-btn-switch:hover { background: #dbeafe; }
+.php-btn-delete { background: #fef2f2; color: #dc2626; }
+.php-btn-delete:hover { background: #fee2e2; }
+.php-btn-disabled { background: #f0fdf4; color: #16a34a; cursor: default; }
+.php-btn-secondary { width: 100%; padding: 12px; background: white; border: 1px solid var(--php-border); border-radius: var(--php-radius); color: var(--php-text-sub); font-weight: 600; cursor: pointer; margin-top: 16px; }
+.php-btn-secondary:hover { background: #f8fafc; color: var(--php-text-main); }
+.php-empty-state { text-align: center; padding: 40px; color: var(--php-text-sub); background: #f8fafc; border-radius: var(--php-radius); border: 2px dashed var(--php-border); }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* --- Gray Minimal Input Styling --- */
+.php-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; max-height: 0; }
-  to { opacity: 1; max-height: 1000px; }
+.php-input-field {
+  width: 100%;
+  padding: 10px 14px;
+  background-color: #f8fafc; /* พื้นหลังเทาอ่อนมาก (slate-50) */
+  border: 1px solid #e2e8f0;   /* ขอบเทา (slate-200) */
+  border-radius: 8px;
+  font-size: 14px;
+  color: #334155;             /* ตัวอักษรเทาเข้ม (slate-700) */
+  transition: all 0.2s ease-in-out;
+  outline: none;
 }
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
+
+.php-input-field::placeholder {
+  color: #94a3b8;
+}
+
+/* เมื่อคลิก: เปลี่ยนขอบเป็นสีเทาที่เข้มขึ้นเล็กน้อย และเพิ่มเงาบางๆ */
+.php-input-field:focus {
+  background-color: #ffffff;
+  border-color: #cbd5e1;      /* เทา slate-300 */
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* เมื่อเอาเมาส์วาง */
+.php-input-field:hover:not(:focus) {
+  border-color: #cbd5e1;
+}
+
+/* --- Template Area Preview --- */
+.php-template-preview {
+  position: relative;
+  aspect-ratio: 2500 / 1686; /* สัดส่วนมาตรฐานของ Rich Menu */
+  background-color: #f1f5f9; /* slate-100 */
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.php-template-area-border {
+  position: absolute;
+  background-color: #ffffff; /* พื้นหลังช่อง */
+  border: 1px solid #cbd5e1;  /* เส้นขอบสีเทา (slate-300) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  color: #94a3b8; /* สีตัวอักษร ID ช่อง */
+  transition: all 0.2s;
+}
+
+/* เอฟเฟกต์เมื่อเลือก Template นั้นอยู่ */
+.php-template-card-active .php-template-area-border {
+  border-color: #94a3b8;
+  background-color: #f8fafc;
+}
+
+/* --- Canvas Preview Area (Right Side) --- */
+.canvas-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  background-color: #f1f5f9; /* slate-100 */
+}
+
+.canvas-toolbar {
+  height: 56px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+.canvas-viewport {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background-color: #e2e8f0; /* slate-200/50 */
+}
+/* เส้นกรอบแบ่งช่อง Area บน Canvas */
+.area-grid-item {
+  position: absolute; /* สำคัญมาก: เพื่อให้เกาะตาม % ของ div พ่อ */
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+  border: 1px solid rgba(255, 255, 255, 0.3); /* เส้นขอบบางๆ สีขาว */
+}
+
+.area-grid-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-color: #94a3b8;
+}
+
+/* สถานะเมื่อถูกเลือก (ยังคงสีเขียวไว้เฉพาะจุดที่คลิกเพื่อให้ User ทราบ) */
+.area-grid-item.active {
+  z-index: 20;
+  border: 2px solid #06C755; /* กลับมาเป็นสีเขียวเฉพาะตอนเลือกเพื่อให้รู้ว่าแก้ช่องไหน */
+  background-color: rgba(6, 199, 85, 0.1);
+}
+
+/* ป้ายชื่อ A, B, C ในหน้า Preview */
+.area-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #64748b;
+}
+
+.area-grid-item.active .area-badge {
+  background-color: #06C755;
+  color: #ffffff;
+}
+
+/* ปรับปรุง Card หลักให้คุมสัดส่วนได้แม่นยำ */
+.richmenu-editor-card {
+  width: 100%;
+  max-width: 760px; /* ล็อคความกว้างสูงสุดไว้ที่ 760px ตามที่คุณต้องการ */
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ปรับแต่ง Chat Bar ให้ดูเหมือน LINE จริงมากขึ้น */
+.php-chatbar {
+  width: 100%;
+  background-color: #f8f8f8;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 1px solid #e2e8f0;
+  /* กำหนดความสูงให้สัมพันธ์กับความสูงรวมที่ต้องการ */
+  height: 45px; 
+  cursor: default;
+  user-select: none;
 }

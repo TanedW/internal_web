@@ -282,6 +282,14 @@ const CreateModal = ({ isOpen, onClose, onCreate }) => {
     setActiveTab("scratch");
   };
 
+  const resetForm = () => {
+  setName("");
+  setDesc("");
+  setJson("{\n  \n}");
+  setQuickReply("");
+  setActiveTab("scratch");
+};
+
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-2xl w-[1000px] max-h-[90vh] flex flex-col overflow-hidden ring-1 ring-slate-900/5">
@@ -418,11 +426,16 @@ const CreateModal = ({ isOpen, onClose, onCreate }) => {
              {activeTab === "scratch" ? "Write valid JSON to render preview" : "Choose a template to get started"}
           </div>
           <div className="flex gap-3">
-            <button onClick={onClose} className="px-5 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
+            <button 
+              onClick={() => { resetForm(); onClose(); }} 
+              className="px-5 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
+            >
+              Cancel
+            </button>
+            
             {activeTab === "scratch" ? (
-                // 🟢 BUTTON COLOR FIXED TO BLACK
                 <button 
-                    onClick={() => { onCreate(name, desc, json, quickReply); onClose(); }} 
+                    onClick={() => { onCreate(name, desc, json, quickReply); resetForm(); onClose(); }} 
                     className="px-6 py-2.5 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-black shadow-lg shadow-slate-900/20 active:scale-95 transition-all flex items-center gap-2"
                 >
                     Create Message <ArrowRight size={16} />

@@ -1,44 +1,28 @@
-import { getAllBotKeys, getBotDefinition } from '@/lib/botConfig';
-import { getBotInfo } from '@/lib/lineApi';
+// app/api/richmenu/bots/route.js
+import { NextResponse } from 'next/server';
+import { Pool } from 'pg';
 
-export async function GET(request) {
+const pool = new Pool({
+  connectionString: process.env.POSTGRES_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
+export async function GET() {
   try {
-    const botKeys = getAllBotKeys();
-    const bots = [];
+    // Query ข้อมูลบอททั้งหมด เรียงตามเวลาที่สร้างล่าสุด
+    const result = await pool.query('SELECT * FROM line_bots ORDER BY created_at DESC');
+    
+    // ปรับชื่อ field ให้ตรงกับที่ Frontend รอรับ (ถ้าจำเป็น)
+    const bots = result.rows.map(row => ({
+      id: row.id,
+      name: row.bot_name,
+      key: row.bot_key,
+      pictureUrl: row.picture_url,
+      creator_id: row.creator_id
+    }));
 
-    for (const key of botKeys) {
-      const definition = getBotDefinition(key);
-      if (!definition) continue;
-
-      try {
-        const infoResult = await getBotInfo(definition.token);
-        const info = infoResult?.response;
-
-        bots.push({
-          key,
-          name: info?.displayName || key,
-          pictureUrl: info?.pictureUrl || '',
-          basicId: info?.basicId || '',
-          userId: info?.userId || '',
-        });
-      } catch (error) {
-        console.error(`Error fetching info for ${key}:`, error);
-        bots.push({
-          key,
-          name: key,
-          pictureUrl: '',
-          basicId: '',
-          userId: '',
-        });
-      }
-    }
-
-    return Response.json(bots);
+    return NextResponse.json(bots);
   } catch (error) {
-    console.error('Error fetching bots:', error);
-    return Response.json(
-      { error: 'Failed to fetch bots', details: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
