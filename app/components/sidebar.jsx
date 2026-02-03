@@ -17,6 +17,7 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || ""
 };
 
+// ป้องกัน Error: Firebase App named '[DEFAULT]' already exists
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 
@@ -131,7 +132,6 @@ export default function Sidebar({ isDesktopSidebarOpen, setIsDesktopSidebarOpen 
 
   return (
     <>
-      {/* CSS สำหรับซ่อน Scrollbar โดยที่ยังเลื่อนได้ */}
       <style dangerouslySetInnerHTML={{ __html: `
         .no-scrollbar::-webkit-scrollbar {
           display: none;
@@ -196,12 +196,24 @@ export default function Sidebar({ isDesktopSidebarOpen, setIsDesktopSidebarOpen 
         </div>
       )}
 
+      {/* DESKTOP OPEN BUTTON (WHEN CLOSED) */}
+      {!isDesktopSidebarOpen && (
+        <div className="hidden lg:block fixed top-8 left-8 z-30">
+          <button 
+            onClick={() => setIsDesktopSidebarOpen(true)}
+            className="btn btn-square btn-ghost bg-white border border-slate-200 shadow-lg shadow-indigo-100/50 text-slate-800 hover:bg-slate-50 transition-all duration-300"
+            title="Open Sidebar"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+        </div>
+      )}
+
       {/* DESKTOP SIDEBAR */}
       <aside className={`hidden lg:flex fixed top-4 bottom-4 left-4 w-72 bg-white rounded-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] border border-slate-100 flex-col py-10 px-8 z-50 transition-all duration-300 ease-in-out overflow-y-auto no-scrollbar ${isDesktopSidebarOpen ? "translate-x-0 opacity-100" : "-translate-x-[120%] opacity-0 pointer-events-none"}`}>
         <button onClick={() => setIsDesktopSidebarOpen(false)} className="absolute top-6 right-6 p-1.5 text-slate-300 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-all"><X size={18}/></button>
         <SidebarHeader />
         
-        {/* รายการเมนู (พร้อมซ่อนแถบเลื่อน) */}
         <nav className="flex flex-col gap-1.5 flex-1 mt-4 overflow-y-auto no-scrollbar">
           <Link href="/manage" className={getMenuClass('/manage')}>
             <Mail size={20} />
