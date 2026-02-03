@@ -187,11 +187,14 @@ export default function Sidebar({ isDesktopSidebarOpen, setIsDesktopSidebarOpen 
                 </Link>
               )}
             </nav>
-            <div className="mt-auto pt-4 border-t border-slate-100">
-                <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 w-full text-red-600 font-bold text-[15px]">
-                    <LogOut size={20} /> Logout
-                </button>
-            </div>
+        <div className="mt-auto pt-4 border-t border-slate-100">
+            <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 w-full">
+                <div className="p-1.5 bg-red-100/50 rounded-lg group-hover:bg-red-100 transition-colors">
+                    <LogOut size={20} className="text-red-500 transition-transform group-hover:translate-x-0.5" />
+                </div>
+                <span className="text-red-600 font-bold tracking-wide text-[15px]">Logout</span>
+            </button>
+        </div>
           </div>
         </div>
       )}
