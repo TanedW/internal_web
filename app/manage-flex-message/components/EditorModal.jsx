@@ -120,8 +120,8 @@ export default function EditorModal({ item, isOpen, onClose, onSave, onDelete })
                     )}
                 </div>
                 <div className="p-4 border-t border-gray-100 bg-white hidden md:flex justify-end gap-4">
-                    <button onClick={onClose} className="btn btn-ghost btn-sm bg-[#e3243b] text-white rounded-[16px] hover:bg-[#900603] px-[14px]">Cancel</button>
-                    <button onClick={handlePreSave} disabled={!!parseError} className="btn btn-neutral btn-sm px-6 rounded-[16px] flex items-center gap-4 bg-[#111827] text-white hover:bg-[#272e38] shadow-lg shadow-[#111827]/20"><Save size={16}/> Save Changes</button>
+                    <button onClick={onClose} className="btn btn-ghost btn-sm bg-[#e3243b] text-white rounded-[12px] hover:bg-[#9c0c09] px-[14px] h-10">Cancel</button>
+                    <button onClick={handlePreSave} disabled={!!parseError} className="btn btn-neutral btn-sm px-6 rounded-[12px] flex items-center gap-4 bg-[#111827] text-white hover:bg-[#272e38] shadow-lg shadow-[#111827]/20 h-10"><Save size={16}/> Save Changes</button>
                 </div>
             </div>
         </div>
