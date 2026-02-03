@@ -25,8 +25,9 @@ export function middleware(request) {
 
   if (pathname.startsWith('/manage')) {
     if (!token) {
-      // ถ้าไม่มี Token ให้ส่งกลับไปหน้า Login ทันที
-      // return NextResponse.redirect(new URL('/login', request.url));
+      if (!token || !email) {
+          return NextResponse.redirect(new URL('/', request.url)); // หรือหน้า login ของคุณ
+        }
     }
   }
 
