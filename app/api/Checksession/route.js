@@ -8,7 +8,7 @@ export async function POST(req) {
     const { email, access_token } = await req.json();
     
     // เชื่อมต่อ DB เดียวกับที่ Backend ใช้
-    const sql = neon(process.env.NEXT_PUBLIC_DATA_BASE_URL);
+    const sql = neon(process.env.DATA_BASE_URL);
 
     // ดึงข้อมูลมาเทียบ (Logic เดียวกับ Backend เพื่อความปลอดภัย)
     const users = await sql`
