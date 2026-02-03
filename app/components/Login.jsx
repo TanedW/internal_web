@@ -54,6 +54,8 @@ export default function Login() {
           console.log("API Response:", responseData);
           localStorage.setItem("access_token", userData.access_token);
           localStorage.setItem("user_email", userData.email);
+           localStorage.setItem("current_admin_id", JSON.stringify(responseData.admin_id));
+
 
           setCookie("access_token", userData.access_token, 1); // เก็บไว้ 1 วัน
           setCookie("user_email", userData.email, 1);

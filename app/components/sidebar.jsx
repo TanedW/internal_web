@@ -63,6 +63,10 @@ export default function Sidebar({ isDesktopSidebarOpen, setIsDesktopSidebarOpen 
     try {
       await signOut(auth);
       localStorage.removeItem("current_admin_id");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user_email");
+      localStorage.removeItem("org_logo_1");
+      localStorage.removeItem("last_updated_org_1");
       router.push('/');
     } catch (error) { console.error("Logout error:", error); }
   };
