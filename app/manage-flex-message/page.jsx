@@ -144,33 +144,50 @@ const fetchFlexMessages = async () => {
   
 // page.jsx
 
-const handleCreate = async (name, desc, jsonStr) => {
+const handleCreate = async (name, desc, jsonStr, quickReplyStr) => {
   const currentAdminId = getCurrentAdminId();
   
   try {
+// 1. ตรวจสอบและเตรียม Flex Data หลัก
+    let flexData;
+    try {
+      flexData = JSON.parse(jsonStr);
+    } catch (e) {
+      alert("JSON Content รูปแบบไม่ถูกต้อง");
+      return;
+    }
 
-    const fullJson = JSON.parse(jsonStr);
-    const { quickReply, ...flexDataOnly } = fullJson;
-    console.log(fullJson)
+    // 2. ตรวจสอบ Quick Reply (ถ้ามีการกรอกมา)
+    let qrData = null;
+    if (quickReplyStr && quickReplyStr.trim() !== "") {
+      try {
+        qrData = JSON.parse(quickReplyStr);
+      } catch (e) {
+        alert("Quick Reply JSON รูปแบบไม่ถูกต้อง");
+        return;
+      }
+    }
+
+    // 3. ยิง API โดยส่งแยก field ตามที่ manage_flex_message.js รอรับ
     const res = await fetch(FLEX_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         current_admin_id: currentAdminId,
         flex_name: name,
-        flex_data: JSON.stringify(flexDataOnly), // ส่งเฉพาะตัว Flex
-        quick_reply: quickReply ? JSON.stringify(quickReply) : null, // ส่ง Quick Reply แยกไป
+        flex_data: JSON.stringify(flexData), // ส่งเฉพาะตัว Flex
+        quick_reply: qrData ? JSON.stringify(qrData) : null, // ส่ง Quick Reply แยกไป (ถ้ามี)
         comment: desc
       })
     });
 
     if (res.ok) {
-      // เมื่อสร้างสำเร็จ ให้ดึงข้อมูลใหม่จาก Database มาแสดง
+      alert("สร้างเทมเพลตสำเร็จ");
       await fetchFlexMessages(); 
       setIsCreateOpen(false);
     } else {
       const err = await res.json();
-      alert(`สร้างไม่สำเร็จ: ${err.message}`);
+      alert(`สร้างไม่สำเร็จ: ${err.message || err.error}`);
     }
   } catch (e) {
     console.error("Create Error:", e);
