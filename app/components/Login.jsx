@@ -36,6 +36,11 @@ export default function Login() {
 
       console.log("User Data:", userData);
 
+      const setCookie = (name, value, days) => {
+        const expires = new Date(Date.now() + days * 864e5).toUTCString();
+        document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`;
+      };
+
       try {
         const DB_API = process.env.NEXT_PUBLIC_DB_LOGIN_API_URL; 
         const response = await fetch(DB_API, {
@@ -47,8 +52,11 @@ export default function Login() {
         if (response.ok) {
           const responseData = await response.json();
           console.log("API Response:", responseData);
-          localStorage.setItem("current_admin_id", JSON.stringify(responseData.admin_id));
           localStorage.setItem("access_token", userData.access_token);
+          localStorage.setItem("user_email", userData.email);
+
+          setCookie("access_token", userData.access_token, 1); // เก็บไว้ 1 วัน
+          setCookie("user_email", userData.email, 1);
           
           router.push("/manage"); 
         } else {
