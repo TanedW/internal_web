@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 
 // 1. เชื่อมต่อฐานข้อมูล Neon PostgreSQL
 const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
+  connectionString: process.env.DATA_BASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
