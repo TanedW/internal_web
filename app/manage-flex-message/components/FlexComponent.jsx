@@ -10,9 +10,16 @@ const getSpacing = (size) => {
 const getSize = (size, type) => {
   if (type === 'image-width') {
      const map = { 
-         xxs: '16px', xs: '24px', sm: '32px', md: '48px', 
-         lg: '64px', xl: '80px', xxl: '100px', '3xl': '120px', 
-         '4xl': '140px', '5xl': '160px', full: '100%' 
+         xxs: '40px', xs: '60px', 
+         sm: '80px',  
+         md: '100px', 
+         lg: '120px',  
+         xl: '140px', 
+         xxl: '160px', 
+         '3xl': '180px', 
+         '4xl': '200px', 
+         '5xl': '220px', 
+         full: '100%' 
      };
      return map[size] || '100%';
   }
@@ -28,9 +35,12 @@ const getSize = (size, type) => {
 };
 
 const getCornerRadius = (size) => {
-  const radiusMap = { none: '0px', xs: '2px', sm: '4px', md: '8px', lg: '12px', xl: '16px', xxl: '20px' };
+  const radiusMap = { none: '0px', xs: '2px', sm: '4px', md: '8px', lg: '12px', xl: '16px', xxl: '20px', '100px': '100px' };
   return radiusMap[size] || size || '0px';
 };
+
+// Helper: Checks if a value is defined (Respects '0px', 'none', and 0)
+const isDefined = (val) => val !== undefined && val !== null;
 
 // --- 2. Common Styles ---
 const getCommonStyles = (node, parentLayout) => {
@@ -72,7 +82,7 @@ const getCommonStyles = (node, parentLayout) => {
 };
 
 // --- 3. FlexBox ---
-const FlexBox = ({ node, parentLayout }) => {
+const FlexBox = ({ node, parentLayout, section }) => {
   const isHorizontal = node.layout === 'horizontal' || node.layout === 'baseline';
   let defaultWidth = parentLayout === 'vertical' ? '100%' : 'auto';
   if (node.width) defaultWidth = getSize(node.width, 'width');
@@ -89,13 +99,31 @@ const FlexBox = ({ node, parentLayout }) => {
     minWidth: 0, 
   };
 
-  if (node.paddingAll) {
+  if (node.width) {
+      style.flexShrink = 0; 
+      style.flexGrow = 0;
+  }
+
+  // Smart Default Padding Logic
+  const isRootBox = !!section;
+  const hasPaddingAll = isDefined(node.paddingAll);
+  
+  if (hasPaddingAll) {
     style.padding = getSpacing(node.paddingAll);
   } else {
-    if (node.paddingTop) style.paddingTop = getSpacing(node.paddingTop);
-    if (node.paddingBottom) style.paddingBottom = getSpacing(node.paddingBottom);
-    if (node.paddingStart || node.paddingLeft) style.paddingLeft = getSpacing(node.paddingStart || node.paddingLeft);
-    if (node.paddingEnd || node.paddingRight) style.paddingRight = getSpacing(node.paddingEnd || node.paddingRight);
+    const pTop = isDefined(node.paddingTop) ? getSpacing(node.paddingTop) : (isRootBox ? '19px' : undefined);
+    const pBottom = isDefined(node.paddingBottom) ? getSpacing(node.paddingBottom) : (isRootBox ? '20px' : undefined);
+    const pLeft = isDefined(node.paddingStart || node.paddingLeft) ? getSpacing(node.paddingStart || node.paddingLeft) : (isRootBox ? '20px' : undefined);
+    const pRight = isDefined(node.paddingEnd || node.paddingRight) ? getSpacing(node.paddingEnd || node.paddingRight) : (isRootBox ? '20px' : undefined);
+
+    if (pTop) style.paddingTop = pTop;
+    if (pBottom) style.paddingBottom = pBottom;
+    if (pLeft) style.paddingLeft = pLeft;
+    if (pRight) style.paddingRight = pRight;
+  }
+
+  if (section === 'body') {
+      style.flexGrow = 1; 
   }
 
   if (node.cornerRadius) { style.borderRadius = getCornerRadius(node.cornerRadius); style.overflow = 'hidden'; }
@@ -103,9 +131,15 @@ const FlexBox = ({ node, parentLayout }) => {
   if (node.borderWidth) { style.borderWidth = node.borderWidth; style.borderStyle = 'solid'; }
 
   const justifyMap = { 'flex-start':'flex-start', 'center':'center', 'flex-end':'flex-end', 'space-between':'space-between' };
+
+  // This removes the white gaps above/below the right-side images by forcing them to fill the height.
   const alignMap = { 'flex-start':'flex-start', 'center':'center', 'flex-end':'flex-end', 'baseline':'baseline' };
+  
   style.justifyContent = justifyMap[node.justifyContent] || 'flex-start';
-  style.alignItems = alignMap[node.alignItems] || (isHorizontal ? 'center' : 'stretch'); 
+  
+  // Logic: If horizontal, default to 'stretch'. If vertical, default to 'stretch' (unless aligned otherwise).
+  style.alignItems = alignMap[node.alignItems] || (isHorizontal ? 'stretch' : 'stretch'); 
+  
   if (node.spacing) style.gap = getSpacing(node.spacing);
 
   const bgStyle = {};
@@ -124,25 +158,64 @@ const FlexBox = ({ node, parentLayout }) => {
   );
 };
 
-// --- Components ---
+// --- 4. Other Components ---
 const FlexText = ({ node, parentLayout }) => {
   const style = {
     ...getCommonStyles(node, parentLayout),
-    color: node.color || '#000000', fontSize: getSize(node.size, 'text'), fontWeight: node.weight === 'bold' ? 700 : 400,
-    textAlign: node.align || 'left', whiteSpace: node.wrap ? 'pre-wrap' : 'nowrap', wordBreak: node.wrap ? 'break-word' : 'normal',
-    overflow: node.wrap ? 'visible' : 'hidden', textOverflow: node.wrap ? 'clip' : 'ellipsis', lineHeight: 1.4, flexShrink: 0, minWidth: 0,
+    color: node.color || '#000000',
+    fontSize: getSize(node.size, 'text'),
+    fontWeight: node.weight === 'bold' ? 700 : 400,
+    textAlign: node.align || 'left',
+    whiteSpace: node.wrap ? 'pre-wrap' : 'nowrap',
+    wordBreak: node.wrap ? 'break-word' : 'normal',
+    overflow: node.wrap ? 'visible' : 'hidden',
+    textOverflow: node.wrap ? 'clip' : 'ellipsis',
+    lineHeight: 1.4,
+    flexShrink: 0,
+    minWidth: 0,
   };
   if (node.decoration === 'underline') style.textDecoration = 'underline';
   if (node.decoration === 'line-through') style.textDecoration = 'line-through';
   if (node.style === 'italic') style.fontStyle = 'italic';
+  
+  if (node.contents && node.contents.length > 0) {
+      return (
+          <div style={style}>
+              {node.contents.map((span, i) => (
+                  <span key={i} style={{
+                      color: span.color || node.color,
+                      fontSize: getSize(span.size || node.size, 'text'),
+                      fontWeight: span.weight === 'bold' ? 700 : 400,
+                      textDecoration: span.decoration || node.decoration,
+                      fontStyle: span.style || node.style
+                  }}>
+                      {span.text}
+                  </span>
+              ))}
+          </div>
+      );
+  }
   return <div style={style}>{node.text}</div>;
 };
 
 const FlexImage = ({ node, parentLayout }) => {
+  const isIcon = node.type === 'icon';
+  const sizeType = isIcon ? 'icon-size' : 'image-width';
+  
+  const hasFlex = node.flex !== undefined && node.flex !== 0;
+  const calculatedWidth = hasFlex 
+      ? '100%' 
+      : (node.size === 'full' ? '100%' : getSize(node.size, sizeType));
+
   const style = {
-    ...getCommonStyles(node, parentLayout), display: 'block', objectFit: node.aspectMode === 'cover' ? 'cover' : 'contain',
-    width: node.size === 'full' ? '100%' : getSize(node.size, 'image-width'), height: node.aspectMode === 'cover' ? '100%' : 'auto',
-    verticalAlign: 'bottom', maxWidth: '100%',
+    ...getCommonStyles(node, parentLayout),
+    display: 'block',
+    objectFit: node.aspectMode === 'cover' ? 'cover' : 'contain',
+    width: calculatedWidth, 
+    height: node.aspectMode === 'cover' ? '100%' : 'auto',
+    verticalAlign: 'bottom',
+    maxWidth: '100%',
+    minWidth: 0, 
   };
   if (node.aspectRatio) style.aspectRatio = node.aspectRatio.replace(':', '/');
   return <img src={node.url} style={style} alt="Flex" />;
@@ -168,11 +241,8 @@ const FlexSeparator = ({ node, parentLayout }) => {
     return <div style={style} />;
 };
 
-const FlexNode = ({ node, parentLayout = 'vertical' }) => {
+const FlexNode = ({ node, parentLayout = 'vertical', section = null }) => {
   if (!node) return null;
-  
-  // Checks if padding is "meaningful" (not undefined, null, 0, or '0px')
-  const hasPad = (val) => val && val !== 'none' && val !== '0px' && val !== 0;
 
   switch (node.type) {
     case 'carousel':
@@ -202,48 +272,26 @@ const FlexNode = ({ node, parentLayout = 'vertical' }) => {
             <div style={bubbleStyle} className="fl-bubble">
                 {node.hero && <div style={{width:'100%', lineHeight:0}}><FlexNode node={node.hero} parentLayout="vertical"/></div>}
                 
-                {/* 🟢 FIX: Added Auto-Padding Logic to Header (Same as Body) */}
                 {node.header && (
-                    <div style={{
-                        width: '100%', 
-                        backgroundColor: node.header.backgroundColor,
-                        paddingTop: hasPad(node.header.paddingAll) || hasPad(node.header.paddingTop) ? '0px' : '19px',
-                        paddingRight: hasPad(node.header.paddingAll) || hasPad(node.header.paddingRight) || hasPad(node.header.paddingEnd) ? '0px' : '20px',
-                        paddingBottom: hasPad(node.header.paddingAll) || hasPad(node.header.paddingBottom) ? '0px' : '20px',
-                        paddingLeft: hasPad(node.header.paddingAll) || hasPad(node.header.paddingLeft) || hasPad(node.header.paddingStart) ? '0px' : '20px',
-                    }}>
-                        <FlexNode node={node.header} parentLayout="vertical"/>
+                    <div style={{width: '100%'}}>
+                        <FlexNode node={node.header} parentLayout="vertical" section="header"/>
                     </div>
                 )}
                 
-                {/* Body Auto-Padding */}
                 {node.body && (
-                    <div style={{
-                        flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: node.body.backgroundColor,
-                        paddingTop: hasPad(node.body.paddingAll) || hasPad(node.body.paddingTop) ? '0px' : '19px',
-                        paddingRight: hasPad(node.body.paddingAll) || hasPad(node.body.paddingRight) || hasPad(node.body.paddingEnd) ? '0px' : '20px',
-                        paddingBottom: hasPad(node.body.paddingAll) || hasPad(node.body.paddingBottom) ? '0px' : '20px',
-                        paddingLeft: hasPad(node.body.paddingAll) || hasPad(node.body.paddingLeft) || hasPad(node.body.paddingStart) ? '0px' : '20px',
-                    }}>
-                        <FlexNode node={node.body} parentLayout="vertical"/>
+                    <div style={{flex: 1, display: 'flex', flexDirection: 'column'}}>
+                        <FlexNode node={node.body} parentLayout="vertical" section="body"/>
                     </div>
                 )}
 
-                {/* Footer Auto-Padding */}
                 {node.footer && (
-                    <div style={{
-                        marginTop:'auto', width: '100%', backgroundColor: node.footer.backgroundColor,
-                        paddingTop: hasPad(node.footer.paddingAll) || hasPad(node.footer.paddingTop) ? '0px' : '19px',
-                        paddingRight: hasPad(node.footer.paddingAll) || hasPad(node.footer.paddingRight) || hasPad(node.footer.paddingEnd) ? '0px' : '20px',
-                        paddingBottom: hasPad(node.footer.paddingAll) || hasPad(node.footer.paddingBottom) ? '0px' : '20px',
-                        paddingLeft: hasPad(node.footer.paddingAll) || hasPad(node.footer.paddingLeft) || hasPad(node.footer.paddingStart) ? '0px' : '20px',
-                    }}>
-                        <FlexNode node={node.footer} parentLayout="vertical"/>
+                    <div style={{marginTop:'auto', width: '100%'}}>
+                        <FlexNode node={node.footer} parentLayout="vertical" section="footer"/>
                     </div>
                 )}
             </div>
         );
-    case 'box': return <FlexBox node={node} parentLayout={parentLayout} />;
+    case 'box': return <FlexBox node={node} parentLayout={parentLayout} section={section} />;
     case 'text': return <FlexText node={node} parentLayout={parentLayout} />;
     case 'image': case 'icon': return <FlexImage node={node} parentLayout={parentLayout} />;
     case 'button': return <FlexButton node={node} parentLayout={parentLayout} />;
