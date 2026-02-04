@@ -24,7 +24,8 @@ export function middleware(request) {
     '/manage-case',
     '/manage-org',
     '/manage-flex-message',
-    '/manage-rich-menu'
+    '/manage-rich-menu',
+    '/search-org',
   ];
 
   // ตรวจสอบว่า pathname ปัจจุบันอยู่ในรายการที่ต้องป้องกันหรือไม่
@@ -48,6 +49,7 @@ export const config = {
     '/manage-org/:path*',
     '/manage-flex-message/:path*',
     '/manage-rich-menu/:path*',
+    '/search-org/:path*',
     '/api/CheckSession',
   ],
 };
