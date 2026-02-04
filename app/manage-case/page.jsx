@@ -430,21 +430,7 @@ export default function ManageCase() {
           isDesktopSidebarOpen ? "lg:pl-80" : "lg:pl-8"
       }`}>
         
-        {/* ปุ่ม Open Hamburger สำหรับ Desktop กรณีที่ Sidebar ถูกปิด */}
-        {!isDesktopSidebarOpen && (
-             <div className="hidden lg:flex items-center gap-4 fixed top-8 left-8 z-30 animate-slide-in-left">
-                <button 
-                    onClick={() => setIsDesktopSidebarOpen(true)}
-                    className="btn btn-square btn-ghost bg-white border border-slate-200 shadow-lg shadow-indigo-100/50 text-slate-800 hover:bg-slate-50 transition-all duration-300"
-                    title="Open Sidebar"
-                >
-                    <Menu className="w-6 h-6" />
-                </button>
-                <h1 className="text-2xl font-bold text-slate-800 tracking-tight drop-shadow-sm">
-                    Manage Case
-                </h1>
-             </div>
-        )}
+        
         
         {/* --- Logic เดิมที่คงไว้ทั้งหมด ห้ามแก้ไข --- */}
         {!currentCase && (

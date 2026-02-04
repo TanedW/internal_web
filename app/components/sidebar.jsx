@@ -17,6 +17,7 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || ""
 };
 
+// ป้องกัน Error: Firebase App named '[DEFAULT]' already exists
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 
@@ -62,6 +63,10 @@ export default function Sidebar({ isDesktopSidebarOpen, setIsDesktopSidebarOpen 
     try {
       await signOut(auth);
       localStorage.removeItem("current_admin_id");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user_email");
+      localStorage.removeItem("org_logo_1");
+      localStorage.removeItem("last_updated_org_1");
       router.push('/');
     } catch (error) { console.error("Logout error:", error); }
   };
@@ -131,7 +136,6 @@ export default function Sidebar({ isDesktopSidebarOpen, setIsDesktopSidebarOpen 
 
   return (
     <>
-      {/* CSS สำหรับซ่อน Scrollbar โดยที่ยังเลื่อนได้ */}
       <style dangerouslySetInnerHTML={{ __html: `
         .no-scrollbar::-webkit-scrollbar {
           display: none;
@@ -187,12 +191,28 @@ export default function Sidebar({ isDesktopSidebarOpen, setIsDesktopSidebarOpen 
                 </Link>
               )}
             </nav>
-            <div className="mt-auto pt-4 border-t border-slate-100">
-                <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 w-full text-red-600 font-bold text-[15px]">
-                    <LogOut size={20} /> Logout
-                </button>
-            </div>
+        <div className="mt-auto pt-4 border-t border-slate-100">
+            <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 w-full">
+                <div className="p-1.5 bg-red-100/50 rounded-lg group-hover:bg-red-100 transition-colors">
+                    <LogOut size={20} className="text-red-500 transition-transform group-hover:translate-x-0.5" />
+                </div>
+                <span className="text-red-600 font-bold tracking-wide text-[15px]">Logout</span>
+            </button>
+        </div>
           </div>
+        </div>
+      )}
+
+      {/* DESKTOP OPEN BUTTON (WHEN CLOSED) */}
+      {!isDesktopSidebarOpen && (
+        <div className="hidden lg:block fixed top-8 left-8 z-30">
+          <button 
+            onClick={() => setIsDesktopSidebarOpen(true)}
+            className="btn btn-square btn-ghost bg-white border border-slate-200 shadow-lg shadow-indigo-100/50 text-slate-800 hover:bg-slate-50 transition-all duration-300"
+            title="Open Sidebar"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
         </div>
       )}
 
@@ -201,7 +221,6 @@ export default function Sidebar({ isDesktopSidebarOpen, setIsDesktopSidebarOpen 
         <button onClick={() => setIsDesktopSidebarOpen(false)} className="absolute top-6 right-6 p-1.5 text-slate-300 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-all"><X size={18}/></button>
         <SidebarHeader />
         
-        {/* รายการเมนู (พร้อมซ่อนแถบเลื่อน) */}
         <nav className="flex flex-col gap-1.5 flex-1 mt-4 overflow-y-auto no-scrollbar">
           <Link href="/manage" className={getMenuClass('/manage')}>
             <Mail size={20} />

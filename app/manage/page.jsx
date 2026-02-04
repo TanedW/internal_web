@@ -196,19 +196,7 @@ export default function Manage() {
       <div className={`container mx-auto px-4 lg:px-8 pt-20 lg:pt-8 max-w-7xl transition-all duration-300 pb-24 ${
           isDesktopSidebarOpen ? "lg:pl-80" : "lg:pl-8"
       }`}>
-        
-        {!isDesktopSidebarOpen && (
-             <div className="hidden lg:block fixed top-8 left-8 z-30">
-                <button 
-                    onClick={() => setIsDesktopSidebarOpen(true)}
-                    className="btn btn-square btn-ghost bg-white border border-slate-200 shadow-lg shadow-indigo-100/50 text-slate-800 hover:bg-slate-50 transition-all duration-300"
-                    title="Open Sidebar"
-                >
-                    <Menu className="w-6 h-6" />
-                </button>
-             </div>
-        )}
-
+       
         {/* --- Header Desktop --- */}
         <div className="hidden lg:flex justify-between items-center mb-8">
             <div>
