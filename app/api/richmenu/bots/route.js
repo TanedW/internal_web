@@ -6,6 +6,30 @@ const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
   ssl: { rejectUnauthorized: false }
 });
+// ในไฟล์ page.jsx
+const fetchMenus = async () => {
+  try {
+    // ❌ ของเดิมที่คุณอาจจะเขียนผิด (พยายามใส่ botKey ต่อท้าย path)
+    // const response = await fetch(`/api/richmenu/${botKey}`); 
+
+    // ✅ แก้ไขเป็นเรียกไปที่ bots ตรงๆ ตามโครงสร้างไฟล์ของคุณ
+    const response = await fetch('/api/richmenu/bots'); 
+    
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+
+    const data = await response.json();
+    
+    // ถ้าคุณต้องการกรองเฉพาะบอทตัวที่เลือก (vui7526q) 
+    // คุณสามารถกรองข้อมูลที่ได้จาก Array มาพักไว้ใน state ได้ครับ
+    const currentBot = data.find(bot => bot.key === botKey);
+    setMenus(data); // หรือจัดการข้อมูลตาม logic ของคุณ
+    
+  } catch (err) {
+    console.error("Fetch error:", err);
+  }
+};
 
 export async function GET() {
   try {
