@@ -86,7 +86,7 @@ export default function EditorModal({ item, isOpen, onClose, onSave, onDelete })
         {/* Body Split View */}
         <div className="flex-1 flex overflow-hidden relative flex-col md:flex-row pb-[60px] md:pb-0">
             
-            {/* 🟢 แก้ไขจุดที่ 1: เปลี่ยน items-center เป็น items-start และเพิ่ม pt-10 */}
+            {/* Preview Panel */}
             <div className={`
                 flex-1 bg-[#EAF2FA] relative items-start justify-center overflow-y-auto p-4 md:p-10 pt-10
                 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px]
@@ -96,7 +96,8 @@ export default function EditorModal({ item, isOpen, onClose, onSave, onDelete })
                     <Eye size={14} className="text-indigo-500" /> <span className="hidden md:inline">Live</span> Preview
                 </div>
                 
-                <div className="transform transition-all duration-300 scale-[0.85] md:scale-90 origin-top w-full flex justify-center min-h-full">
+                {/* 🟢 FIX: Removed scale-90 (which caused 270px issue). Now it is scale-100 (Full Size) */}
+                <div className="transform transition-all duration-300 scale-100 origin-top w-full flex justify-center min-h-full">
                     {previewData ? <FlexRender json={previewData} /> : <div className="text-red-500">Invalid JSON</div>}
                 </div>
             </div>
