@@ -759,22 +759,28 @@ export default function ManageCase() {
                                 <ArrowRight size={22} className="lg:w-6 lg:h-6" strokeWidth={3}/>
                             </button>
                         ) : (
-                            <button 
-                                onClick={handleUpdateImage} 
-                                disabled={!reason.trim() || isSubmitting} 
-                                className={`px-8 py-3 text-white rounded-full text-base font-bold transition-all flex items-center justify-center gap-2 flex-1 sm:flex-none ${
-                                    reason.trim() && !isSubmitting
-                                        ? 'bg-emerald-500 hover:bg-emerald-600 hover:shadow-xl hover:shadow-emerald-200 hover:-translate-y-1' // สีเขียวเมื่อพร้อมกด
-                                        : 'bg-slate-300 opacity-50 cursor-not-allowed' // สีเทาเมื่อยังไม่ได้ใส่เหตุผล
-                                }`}
-                            >
-                                {isSubmitting ? (
-                                    <span className="loading loading-spinner loading-md"></span>
-                                ) : (
-                                    <CheckCircle2 size={22} className="lg:w-6 lg:h-6" strokeWidth={3}/>
-                                )}
-                                <span>{isSubmitting ? 'กำลังบันทึก...' : 'ยืนยันการแก้ไข'}</span>
-                            </button>
+    <button 
+    onClick={handleUpdateImage} 
+    disabled={!reason.trim() || isSubmitting} 
+    className={`px-8 py-3 rounded-full text-base font-bold transition-all flex items-center justify-center gap-2 flex-1 sm:flex-none border-2 ${
+        reason.trim() && !isSubmitting
+            ? 'bg-white border-emerald-500 text-emerald-600 hover:bg-emerald-50 hover:shadow-lg hover:-translate-y-1' // ใส่เหตุผล: ตัวหนังสือเขียว ขอบเขียว พื้นขาว
+            : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed' // ยังไม่ใส่เหตุผล: สีเทาทั้งหมด
+    }`}
+>
+    {isSubmitting ? (
+        <span className="loading loading-spinner loading-md text-emerald-500"></span>
+    ) : (
+        <CheckCircle2 
+            size={22} 
+            className={`lg:w-6 lg:h-6 ${reason.trim() && !isSubmitting ? 'text-emerald-600' : 'text-slate-400'}`} 
+            strokeWidth={3}
+        />
+    )}
+    <span className={reason.trim() && !isSubmitting ? 'text-emerald-600' : 'text-slate-400'}>
+        {isSubmitting ? 'กำลังบันทึก...' : 'ยืนยันการแก้ไข'}
+    </span>
+</button>
                         )}
                     </div>
                 )}
