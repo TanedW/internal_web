@@ -9,6 +9,16 @@ import {
   QrCode, Trash2, FileSpreadsheet, ShieldCheck
 } from "lucide-react";
 
+
+const fileToBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file); 
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+  });
+};
+
 export default function ManageOrgPage() {
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
@@ -17,6 +27,9 @@ export default function ManageOrgPage() {
   const [orgId, setOrgId] = useState("");       
   const [orgName, setOrgName] = useState("");
   const [logoPreview, setLogoPreview] = useState(null);
+  const [logoFile, setLogoFile] = useState(null);
+  const [updateDescription, setUpdateDescription] = useState(""); // สำหรับเก็บเหตุผลการแก้ไขข้อมูล
+  const [selectedImageToReplace, setSelectedImageToReplace] = useState(null); // เพิ่มบรรทัดนี้
 
   const [staffCode, setStaffCode] = useState("ST-123456");
   const [adminCode, setAdminCode] = useState("AD-987654");
@@ -26,6 +39,130 @@ export default function ManageOrgPage() {
   const [deleteReason, setDeleteReason] = useState("");
 
   const API_URL_ORG = process.env.NEXT_PUBLIC_DB_SEARCH_ORG_API_URL || ""; 
+  const API_URL_MANAGE = process.env.NEXT_PUBLIC_DB_MANAGE_ORG_API_URL || ""; // เพิ่มบรรทัดนี้
+  const uploadApiUrl = process.env.NEXT_PUBLIC_FILE_UPLOAD_API_URL;
+
+
+
+  // page.jsx
+
+// 1. ฟังก์ชันสำหรับการอัปเดตข้อมูล (PUT)
+const handleUpdate = async () => {
+  if (!orgId) return;
+
+    const currentOrgData = cases.find(item => item.org_id === orgId);
+
+  // --- ดึง ID จาก LocalStorage ---
+  const rawAdminId = localStorage.getItem('current_admin_id');  
+  const adminId = rawAdminId ? rawAdminId.replace(/"/g, '') : null;
+
+  if (!adminId) {
+    alert("ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่");
+    return;
+  }
+
+  // ตรวจสอบว่าใส่คำอธิบายหรือยัง
+  if (!updateDescription.trim()) {
+    alert("กรุณาระบุรายละเอียดการแก้ไขเพื่อบันทึก Log");
+    return;
+  }
+
+
+  setIsSearching(true); // ใช้สถานะ loading ระหว่างประมวลผล
+  try {
+
+    let currentPhotoUrl = selectedImageToReplace.url;
+      if (logoFile) {
+        const base64Image = await fileToBase64(logoFile);
+        const response = await fetch(uploadApiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folder_path: `attachment/org_${orgId}`, image: base64Image }), 
+        });
+        const result = await response.json();
+        if (response.ok && result.photo_link) currentPhotoUrl = result.photo_link;
+      }
+      
+    const response = await fetch(`${API_URL_MANAGE}?id=${orgId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        current_admin_id: adminId,
+        name: orgName,
+        file_url: currentPhotoUrl,
+        
+        // --- ส่วนที่เพิ่ม/แก้ไขเพื่อให้สอดคล้องกับ API Log ใหม่ ---
+        official_group: isOfficial,      // ค่าใหม่จาก Toggle
+        download_csv: isCsvEnabled,      // ค่าใหม่จาก Toggle
+        
+        old_official: currentOrgData?.is_official, // ค่าเดิมก่อนแก้
+        old_download: currentOrgData?.allow_csv,   // ค่าเดิมก่อนแก้
+        old_name: currentOrgData?.org_name,
+        old_url: selectedImageToReplace.url,
+        // --------------------------------------------------
+
+        restore: false, 
+        description: updateDescription // เหตุผลที่ผู้ใช้กรอกใน Textarea
+      }),
+    });
+
+    const result = await response.json();
+
+    if (response.ok && result.success) {
+      alert("อัปเดตข้อมูลหน่วยงานสำเร็จ");
+      // รีเฟรชข้อมูลในหน้าจอใหม่เพื่อให้เห็นการเปลี่ยนแปลง
+      setUpdateDescription(""); // ล้างข้อความหลังบันทึกสำเร็จ
+      await fetchOrgData(searchId); 
+    } else {
+      alert("เกิดข้อผิดพลาด: " + (result.message || result.error));
+    }
+  } catch (error) {
+    console.error("Update error:", error);
+    alert("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+  } finally {
+    setIsSearching(false);
+  }
+};
+
+// 2. ฟังก์ชันสำหรับการลบหน่วยงาน (DELETE)
+const handleDelete = async () => {
+  if (!orgId || !deleteReason.trim()) {
+    alert("กรุณาระบุสาเหตุการลบ");
+    return;
+  }
+
+  try {
+  const rawAdminId = localStorage.getItem('current_admin_id');
+  const adminId = rawAdminId ? rawAdminId.replace(/"/g, '') : null;// เปลี่ยน 'admin_id' ให้ตรงกับ Key ที่คุณใช้เก็บ
+
+    const response = await fetch(`${API_URL_MANAGE}?id=${orgId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        current_admin_id: adminId, // *** ต้องเปลี่ยนเป็น ID ของ Admin จริง ***
+        description: deleteReason
+      }),
+    });
+
+    const result = await response.json();
+
+    if (response.ok && result.success) {
+      alert("ลบหน่วยงานเรียบร้อยแล้ว");
+      setShowDeleteModal(false);
+      setDeleteReason("");
+      setOrgId(""); // ล้างค่าที่เลือกไว้
+      await fetchOrgData(searchId); // รีเฟรชรายการ
+    } else {
+      alert("การลบผิดพลาด: " + (result.message || result.error));
+    }
+  } catch (error) {
+    alert("Error: " + error.message);
+  }
+};
 
   const fetchOrgData = async (targetId = "") => {
     if (!targetId) return;
@@ -35,15 +172,19 @@ export default function ManageOrgPage() {
       const res = await fetch(`${API_URL_ORG}?q=${encodeURIComponent(targetId)}`);
       const result = await res.json();
       if (result.found && result.data) {
-        setCases(result.data.map(item => ({
-          org_id: String(item.id),
-          org_name: String(item.name || ""),
-          logo_url: String(item.photo || ""), 
-          is_deleted: item.is_deleted || false,
-          is_official: item.is_official || false,
-          allow_csv: item.allow_csv || false
-        })));
-      } else {
+    setCases(result.data.map(item => ({
+      org_id: String(item.id),
+      org_name: String(item.name || ""),
+      logo_url: String(item.photo || ""), 
+      is_deleted: item.status === 'deleted',
+      
+      // ดึงค่าจาก API มาเก็บไว้ในตัวแปรที่หน้า UI ใช้
+      is_official: item.official_group === true, 
+      allow_csv: item.download_csv === true, 
+      
+      admin_codes: item.admin_codes || []
+    })));
+  } else {
         setCases([]);
       }
     } catch (e) {
@@ -107,14 +248,40 @@ export default function ManageOrgPage() {
                   const isSelected = orgId === item.org_id;
                   return (
                     <div 
-                      key={item.org_id} 
-                      onClick={() => { 
-                        setOrgId(isSelected ? "" : item.org_id);
-                        setOrgName(isSelected ? "" : item.org_name);
-                        setLogoPreview(isSelected ? null : item.logo_url);
-                        setIsOfficial(item.is_official);
-                        setIsCsvEnabled(item.allow_csv);
-                      }} 
+  key={item.org_id} 
+onClick={() => { 
+  const isSelected = orgId === item.org_id;
+  
+  if (isSelected) {
+    // ถ้ายกเลิกการเลือก (คลิกตัวเดิม) ให้ล้างค่า
+    setOrgId("");
+    setOrgName("");
+    setLogoPreview(null);
+    setIsOfficial(false);
+    setIsCsvEnabled(false);
+    setAdminCode("-");
+    setStaffCode("-");
+  } else {
+    // ถ้าเลือกตัวใหม่ ให้ดึงค่าจาก item มาใส่ State ตรงๆ
+    setOrgId(item.org_id);
+    setOrgName(item.org_name);
+    setLogoPreview(item.logo_url);
+    setSelectedImageToReplace({ url: item.logo_url }); // เพิ่มบรรทัดนี้
+    
+    // ดึงค่า True/False จากข้อมูลที่ map ไว้ใน fetchOrgData
+    setIsOfficial(item.is_official); 
+    setIsCsvEnabled(item.allow_csv);
+
+    // ดึงรหัส Admin/Staff
+    if (item.admin_codes && item.admin_codes.length > 0) {
+      setAdminCode(item.admin_codes[0].code || "ไม่มีรหัส");
+      setStaffCode(item.admin_codes[0].code_staff || "ไม่มีรหัส");
+    } else {
+      setAdminCode("-");
+      setStaffCode("-");
+    }
+  }
+}}
   
                       className={`relative !bg-white rounded-[2rem] overflow-hidden cursor-pointer transition-all duration-500 border-2 flex flex-col ${
                         isSelected 
@@ -166,9 +333,23 @@ export default function ManageOrgPage() {
                         <ImageIcon size={32} className="text-slate-300" />
                       )}
                     </div>
-                    <label className="absolute -bottom-2 -right-2 w-10 h-10 !bg-black text-white rounded-xl shadow-xl flex items-center justify-center cursor-pointer border-4 border-white hover:scale-110 transition-transform">
-                      <Upload size={18} /><input type="file" className="hidden" />
-                    </label>
+                    <label className="absolute ... cursor-pointer ...">
+  <Upload size={18} />
+  <input 
+    type="file" 
+    className="hidden" 
+    accept="image/*"
+    onChange={(e) => { 
+      const file = e.target.files[0]; 
+      if (file) { 
+        setLogoFile(file); 
+        const reader = new FileReader(); 
+        reader.onloadend = () => setLogoPreview(reader.result); 
+        reader.readAsDataURL(file); 
+      } 
+    }} 
+  />
+</label>
                   </div>
                   
                   <div className="flex-1 space-y-4">
@@ -243,6 +424,21 @@ export default function ManageOrgPage() {
                     </div>
                  </div>
               </div>
+              
+
+              {/* ส่วนระบุเหตุผลการแก้ไข */}
+            <div className="!bg-white p-6 rounded-[2rem] shadow-[0_0_30px_rgba(0,0,0,0.03)] border-2 border-white">
+              <div className="flex items-center gap-3 mb-4">
+                <AlertCircle size={20} className="text-slate-400" />
+                <p className="font-bold text-sm !text-slate-900">บันทึกรายละเอียดการแก้ไข (Admin Log)</p>
+              </div>
+              <textarea 
+                className="textarea textarea-bordered w-full rounded-2xl min-h-[80px] font-bold text-sm !bg-white !text-slate-900 border-slate-200 focus:!border-black outline-none shadow-sm" 
+                placeholder="ระบุเหตุผลหรือสิ่งที่แก้ไข เช่น 'เปลี่ยนชื่อหน่วยงานและเปิดสิทธิ์ดาวน์โหลด CSV'..."
+                value={updateDescription}
+                onChange={(e) => setUpdateDescription(e.target.value)}
+              ></textarea>
+            </div>
 
               {/* Action Buttons: 50/50 Layout */}
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
@@ -254,6 +450,7 @@ export default function ManageOrgPage() {
                 </button>
                 
                 <button 
+                  onClick={handleUpdate} // เพิ่มตรงนี้
                   className="btn flex-1 h-14 !rounded-2xl !bg-[#16a34a] hover:!bg-[#15803d] !text-white !border-none font-bold shadow-[0_0_20px_rgba(22,163,74,0.2)] transition-all"
                 >
                   <CheckCircle2 size={18} /> ยืนยันการอัปเดตทั้งหมด
@@ -274,7 +471,7 @@ export default function ManageOrgPage() {
             <textarea className="textarea textarea-bordered w-full rounded-2xl min-h-[100px] mb-6 font-bold text-sm !bg-white !text-slate-900 border-slate-200 focus:!border-red-500 outline-none shadow-sm" placeholder="ระบุสาเหตุ..." value={deleteReason} onChange={(e) => setDeleteReason(e.target.value)}></textarea>
             <div className="flex gap-3">
               <button onClick={() => setShowDeleteModal(false)} className="btn flex-1 rounded-xl font-bold !bg-slate-100 border-none !text-slate-600 hover:!bg-slate-200">ยกเลิก</button>
-              <button onClick={() => setShowDeleteModal(false)} className="btn flex-1 rounded-xl !bg-red-600 !text-white hover:!bg-red-700 border-none font-bold shadow-lg">ยืนยันการลบ</button>
+              <button onClick={() => { handleDelete(); setShowDeleteModal(false); }} className="btn flex-1 rounded-xl !bg-red-600 !text-white hover:!bg-red-700 border-none font-bold shadow-lg">ยืนยันการลบ</button>
             </div>
           </div>
         </div>
