@@ -83,7 +83,7 @@ export default function ManageOrgPage() {
           {/* Search Box */}
           <div className="flex items-center gap-2 mb-10">
             <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-20" size={18} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-600 z-20" size={18} />
               <input 
                 type="text" 
                 className="input input-bordered w-full h-12 !pl-11 pr-4 !bg-white !text-slate-900 !rounded-full !border-slate-200 focus:!border-black shadow-[0_0_20px_rgba(0,0,0,0.03)] outline-none font-bold text-sm" 
@@ -98,7 +98,7 @@ export default function ManageOrgPage() {
             </button>
           </div>
 
-          {/* Result Grid - ปรับเงาฟุ้งรอบตัวการ์ด (Ambient Glow) */}
+          {/* Result Grid  */}
           <div className="mb-10">
             <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-5 px-1">ผลการค้นหา</h3><br></br>
             {cases.length > 0 ? (
@@ -115,7 +115,7 @@ export default function ManageOrgPage() {
                         setIsOfficial(item.is_official);
                         setIsCsvEnabled(item.allow_csv);
                       }} 
-                      // แก้เงาที่นี่: shadow-[0_0_20px_...] คือเงาฟุ้งรอบตัว X=0, Y=0
+  
                       className={`relative !bg-white rounded-[2rem] overflow-hidden cursor-pointer transition-all duration-500 border-2 flex flex-col ${
                         isSelected 
                           ? '!border-black shadow-[0_0_30px_rgba(0,0,0,0.12)] scale-[1.03] z-10' 
