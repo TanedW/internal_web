@@ -762,7 +762,11 @@ export default function ManageCase() {
                             <button 
                                 onClick={handleUpdateImage} 
                                 disabled={!reason.trim() || isSubmitting} 
-                                className="px-8 py-3 bg-emerald-500 text-white rounded-full text-base font-bold hover:bg-emerald-600 hover:shadow-xl hover:shadow-emerald-200 hover:-translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:transform-none disabled:shadow-none flex-1 sm:flex-none"
+                                className={`px-8 py-3 text-white rounded-full text-base font-bold transition-all flex items-center justify-center gap-2 flex-1 sm:flex-none ${
+                                    reason.trim() && !isSubmitting
+                                        ? 'bg-emerald-500 hover:bg-emerald-600 hover:shadow-xl hover:shadow-emerald-200 hover:-translate-y-1' // สีเขียวเมื่อพร้อมกด
+                                        : 'bg-slate-300 opacity-50 cursor-not-allowed' // สีเทาเมื่อยังไม่ได้ใส่เหตุผล
+                                }`}
                             >
                                 {isSubmitting ? (
                                     <span className="loading loading-spinner loading-md"></span>
