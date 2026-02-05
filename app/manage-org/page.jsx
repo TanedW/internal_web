@@ -64,7 +64,7 @@ export default function ManageOrgPage() {
   };
 
   return (
-    <div data-theme="light" className="min-h-screen !bg-[#f8fafc] !text-slate-900 font-sans pb-20">
+    <div data-theme="light" className="min-h-screen !bg-[#F4F6F8] !text-slate-900 font-sans pb-20">
       <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
       
       <Sidebar isDesktopSidebarOpen={isDesktopSidebarOpen} setIsDesktopSidebarOpen={setIsDesktopSidebarOpen} />
