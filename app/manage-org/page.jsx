@@ -42,6 +42,18 @@ export default function ManageOrgPage() {
   const API_URL_MANAGE = process.env.NEXT_PUBLIC_DB_MANAGE_ORG_API_URL || "";
   const uploadApiUrl = process.env.NEXT_PUBLIC_FILE_UPLOAD_API_URL;
 
+  // เพิ่ม Logic สำหรับเช็คการเปลี่ยนแปลง
+  const currentOrgData = cases.find(item => item.org_id === orgId);
+  const hasChanges = () => {
+    if (!currentOrgData) return false;
+    const isNameChanged = orgName !== currentOrgData.org_name;
+    const isOfficialChanged = isOfficial !== currentOrgData.is_official;
+    const isCsvChanged = isCsvEnabled !== currentOrgData.allow_csv;
+    const isLogoChanged = logoFile !== null;
+    return isNameChanged || isOfficialChanged || isCsvChanged || isLogoChanged;
+  };
+  const canSubmit = (hasChanges() || currentOrgData?.is_deleted) && updateDescription.trim() !== "";
+
   // 1. ฟังก์ชันสำหรับการอัปเดตข้อมูล (PUT)
   const handleUpdate = async () => {
     if (!orgId) return;
@@ -96,6 +108,7 @@ export default function ManageOrgPage() {
       if (response.ok && result.success) {
         alert("อัปเดตข้อมูลหน่วยงานสำเร็จ");
         setUpdateDescription("");
+        setLogoFile(null); // เคลียร์ไฟล์หลังอัปเดต
         await fetchOrgData(searchId); 
       } else {
         alert("เกิดข้อผิดพลาด: " + (result.message || result.error));
@@ -265,6 +278,8 @@ export default function ManageOrgPage() {
                           setSelectedImageToReplace({ url: item.logo_url });
                           setIsOfficial(item.is_official); 
                           setIsCsvEnabled(item.allow_csv);
+                          setUpdateDescription(""); // ล้าง Log เมื่อเปลี่ยนหน่วยงาน
+                          setLogoFile(null);
                           if (item.admin_codes?.length > 0) {
                             setAdminCode(item.admin_codes[0].code || "ไม่มีรหัส");
                             setStaffCode(item.admin_codes[0].code_staff || "ไม่มีรหัส");
@@ -399,7 +414,6 @@ export default function ManageOrgPage() {
                 </div>
               </div>
               
-              {/* QR Section */}
               <div className="!bg-white p-6 rounded-[2rem] shadow-[0_0_30px_rgba(0,0,0,0.03)] border-2 border-white">
                 <div className="flex items-center gap-3 mb-4">
                   <QrCode size={20} className="text-slate-400" />
@@ -434,6 +448,13 @@ export default function ManageOrgPage() {
                   value={updateDescription}
                   onChange={(e) => setUpdateDescription(e.target.value)}
                 ></textarea>
+                {!canSubmit && !isSearching && orgId && (
+                  <p className="text-[10px] text-red-500 font-bold mt-2 ml-1 animate-pulse">
+                    {!hasChanges() && !currentOrgData?.is_deleted 
+                      ? "* กรุณาแก้ไขข้อมูลก่อนบันทึก" 
+                      : "* กรุณาระบุเหตุผลการแก้ไขในช่อง Admin Log"}
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
@@ -454,11 +475,10 @@ export default function ManageOrgPage() {
                 )}
                 <button 
                   onClick={handleUpdate}
-                 
-                  disabled={isSearching || !updateDescription.trim()}
+                  disabled={isSearching || !canSubmit}
                   className={`btn flex-1 h-14 !rounded-2xl !text-white !border-none font-bold transition-all ${
-                    (isSearching || !updateDescription.trim()) 
-                      ? '!bg-slate-300 !cursor-not-allowed shadow-none'
+                    (isSearching || !canSubmit) 
+                      ? '!bg-slate-300 !cursor-not-allowed opacity-70 shadow-none'
                       : '!bg-[#16a34a] hover:!bg-[#15803d] shadow-[0_0_20px_rgba(22,163,74,0.2)]' 
                   }`}
                 >
