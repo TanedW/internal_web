@@ -166,7 +166,7 @@ export default function Sidebar({
             e.target.src = getAvatarUrl("Admin");
           }}
         />
-      </div>
+      </div><br></br>
       <h2 className="text-sm font-bold mt-4 px-2 break-words w-full" style={{ color: '#1e293b' }}>
         {adminData?.name || user?.displayName || "Admin User"}
       </h2>

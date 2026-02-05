@@ -14,7 +14,7 @@ export default function ManageOrgPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchId, setSearchId] = useState("");
   const [cases, setCases] = useState([]); 
-  const [orgId, setOrgId] = useState("");      
+  const [orgId, setOrgId] = useState("");       
   const [orgName, setOrgName] = useState("");
   const [logoPreview, setLogoPreview] = useState(null);
 
@@ -155,7 +155,7 @@ export default function ManageOrgPage() {
           {/* Edit Form */}
           {orgId && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
-              {/* Form Card พร้อมเงาฟุ้งรอบด้าน */}
+              {/* Form Card */}
               <div className="!bg-white rounded-[2.5rem] p-8 shadow-[0_0_40px_rgba(0,0,0,0.04)] border-2 border-white">
                 <div className="flex flex-col md:flex-row gap-8">
                   <div className="relative shrink-0 mx-auto md:mx-0">
@@ -177,19 +177,24 @@ export default function ManageOrgPage() {
                       <input type="text" value={orgName} onChange={(e) => setOrgName(e.target.value)} className="input input-bordered w-full rounded-2xl font-bold !bg-white !text-slate-900 border-slate-200 focus:!border-black" />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* Adjusted Staff & Admin Codes for Mobile */}
+                    <div className="flex flex-col sm:grid sm:grid-cols-2 gap-4">
                       <div className="p-4 !bg-slate-50 rounded-2xl border border-slate-100 shadow-sm">
-                        <label className="text-[9px] font-black text-slate-400 uppercase block mb-2">Staff Code</label>
-                        <div className="flex items-center justify-between">
-                          <code className="text-sm font-bold text-blue-600">{staffCode}</code>
-                          <button onClick={() => copyToClipboard(staffCode)} className="text-slate-400 hover:text-black transition-colors"><Copy size={16}/></button>
+                        <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Staff Code</label>
+                        <div className="flex items-center justify-between gap-2">
+                          <code className="text-sm md:text-base font-bold text-blue-600 break-all">{staffCode}</code>
+                          <button onClick={() => copyToClipboard(staffCode)} className="shrink-0 p-2 !bg-white rounded-lg border border-slate-100 text-slate-400 hover:text-black transition-colors shadow-sm">
+                            <Copy size={16}/>
+                          </button>
                         </div>
                       </div>
                       <div className="p-4 !bg-slate-50 rounded-2xl border border-slate-100 shadow-sm">
-                        <label className="text-[9px] font-black text-slate-400 uppercase block mb-2">Admin Code</label>
-                        <div className="flex items-center justify-between">
-                          <code className="text-sm font-bold text-red-600">{adminCode}</code>
-                          <button onClick={() => copyToClipboard(adminCode)} className="text-slate-400 hover:text-black transition-colors"><Copy size={16}/></button>
+                        <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Admin Code</label>
+                        <div className="flex items-center justify-between gap-2">
+                          <code className="text-sm md:text-base font-bold text-red-600 break-all">{adminCode}</code>
+                          <button onClick={() => copyToClipboard(adminCode)} className="shrink-0 p-2 !bg-white rounded-lg border border-slate-100 text-slate-400 hover:text-black transition-colors shadow-sm">
+                            <Copy size={16}/>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -239,10 +244,20 @@ export default function ManageOrgPage() {
                  </div>
               </div>
 
-              {/* Buttons */}
+              {/* Action Buttons: 50/50 Layout */}
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
-                <button onClick={() => setShowDeleteModal(true)} className="btn flex-1 h-14 !rounded-2xl !bg-red-50 hover:!bg-red-100 !text-red-600 !border-red-100 font-bold transition-all"><Trash2 size={18} /> ลบหน่วยงาน</button>
-                <button className="btn flex-[2] h-14 !rounded-2xl !bg-[#16a34a] hover:!bg-[#15803d] !text-white !border-none font-bold shadow-[0_0_20px_rgba(22,163,74,0.2)] transition-all"><CheckCircle2 size={18} /> ยืนยันการอัปเดตทั้งหมด</button>
+                <button 
+                  onClick={() => setShowDeleteModal(true)} 
+                  className="btn flex-1 h-14 !rounded-2xl !bg-red-50 hover:!bg-red-100 !text-red-600 !border-red-100 font-bold transition-all"
+                >
+                  <Trash2 size={18} /> ลบหน่วยงาน
+                </button>
+                
+                <button 
+                  className="btn flex-1 h-14 !rounded-2xl !bg-[#16a34a] hover:!bg-[#15803d] !text-white !border-none font-bold shadow-[0_0_20px_rgba(22,163,74,0.2)] transition-all"
+                >
+                  <CheckCircle2 size={18} /> ยืนยันการอัปเดตทั้งหมด
+                </button>
               </div>
             </div>
           )}
