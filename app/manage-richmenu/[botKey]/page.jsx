@@ -6,6 +6,7 @@ import Link from "next/link";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/firebaseConfig";
 import "@fortawesome/fontawesome-free/css/all.css";
+import Swal from "sweetalert2";
 import {
   Menu,
   X,
@@ -22,7 +23,7 @@ import {
   Type,
   Zap,
   Globe,
-  Code,
+  Code, // <--- ตัวที่คุณเพิ่มเข้าไปล่าสุด
   Link as LinkIcon,
   Image as ImageIcon,
   Check,
@@ -302,16 +303,16 @@ export default function RichMenuDashboard() {
   };
 
   const handleImageChange = (e) => {
-  const file = e.target.files[0];
-  if (file) {
-    setUploadedImage(file); // สำหรับส่งไป Server
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result); // สำหรับโชว์บนหน้าจอ
-    };
-    reader.readAsDataURL(file);
-  }
-};
+    const file = e.target.files[0];
+    if (file) {
+      setUploadedImage(file); // สำหรับส่งไป Server
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result); // สำหรับโชว์บนหน้าจอ
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // ==========================================
   // MAIN LOGIC
@@ -397,60 +398,92 @@ export default function RichMenuDashboard() {
 
   async function handleUpload(e) {
     e.preventDefault();
+
     if (!selectedFile) {
       setAlert({ type: "error", message: "กรุณาเลือกรูปภาพ" });
       return;
     }
-    // 1. ถามยืนยันก่อนเริ่มกระบวนการ
+
+    // 1. ถามยืนยันการใช้งาน
     const confirmUseNow = window.confirm(
       "คุณต้องการบันทึกและเปลี่ยนมาใช้เมนูนี้ให้กับผู้ใช้ทุกคนทันทีเลยหรือไม่?\n\n- ตกลง: บันทึกและเปลี่ยนเมนูทันที\n- ยกเลิก: บันทึกเก็บไว้ในประวัติเท่านั้น",
     );
+
     setUploading(true);
     try {
       const formData = new FormData();
       formData.append("botKey", botKey);
-      formData.append("menuName", menuName || `Traffy_${botKey}`);
+      formData.append("menuName", menuName || `Menu_${botKey}`);
       formData.append("menuImage", selectedFile);
+
+      // ✅ เพิ่มส่วนนี้: ส่งโครงสร้างปุ่ม (Action) ที่ตั้งค่าจากหน้าเว็บไปที่ API
+      // mappedAreas คือ State ที่เก็บ Array ของตำแหน่งปุ่มและ Action ต่างๆ (Link, Postback, Text)
+      formData.append("areas", JSON.stringify(mappedAreas));
+
+      // ✅ เพิ่ม: ส่งข้อความแถบเมนู (Chat Bar Text) ถ้ามีช่องให้กรอก
+      // formData.append("chatBarText", chatBarText);
+
       const response = await fetch("/api/richmenu/upload", {
         method: "POST",
         body: formData,
       });
-      if (confirmUseNow) {
-        // เรียก API switch เมนูทันที
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Upload failed");
+      }
+
+      // ดึง richMenuId ที่เพิ่งสร้างสำเร็จมาจาก API response
+      const newMenuId = result.richMenuId;
+
+      // 2. ถ้ากดยืนยันว่าจะใช้ทันที และเราได้ ID ใหม่มาแล้ว
+      if (confirmUseNow && newMenuId) {
         await fetch("/api/richmenu/switch", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             botKey,
-            menuId: newMenuId, // ID ที่ได้จากการสร้างใหม่
+            menuId: newMenuId,
             type: "batch",
           }),
         });
-        alert("บันทึกและเปลี่ยนเมนูสำเร็จ!");
+        alert("บันทึกและเปิดใช้งานเมนูใหม่สำเร็จ!");
       } else {
-        alert("บันทึกเมนูลงในประวัติเรียบร้อยแล้ว");
+        alert(
+          "บันทึกเมนูเรียบร้อยแล้ว (สามารถเปิดใช้งานภายหลังได้จากส่วนประวัติ)",
+        );
       }
 
+      // ล้างค่าและโหลดข้อมูลใหม่
       fetchMenus();
+      setSelectedFile(null);
       setUploadedImage(null);
       setMenuName("");
+      // setMappedAreas([]); // ล้างค่าปุ่มหลังทำรายการสำเร็จ (ถ้าต้องการ)
     } catch (error) {
       console.error("Upload Error:", error);
-      alert("เกิดข้อผิดพลาดในการบันทึก");
+      alert(`เกิดข้อผิดพลาด: ${error.message}`);
     } finally {
       setUploading(false);
     }
   }
-
-  // ตรวจสอบให้แน่ใจว่าเหลือแค่ก้อนนี้ก้อนเดียวในไฟล์
-  async function handleSwitch(menuId) {
-    // เพิ่มการยืนยันก่อนเปลี่ยน
-    if (
-      !window.confirm(
-        "คุณแน่ใจหรือไม่ที่จะเปลี่ยนไปใช้เมนูนี้ให้กับผู้ใช้ทุกคน?",
-      )
-    )
-      return;
+  const handleSwitch = async (menuId) => {
+    const result = await Swal.fire({
+      title: "ยืนยันการเปลี่ยนเมนู?",
+      text: "ผู้ใช้ทุกคนจะถูกเปลี่ยนมาใช้เมนูนี้ทันที",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "ใช่, เปลี่ยนเลย!",
+      cancelButtonText: "ยกเลิก",
+      // เพิ่มบรรทัดด้านล่างนี้เพื่อใช้ Class จาก CSS ที่เราเขียนข้างบน
+      customClass: {
+        confirmButton: 'swal2-confirm',
+        cancelButton: 'swal2-cancel'
+      },
+      buttonsStyling: true // ให้ใช้การตั้งค่าสไตล์พื้นฐานของ Swal ร่วมกับ CSS ของเรา
+    });
+    if (!result.isConfirmed) return;
 
     setLoading(true);
     try {
@@ -458,31 +491,67 @@ export default function RichMenuDashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          botKey,
-          menuId,
-          type: "batch",
+          botKey: botKey, // มั่นใจว่าตัวแปร botKey ด้านบนสุดของไฟล์มีค่า
+          menuId: menuId,
+          type: "batch", // สำคัญมาก: ต้องมีเพื่อให้เข้าเงื่อนไข if (type === "batch") ใน route.js
         }),
       });
 
-      if (response.ok) {
-        alert("เปลี่ยนเมนูสำเร็จ!");
-        // อัปเดต UI ให้เมนูที่เลือกกลายเป็น 'ใช้งานอยู่'
-        setCurrentMenuId(menuId);
-        // โหลดข้อมูลใหม่เพื่อให้สถานะ is_active ในรายการประวัติอัปเดตตาม
-        fetchMenus();
-      } else {
-        const errorData = await response.json();
-        alert(
-          `เกิดข้อผิดพลาด: ${errorData.error || "ไม่สามารถเปลี่ยนเมนูได้"}`,
-        );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "ไม่สามารถเปลี่ยนเมนูได้");
+      }
+
+      await Swal.fire("สำเร็จ!", "เปลี่ยนเมนูให้ทุกคนเรียบร้อยแล้ว", "success");
+
+      // อัปเดต UI
+      setCurrentMenuId(menuId);
+      if (typeof fetchData === "function") {
+        // ตรวจสอบว่ามี botKey หรือยัง ถ้าไม่มีให้ลองดึงจาก params ของ URL (Next.js)
+        if (botKey) {
+          fetchData(); 
+        } else {
+          console.warn("FetchData skipped: botKey is missing");
+          // หรือถ้าใช้ params จาก Next.js: fetchData(params.botKey);
+        }
       }
     } catch (error) {
-      console.error("Switch Error:", error);
-      alert("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
+        console.error("Error switching menu:", error);
+        await Swal.fire("ผิดพลาด", `เกิดข้อผิดพลาด: ${error.message}`, "error");
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  }
+  };
+
+  // ค้นหาตำแหน่งแถวๆ บรรทัดที่มีฟังก์ชัน handleSwitch หรือ handleDelete
+  const handleViewJson = async (menuId) => {
+    try {
+      const res = await fetch(
+        `/api/richmenu/details?botKey=${botKey}&menuId=${menuId}`,
+      );
+      const data = await res.json();
+
+      if (res.ok) {
+        // แสดงผลใน Console เพื่อให้ Copy ได้ง่าย (F12)
+        console.log("--- Rich Menu JSON Structure ---");
+        console.log(JSON.stringify(data, null, 2));
+
+        // แจ้งเตือนผู้ใช้
+        window.alert(
+          `ดึงข้อมูลสำเร็จ!\n\nชื่อเมนู: ${data.name}\nจำนวนปุ่ม: ${data.areas.length} ช่อง\n\n(รายละเอียดฉบับเต็มถูกส่งไปยัง Console ของ Browser แล้ว)`,
+        );
+      } else {
+        setAlert({
+          type: "error",
+          message: data.error || "ดึงข้อมูลไม่สำเร็จ",
+        });
+      }
+    } catch (err) {
+      console.error("Fetch JSON error:", err);
+      setAlert({ type: "error", message: "เกิดข้อผิดพลาดในการเชื่อมต่อ API" });
+    }
+  };
 
   async function handleDelete(menuId) {
     if (!window.confirm("ยืนยันการลบเมนูนี้อย่างถาวร?")) return;
@@ -688,19 +757,13 @@ export default function RichMenuDashboard() {
                             onClick={() => fileInputRef.current?.click()}
                             className="php-upload-zone relative border-2 border-dashed border-slate-200 rounded-xl hover:border-[#06C755] transition-colors"
                           >
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                              onChange={handleImageChange} // เชื่อมต่อฟังก์ชันเลือกรูป
-                            />
-                              <div className="relative group">
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
-                                  <p className="text-white text-xs font-medium">
-                                    เปลี่ยนรูปภาพ
-                                  </p>
-                                </div>
+                            <div className="relative group">
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                                <p className="text-white text-xs font-medium">
+                                  เปลี่ยนรูปภาพ
+                                </p>
                               </div>
+                            </div>
                             <input
                               ref={fileInputRef}
                               type="file"
@@ -1254,6 +1317,28 @@ export default function RichMenuDashboard() {
                                 >
                                   ลบ
                                 </button>
+                                {/* ในส่วนที่ render รายการเมนู (menus.map) */}
+                                <div className="flex gap-2">
+                                  {/* ปุ่มเดิมที่มีอยู่ เช่น ปุ่ม Switch หรือ Delete */}
+
+                                  {/* เพิ่มปุ่มดู JSON ตรงนี้ */}
+                                  <button
+                                    onClick={() =>
+                                      handleViewJson(menu.richMenuId)
+                                    }
+                                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg border border-indigo-100 transition-colors"
+                                    title="ดูโครงสร้าง JSON"
+                                  >
+                                    <Code size={16} />
+                                  </button>
+
+                                  <button
+                                    onClick={() =>
+                                      handleDelete(menu.richMenuId)
+                                    }
+                                    className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg"
+                                  ></button>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -1299,4 +1384,5 @@ export default function RichMenuDashboard() {
       </div>
     </div>
   );
+
 }

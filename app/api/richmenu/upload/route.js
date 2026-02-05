@@ -7,37 +7,21 @@ export async function POST(request) {
     const formData = await request.formData();
     const botKey = formData.get('botKey');
     const menuName = formData.get('menuName');
+    const chatBarText = formData.get('chatBarText') || 'เมนูหลัก';
     const menuImage = formData.get('menuImage');
+    
+    // ✅ รับค่า JSON string ของ areas ที่ส่งมาจากหน้าเว็บ
+    const areasString = formData.get('areas'); 
+    const areas = JSON.parse(areasString);
 
-    if (!botKey || !menuName || !menuImage) {
-      return Response.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    const token = getBotToken(botKey);
-    if (!token) {
-      return Response.json(
-        { error: 'Invalid bot key' },
-        { status: 400 }
-      );
-    }
-
-    if (menuImage.size > 1000000) {
-      return Response.json(
-        { error: `File too large: ${Math.round(menuImage.size / 1024)} KB (max 1MB)` },
-        { status: 400 }
-      );
-    }
-
-    const richMenuData = getRichMenuTemplate(menuName);
-    const step1 = await callLineAPI(
-      'https://api.line.me/v2/bot/richmenu',
-      'POST',
-      richMenuData,
-      token
-    );
+    // ✅ สร้าง Object โครงสร้างตาม Format ของ LINE ตรงนี้เลย
+    const richMenuData = {
+      size: { width: 2500, height: 843 }, // หรือปรับตามขนาดภาพ
+      selected: true,
+      name: menuName,
+      chatBarText: chatBarText,
+      areas: areas // ใช้ค่าที่ส่งมาจากหน้าเว็บ
+    };
 
     if (step1.code !== 200 || !step1.response?.richMenuId) {
       return Response.json(

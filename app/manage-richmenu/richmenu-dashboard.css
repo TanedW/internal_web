@@ -760,3 +760,30 @@
   transform: translateY(1px);
   filter: brightness(0.9);
 }
+
+/* 1. บังคับสีปุ่มกดยืนยันให้เป็นสีเขียวตลอดเวลา */
+.swal2-container .swal2-styled.swal2-confirm {
+    background-color: #06C755 !important;
+    color: #ffffff !important;
+    opacity: 1 !important; /* ป้องกันปุ่มจาง */
+    box-shadow: none !important;
+}
+
+/* 2. บังคับสีปุ่มยกเลิกให้เป็นสีแดงตลอดเวลา (แก้จากเขียวในรูปให้เป็นแดง) */
+.swal2-container .swal2-styled.swal2-cancel {
+    background-color: #d33 !important; /* สีแดงมาตรฐาน */
+    color: #ffffff !important;
+    opacity: 1 !important; /* ป้องกันปุ่มจาง */
+    box-shadow: none !important;
+}
+
+/* 3. ล้างสถานะ Hover ที่อาจทำให้สีเพี้ยน */
+.swal2-container .swal2-actions button:hover {
+    opacity: 0.9 !important; /* ให้เข้มขึ้นหรือจางลงนิดเดียวเวลาชี้ */
+}
+
+/* 4. แก้ปัญหาปุ่มเป็นสีขาวในสถานะปกติ */
+.swal2-container .swal2-actions button {
+    display: inline-block !important;
+    visibility: visible !important;
+}
