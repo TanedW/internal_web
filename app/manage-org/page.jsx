@@ -247,6 +247,7 @@ export default function ManageOrgPage() {
 
           <div className="mb-10">
             <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-5 px-1">ผลการค้นหา</h3>
+            <br />
             {cases.length > 0 ? (
               <div className="grid grid-cols-2 gap-5 sm:gap-6">
                 {cases.map((item) => {
