@@ -270,7 +270,7 @@ export default function ManageOrgPage() {
           <div className="!bg-white w-full max-w-md rounded-[2.5rem] p-8 border-2 border-white shadow-[0_0_60px_rgba(0,0,0,0.15)] animate-in zoom-in duration-300">
             <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6"><AlertCircle size={32} /></div>
             <h3 className="text-xl font-bold text-center mb-2 !text-slate-900">ยืนยันการลบหน่วยงาน?</h3>
-            <p className="text-slate-500 text-sm text-center mb-6 font-bold">ข้อมูลจะถูกซ่อนจากระบบ แต่สามารถกู้คืนได้ภายหลังโดยแอดมิน</p>
+            <p className="text-slate-500 text-sm text-center mb-6 font-bold">ข้อมูลจะถูกซ่อนจากระบบ แต่สามารถกู้คืนได้ภายหลังโดยAdmin</p>
             <textarea className="textarea textarea-bordered w-full rounded-2xl min-h-[100px] mb-6 font-bold text-sm !bg-white !text-slate-900 border-slate-200 focus:!border-red-500 outline-none shadow-sm" placeholder="ระบุสาเหตุ..." value={deleteReason} onChange={(e) => setDeleteReason(e.target.value)}></textarea>
             <div className="flex gap-3">
               <button onClick={() => setShowDeleteModal(false)} className="btn flex-1 rounded-xl font-bold !bg-slate-100 border-none !text-slate-600 hover:!bg-slate-200">ยกเลิก</button>
