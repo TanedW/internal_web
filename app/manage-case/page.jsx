@@ -700,6 +700,8 @@ export default function ManageCase() {
                                 </div>
                             )}
 
+                            
+
                             {wizardStep === 3 && (
                                 <div className="w-full max-w-xl text-center animate-fade-in text-slate-800">
                                     <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">Step 3: สรุปผลและระบุเหตุผล</h3>

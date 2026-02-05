@@ -398,6 +398,24 @@ export default function ManageOrgPage() {
                   <input type="checkbox" className="toggle toggle-info" checked={isOfficial} onChange={(e) => setIsOfficial(e.target.checked)} />
                 </div>
               </div>
+              
+
+                            {/* QR Section */}
+              <div className="!bg-white p-6 rounded-[2rem] shadow-[0_0_30px_rgba(0,0,0,0.03)] border-2 border-white">
+                 <div className="flex items-center gap-3 mb-4">
+                    <QrCode size={20} className="text-slate-400" />
+                    <p className="font-bold text-sm !text-slate-900">QR Code สำหรับแจ้งเหตุ</p>
+                 </div>
+                 <div className="flex items-center gap-6">
+                    <div className="w-24 h-24 !bg-white border-2 border-slate-100 rounded-2xl p-2 flex items-center justify-center overflow-hidden">
+                       <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://line.me/R/ti/p/@org_${orgId}`} alt="QR" className="w-full h-full" />
+                    </div>
+                    <div className="flex-1">
+                       <p className="text-xs text-slate-500 font-bold mb-2">ลิงก์แจ้งเหตุประจำหน่วยงาน</p>
+                       <button className="btn btn-sm btn-outline rounded-full text-[10px] font-bold !bg-white !text-slate-600 border-slate-200 hover:!border-black transition-colors">ดาวน์โหลดไฟล์ QR</button>
+                    </div>
+                 </div>
+              </div>
 
               <div className="!bg-white p-6 rounded-[2rem] shadow-[0_0_30px_rgba(0,0,0,0.03)] border-2 border-white">
                 <div className="flex items-center gap-3 mb-4">
