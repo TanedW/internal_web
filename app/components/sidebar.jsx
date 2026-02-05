@@ -27,7 +27,6 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "",
 };
 
-// ป้องกัน Error: Firebase App named '[DEFAULT]' already exists
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 
@@ -99,13 +98,16 @@ export default function Sidebar({
 
   const hasAccess = (roles) => currentRoles.some((r) => roles.includes(r));
 
-  const getMenuClass = (path) =>
-    `flex items-center gap-4 px-6 py-3 rounded-xl transition-all duration-200 ${
-      pathname === path
+  const getMenuClass = (path) => {
+    const isActive = pathname === path;
+    return `flex items-center gap-4 px-6 py-3 rounded-xl transition-all duration-200 ${
+      isActive
         ? "bg-[#111827] !text-white shadow-lg scale-[1.02]"
-        : "text-black hover:bg-slate-50"
+        : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
     }`;
+  };
 
+  // --- ส่วนจัดการ Role และปุ่ม More ---
   const SidebarRoleDisplay = () => (
     <div className="flex flex-col items-center mt-2 px-2 w-full">
       {currentRoles.length > 0 ? (
@@ -113,29 +115,31 @@ export default function Sidebar({
           {isSidebarRolesExpanded ? (
             <div className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-1 duration-200 w-full items-center">
               {currentRoles.map((role, idx) => (
-                <span
-                  key={idx}
-                  className="text-[9px] font-bold text-[#6366F1] uppercase tracking-wider bg-[#EEF2FF] px-2.5 py-1 rounded-full border border-indigo-50 truncate max-w-[160px]"
+                <span 
+                  key={idx} 
+                  className="text-[9px] font-bold !text-[#4F46E5] uppercase tracking-wider !bg-[#E0E7FF] px-2.5 py-1 rounded-full border border-indigo-100 truncate max-w-[160px]"
                 >
-                  {role.replace(/_/g, " ")}
+                  {role.replace(/_/g, ' ')}
                 </span>
               ))}
-              <button
-                onClick={() => setIsSidebarRolesExpanded(false)}
-                className="btn btn-xs h-6 min-h-0 bg-white border border-indigo-400 text-indigo-500 hover:bg-indigo-50 rounded-full px-2 text-[8px] font-bold uppercase mt-1"
+              <button 
+                onClick={() => setIsSidebarRolesExpanded(false)} 
+                className="btn btn-xs h-6 min-h-0 !bg-[#F1F5F9] !border-none !text-[#475569] hover:!bg-slate-200 rounded-full px-3 text-[8px] font-bold uppercase mt-1 shadow-none"
               >
                 Show less
               </button>
             </div>
           ) : (
             <div className="flex items-center justify-center gap-1.5 w-full">
-              <span className="text-[9px] font-bold text-[#6366F1] uppercase tracking-wider bg-[#EEF2FF] px-2.5 py-1 rounded-full border border-indigo-50 truncate max-w-[120px]">
-                {currentRoles[0].replace(/_/g, " ")}
+              <span 
+                className="text-[9px] font-bold !text-[#4F46E5] uppercase tracking-wider !bg-[#E0E7FF] px-2.5 py-1 rounded-full border border-indigo-100 shadow-sm truncate max-w-[120px]"
+              >
+                {currentRoles[0].replace(/_/g, ' ')}
               </span>
               {currentRoles.length > 1 && (
-                <button
-                  onClick={() => setIsSidebarRolesExpanded(true)}
-                  className="btn btn-xs h-6 min-h-0 bg-white border border-indigo-400 text-indigo-500 hover:bg-indigo-50 rounded-full px-2 text-[8px] font-bold uppercase whitespace-nowrap shadow-sm"
+                <button 
+                  onClick={() => setIsSidebarRolesExpanded(true)} 
+                  className="btn btn-xs h-6 min-h-0 !bg-[#F0F7FF] !border-none !text-[#4F46E5] hover:!bg-[#E0F0FF] rounded-full px-3 text-[9px] font-bold lowercase whitespace-nowrap shadow-none"
                 >
                   +{currentRoles.length - 1} more
                 </button>
@@ -144,9 +148,7 @@ export default function Sidebar({
           )}
         </>
       ) : (
-        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-          Guest
-        </span>
+        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Guest</span>
       )}
     </div>
   );
@@ -165,7 +167,7 @@ export default function Sidebar({
           }}
         />
       </div>
-      <h2 className="text-sm font-bold text-slate-800 mt-4 px-2 break-words w-full">
+      <h2 className="text-sm font-bold mt-4 px-2 break-words w-full" style={{ color: '#1e293b' }}>
         {adminData?.name || user?.displayName || "Admin User"}
       </h2>
       <SidebarRoleDisplay />
@@ -177,24 +179,20 @@ export default function Sidebar({
       <style
         dangerouslySetInnerHTML={{
           __html: `
-        .no-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .no-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .force-light { background-color: #ffffff !important; color: #1e293b !important; }
       `,
         }}
       />
 
       {/* MOBILE NAVBAR */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-md z-40 px-5 flex items-center border-b border-slate-100 shadow-sm">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 force-light z-40 px-5 flex items-center border-b border-slate-100 shadow-sm">
         <button
           onClick={() => setIsMobileMenuOpen(true)}
-          className="p-2 text-slate-800 hover:bg-slate-100 rounded-lg"
+          className="p-2 !bg-white !text-black rounded-xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)] hover:bg-slate-50 transition-all !border-none"
         >
-          <Menu className="w-6 h-6" />
+          <Menu className="w-6 h-6" strokeWidth={2.5} />
         </button>
         <span className="ml-4 font-bold text-slate-800 text-sm">
           Admin Portal
@@ -208,12 +206,12 @@ export default function Sidebar({
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             onClick={() => setIsMobileMenuOpen(false)}
           ></div>
-          <div className="relative w-[280px] h-full bg-white shadow-2xl flex flex-col p-8 rounded-r-[2rem] animate-in slide-in-from-left duration-300 overflow-y-auto no-scrollbar">
+          <div className="relative w-[280px] h-full force-light shadow-2xl flex flex-col p-8 rounded-r-[2rem] animate-in slide-in-from-left duration-300 overflow-y-auto no-scrollbar">
             <button
               onClick={() => setIsMobileMenuOpen(false)}
-              className="absolute top-6 right-6 p-1.5 bg-slate-50 text-slate-400 rounded-full"
+              className="absolute top-6 right-6 p-1.5 bg-slate-50 text-slate-400 rounded-full border border-slate-100"
             >
-              <X size={18} />
+              <X size={18} style={{ color: '#000000' }} strokeWidth={3} />
             </button>
             <SidebarHeader />
             <nav className="flex flex-col gap-1.5 flex-1 mt-6 overflow-y-auto no-scrollbar">
@@ -245,7 +243,7 @@ export default function Sidebar({
                   <span className="text-[15px] font-bold">จัดการ Menu</span>
                 </Link>
               )}
-              {hasAccess(["admin", "editor", "editor_manage_org_info"]) && (
+              {hasAccess(["admin", "editor", "editor_manage_org_info", "editor_manage_org"]) && (
                 <Link
                   href="/manage-org"
                   className={getMenuClass("/manage-org")}
@@ -273,7 +271,7 @@ export default function Sidebar({
                   className={getMenuClass("/search-org")}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  <Search size={20} /> {/* เปลี่ยนเป็น Search */}
+                  <Search size={20} />
                   <span className="text-[15px] font-bold">
                     ค้นหาหน่วยงานซ้ำ
                   </span>
@@ -288,7 +286,7 @@ export default function Sidebar({
                 <div className="p-1.5 bg-red-100/50 rounded-lg group-hover:bg-red-100 transition-colors">
                   <LogOut
                     size={20}
-                    className="text-red-500 transition-transform group-hover:translate-x-0.5"
+                    className="text-red-500"
                   />
                 </div>
                 <span className="text-red-600 font-bold tracking-wide text-[15px]">
@@ -300,28 +298,15 @@ export default function Sidebar({
         </div>
       )}
 
-      {/* DESKTOP OPEN BUTTON (WHEN CLOSED) */}
-      {!isDesktopSidebarOpen && (
-        <div className="hidden lg:block fixed top-8 left-8 z-30">
-          <button
-            onClick={() => setIsDesktopSidebarOpen(true)}
-            className="btn btn-square btn-ghost bg-white border border-slate-200 shadow-lg shadow-indigo-100/50 text-slate-800 hover:bg-slate-50 transition-all duration-300"
-            title="Open Sidebar"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
-        </div>
-      )}
-
       {/* DESKTOP SIDEBAR */}
       <aside
-        className={`hidden lg:flex fixed top-4 bottom-4 left-4 w-72 bg-white rounded-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] border border-slate-100 flex-col py-10 px-8 z-50 transition-all duration-300 ease-in-out overflow-y-auto no-scrollbar ${isDesktopSidebarOpen ? "translate-x-0 opacity-100" : "-translate-x-[120%] opacity-0 pointer-events-none"}`}
+        className={`hidden lg:flex fixed top-4 bottom-4 left-4 w-72 force-light rounded-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] border border-slate-100 flex-col py-10 px-8 z-50 transition-all duration-300 ease-in-out overflow-y-auto no-scrollbar ${isDesktopSidebarOpen ? "translate-x-0 opacity-100" : "-translate-x-[120%] opacity-0 pointer-events-none"}`}
       >
         <button
           onClick={() => setIsDesktopSidebarOpen(false)}
-          className="absolute top-6 right-6 p-1.5 text-slate-300 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-all"
+          className="absolute top-8 right-8 p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-all"
         >
-          <X size={18} />
+          <X size={20} style={{ color: '#000000' }} strokeWidth={3} />
         </button>
         <SidebarHeader />
 
@@ -348,7 +333,7 @@ export default function Sidebar({
             </Link>
           )}
 
-          {hasAccess(["admin", "editor", "editor_manage_org"]) && (
+          {hasAccess(["admin", "editor", "editor_manage_org", "editor_manage_org_info"]) && (
             <Link href="/manage-org" className={getMenuClass("/manage-org")}>
               <Users size={20} />
               <span className="font-bold text-[15px]">จัดการ ORG</span>
@@ -367,7 +352,7 @@ export default function Sidebar({
 
           {hasAccess(["admin", "editor", "editor_manage_flex"]) && (
             <Link href="/search-org" className={getMenuClass("/search-org")}>
-              <Search size={20} /> {/* เปลี่ยนเป็น Search */}
+              <Search size={20} />
               <span className="font-bold text-[15px]">ค้นหาหน่วยงานซ้ำ</span>
             </Link>
           )}
@@ -381,7 +366,7 @@ export default function Sidebar({
             <div className="p-1.5 bg-red-100/50 rounded-lg group-hover:bg-red-100 transition-colors">
               <LogOut
                 size={20}
-                className="text-red-500 transition-transform group-hover:translate-x-0.5"
+                className="text-red-500"
               />
             </div>
             <span className="text-red-600 font-bold tracking-wide text-[15px]">
@@ -390,6 +375,18 @@ export default function Sidebar({
           </button>
         </div>
       </aside>
+
+      {/* DESKTOP OPEN BUTTON */}
+      {!isDesktopSidebarOpen && (
+        <div className="hidden lg:block fixed top-8 left-8 z-30">
+          <button
+            onClick={() => setIsDesktopSidebarOpen(true)}
+            className="btn btn-square !bg-white !border-none shadow-[0_4px_12px_-2px_rgba(0,0,0,0.12)] !text-black hover:bg-slate-50 transition-all duration-300 rounded-xl"
+          >
+            <Menu className="w-6 h-6" strokeWidth={2.5} />
+          </button>
+        </div>
+      )}
     </>
   );
 }

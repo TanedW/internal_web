@@ -125,7 +125,7 @@ const getFileStyle = (ext) => {
             // กรณีเป็นไฟล์เอกสาร หรือไฟล์ที่ไม่รองรับการเล่น/แสดงผลตรงๆ
             return (
                 <div className={`w-full h-full flex flex-col items-center justify-center ${style.bg} transition-all duration-300`}>
-                    <div className="bg-white/50 p-4 rounded-2xl shadow-sm mb-2">
+                    <div className="bg-white p-4 rounded-2xl shadow-sm mb-2">
                         <UploadCloud size={48} className={style.text} strokeWidth={1.5} />
                     </div>
                     <span className={`text-sm font-black uppercase tracking-widest ${style.text}`}>
@@ -414,7 +414,8 @@ export default function ManageCase() {
   if (loading) return <div className="min-h-screen flex justify-center items-center bg-slate-50"><span className="loading loading-spinner loading-lg text-primary"></span></div>;
 
  return (
-    <div className="min-h-screen bg-[#F4F6F8] font-sans">
+    /* เพิ่มคลาสเพื่อล็อกสีพื้นหลังไม่ให้เปลี่ยนตาม dark mode */
+    <div className="min-h-screen bg-[#F4F6F8] dark:bg-[#F4F6F8] font-sans text-slate-900 dark:text-slate-900">
       <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
       <script src="https://cdn.tailwindcss.com"></script>
 
@@ -425,12 +426,9 @@ export default function ManageCase() {
       />
 
       {/* ================= MAIN CONTENT ================= */}
-      {/* ส่วน Content จะขยับ Padding ตามสถานะการเปิด/ปิด Sidebar จากคอมโพเนนต์ภายนอก */}
       <div className={`container mx-auto px-4 pt-24 lg:pt-8 max-w-7xl transition-all duration-300 pb-24 ${
           isDesktopSidebarOpen ? "lg:pl-80" : "lg:pl-8"
       }`}>
-        
-        
         
         {/* --- Logic เดิมที่คงไว้ทั้งหมด ห้ามแก้ไข --- */}
         {!currentCase && (
@@ -438,7 +436,7 @@ export default function ManageCase() {
         
                 <div className="flex flex-col items-center text-center space-y-5 relative z-10 px-4">
                     <div className="space-y-2 px-2">
-                        <p className="text-slate-500 text-sm lg:text-base max-w-md mx-auto leading-relaxed">
+                        <p className="text-slate-500 dark:text-slate-500 text-sm lg:text-base max-w-md mx-auto leading-relaxed">
                             กรอกรหัส Case ID เพื่อค้นหาและแก้ไขรูปภาพ<br className="hidden sm:block"/> วิดีโอ หรือไฟล์เสียง (สำหรับ Admin)
                         </p>
                     </div>
@@ -448,7 +446,8 @@ export default function ManageCase() {
                             onSubmit={handleSearch} 
                             className={`relative group transition-all duration-200 ${inputError ? '-translate-x-1' : 'translate-x-0'}`}
                         >
-                            <div className={`relative bg-white rounded-full shadow-lg border-2 flex items-center p-1.5 lg:p-2 transition-all duration-300 ${inputError ? 'border-red-400 ring-4 ring-red-500/10' : 'border-indigo-50 hover:border-indigo-200 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10'}`}>
+                            {/* บังคับ bg-white แม้จะเป็น dark mode */}
+                            <div className={`relative bg-white dark:bg-white rounded-full shadow-lg border-2 flex items-center p-1.5 lg:p-2 transition-all duration-300 ${inputError ? 'border-red-400 ring-4 ring-red-500/10' : 'border-indigo-50 hover:border-indigo-200 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10'}`}>
                                 <div className={`pl-4 pr-3 transition-colors ${inputError ? 'text-red-500' : 'text-indigo-600'}`}>
                                     <Search size={22} className="lg:w-6 lg:h-6" strokeWidth={2.5} />
                                 </div>
@@ -495,20 +494,20 @@ export default function ManageCase() {
         )}
 
         {currentCase && (
-           <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-100 p-5 lg:p-10 relative overflow-hidden transition-all duration-300 mb-6 animate-fade-in-up">
+           <div className="bg-white dark:bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-100 dark:border-slate-100 p-5 lg:p-10 relative overflow-hidden transition-all duration-300 mb-6 animate-fade-in-up">
                 
                 {!isSuccess && (
                     <div className="mb-8 lg:mb-12">
                         <div className="flex items-center justify-center relative">
-                            <div className="absolute top-1/2 left-0 w-full h-1 bg-slate-100 -z-10 rounded-full"></div>
+                            <div className="absolute top-1/2 left-0 w-full h-1 bg-slate-100 dark:bg-slate-100 -z-10 rounded-full"></div>
                             <div className={`absolute top-1/2 left-0 h-1 bg-indigo-500 -z-10 rounded-full transition-all duration-500 ease-out`} style={{ width: `${((wizardStep - 1) / 2) * 100}%` }}></div>
                             {[1, 2, 3].map((step) => (
                                 <div key={step} className="relative flex flex-col items-center flex-1">
-                                    <div className={`w-10 h-10 lg:w-12 lg:h-12 rounded-2xl flex items-center justify-center font-bold text-base lg:text-lg border-4 transition-all duration-300 z-10 bg-white ${wizardStep >= step ? 'border-indigo-500 text-indigo-600 shadow-lg shadow-indigo-200 scale-110' : 'border-slate-200 text-slate-300'}`}>
-                                                        {step}
+                                    <div className={`w-10 h-10 lg:w-12 lg:h-12 rounded-2xl flex items-center justify-center font-bold text-base lg:text-lg border-4 transition-all duration-300 z-10 bg-white dark:bg-white ${wizardStep >= step ? 'border-indigo-500 text-indigo-600 shadow-lg shadow-indigo-200 scale-110' : 'border-slate-200 text-slate-300'}`}>
+                                                            {step}
                                     </div>
                                     <span className={`absolute top-12 lg:top-14 text-[10px] lg:text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${wizardStep >= step ? 'text-indigo-600' : 'text-slate-300'}`}>
-                                                        {step === 1 ? 'Select' : step === 2 ? 'Upload' : 'Reason'}
+                                                            {step === 1 ? 'Select' : step === 2 ? 'Upload' : 'Reason'}
                                     </span>
                                 </div>
                             ))}
@@ -519,13 +518,13 @@ export default function ManageCase() {
                 <div className="min-h-[300px] flex flex-col items-center justify-center animate-[fadeIn_0.5s_ease-out]">
                     
                     {isSuccess ? (
-                          <div className="text-center py-6 lg:py-10 animate-[scaleIn_0.5s_cubic-bezier(0.175,0.885,0.32,1.275)] w-full">
+                          <div className="text-center py-6 lg:py-10 animate-[scaleIn_0.5s_cubic-bezier(0.175,0.885,0.32,1.275)] w-full text-slate-800">
                             <div className="w-20 h-20 lg:w-24 lg:h-24 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-green-200 shadow-xl">
                                 <CheckCircle2 size={40} className="lg:w-12 lg:h-12" />
                             </div>
                             <h2 className="text-2xl lg:text-3xl font-black text-slate-800 mb-2">บันทึกข้อมูลสำเร็จ!</h2>
                             <p className="text-slate-500 mb-8 max-w-md mx-auto text-sm lg:text-base">ระบบได้ทำการอัปเดตข้อมูลไฟล์แนบเรียบร้อยแล้ว</p>
-                            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 text-left max-w-sm mx-auto mb-8 space-y-3 shadow-sm">
+                            <div className="bg-slate-50 dark:bg-slate-50 p-6 rounded-2xl border border-slate-100 text-left max-w-sm mx-auto mb-8 space-y-3 shadow-sm">
                                 <div><p className="text-xs text-slate-400 font-bold uppercase">Case ID</p><p className="font-bold text-slate-800">{currentCase.id}</p></div>
                                 <div><p className="text-xs text-slate-400 font-bold uppercase">Replaced File</p><p className="font-bold text-indigo-600 truncate">{selectedImageToReplace?.type}</p></div>
                                 <div><p className="text-xs text-slate-400 font-bold uppercase">New File Name</p><p className="font-bold text-slate-800 truncate">{newImageFile?.name}</p></div>
@@ -535,15 +534,15 @@ export default function ManageCase() {
                     ) : (
                         <>
                         {wizardStep === 1 && (
-                            <div className="w-full max-w-3xl animate-fade-in">
-                                <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 overflow-hidden">
+                            <div className="w-full max-w-3xl animate-fade-in text-slate-800">
+                                <div className="bg-white dark:bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 overflow-hidden">
                                     <div className="p-5 md:p-8">
                                         <div className="text-center mb-8">
                                             <h3 className="text-xl lg:text-2xl font-bold text-slate-800">Step 1: เลือกรายการที่ต้องการแก้ไข</h3>
                                             <p className="text-slate-500 text-sm mt-1">คลิกเลือกรูปภาพ, วิดีโอ หรือไฟล์เสียงที่ต้องการดำเนินการ</p>
                                         </div>
                                         
-                                        <div className="bg-slate-100 rounded-2xl p-5 border border-slate-200 mb-8 flex flex-col gap-4">
+                                        <div className="bg-slate-100 dark:bg-slate-100 rounded-2xl p-5 border border-slate-200 mb-8 flex flex-col gap-4">
                                             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-2"> 
                                                 <div className="flex items-center justify-between w-full gap-3"> 
                                                     <div className="flex items-center gap-1.5 min-w-0 overflow-hidden"> 
@@ -567,7 +566,7 @@ export default function ManageCase() {
                                                     <span>แจ้งเมื่อ: {currentCase.date}</span>
                                                 </div>
                                             </div>
-                                            <div className="bg-white rounded-xl p-3 border border-slate-200/60 flex items-start gap-3 shadow-sm">
+                                            <div className="bg-white dark:bg-white rounded-xl p-3 border border-slate-200/60 flex items-start gap-3 shadow-sm">
                                                 <MapPin size={18} className="text-indigo-500 mt-0.5 shrink-0"/>
                                                 <div className="text-sm text-slate-600 leading-relaxed">
                                                     {currentCase.department}
@@ -599,12 +598,12 @@ export default function ManageCase() {
                                                             className={`
                                                                 relative rounded-xl overflow-hidden cursor-pointer transition-all duration-200 group border-2
                                                                 ${isSelected 
-                                                                    ? 'border-indigo-500 ring-4 ring-indigo-500/10 shadow-lg scale-[1.02] z-10 bg-indigo-50' 
-                                                                    : 'border-transparent bg-slate-50 hover:bg-slate-100 hover:border-indigo-200/50 hover:shadow-md'
+                                                                    ? 'border-indigo-500 ring-4 ring-indigo-500/10 shadow-lg scale-[1.02] z-10 bg-indigo-50 dark:bg-indigo-50' 
+                                                                    : 'border-transparent bg-slate-50 dark:bg-slate-50 hover:bg-slate-100 dark:hover:bg-slate-100 hover:border-indigo-200/50 hover:shadow-md'
                                                                 }
                                                             `}
                                                         >
-                                                                <div className="aspect-video w-full flex items-center justify-center bg-slate-900/5 relative overflow-hidden rounded-t-lg">
+                                                                <div className="aspect-video w-full flex items-center justify-center bg-slate-900/5 dark:bg-slate-900/5 relative overflow-hidden rounded-t-lg">
                                                                     <div className="w-full h-full pointer-events-auto">
                                                                         <FilePreviewRender file={{
                                                                             url: img.url,
@@ -620,7 +619,7 @@ export default function ManageCase() {
                                                                         </div>
                                                                     )}
                                                                 </div>
-                                                                <div className={`p-3 flex justify-between items-center transition-colors ${isSelected ? 'bg-indigo-50' : 'bg-white/50 group-hover:bg-indigo-50/30'}`}>
+                                                                <div className={`p-3 flex justify-between items-center transition-colors ${isSelected ? 'bg-indigo-50 dark:bg-indigo-50' : 'bg-white/50 dark:bg-white/50 group-hover:bg-indigo-50/30'}`}>
                                                                         <span className={`text-xs font-bold truncate max-w-[45%] ${isSelected ? 'text-indigo-700' : 'text-slate-700'}`}>
                                                                             {img.type}
                                                                         </span>
@@ -647,14 +646,14 @@ export default function ManageCase() {
                             </div>
                         )}
                             {wizardStep === 2 && (
-                                <div className="w-full max-w-xl mx-auto animate-fade-in">
+                                <div className="w-full max-w-xl mx-auto animate-fade-in text-slate-800">
                                     <div className="text-center mb-6 lg:mb-8">
                                         <h3 className="text-xl lg:text-2xl font-black text-slate-800 mb-2">อัปโหลดไฟล์ใหม่</h3>
                                         <p className="text-slate-500 text-sm">เลือกไฟล์เพื่อแทนที่รายการเดิม</p>
                                     </div>
 
                                     {selectedImageToReplace && (
-                                        <div className="mb-6 lg:mb-8 w-full max-w-sm mx-auto flex flex-col items-center p-4 lg:p-5 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                                        <div className="mb-6 lg:mb-8 w-full max-w-sm mx-auto flex flex-col items-center p-4 lg:p-5 bg-white dark:bg-white rounded-3xl border border-slate-100 shadow-sm">
                                             <p className="text-[10px] font-bold mb-3 flex items-center gap-1 uppercase tracking-[0.2em] text-slate-400">
                                                 <AlertCircle size={12}/> กำลังแก้ไขไฟล์เดิม
                                             </p>
@@ -691,7 +690,7 @@ export default function ManageCase() {
                                             </div>
                                         ) : (
                                         <div className="flex flex-col items-center z-10 p-4 lg:p-6 transition-transform duration-300 group-hover:scale-105 text-center">
-                                            <div className="w-16 h-16 lg:w-20 lg:h-20 bg-white rounded-2xl mb-4 lg:mb-6 flex items-center justify-center shadow-sm border border-slate-100 group-hover:shadow-md group-hover:text-indigo-600 group-hover:border-indigo-100 transition-all text-slate-300"><UploadCloud size={32} className="lg:w-10 lg:h-10" strokeWidth={1.5} /></div>
+                                            <div className="w-16 h-16 lg:w-20 lg:h-20 bg-white dark:bg-white rounded-2xl mb-4 lg:mb-6 flex items-center justify-center shadow-sm border border-slate-100 group-hover:shadow-md group-hover:text-indigo-600 group-hover:border-indigo-100 transition-all text-slate-300"><UploadCloud size={32} className="lg:w-10 lg:h-10" strokeWidth={1.5} /></div>
                                             <h4 className="font-bold text-base lg:text-lg text-slate-700 mb-2 group-hover:text-indigo-700 transition-colors">เลือกไฟล์มีเดีย</h4>
                                             <p className="text-slate-400 text-xs lg:text-sm mb-4 lg:mb-6">แตะเพื่อเลือกไฟล์ รูปภาพ, วิดีโอ หรือเสียง</p>
                                         </div>
@@ -702,22 +701,27 @@ export default function ManageCase() {
                             )}
 
                             {wizardStep === 3 && (
-                                <div className="w-full max-w-xl text-center animate-fade-in">
+                                <div className="w-full max-w-xl text-center animate-fade-in text-slate-800">
                                     <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">Step 3: สรุปผลและระบุเหตุผล</h3>
-                                    <p className="text-slate-500 mb-6 lg:mb-8 text-xs lg:text-sm">ระบุสาเหตุในการเปลี่ยนแปลงไฟล์ <span className="font-bold text-indigo-600">{selectedImageToReplace?.type}</span></p>
+                                    <p className="text-slate-500 mb-6 lg:mb-8 text-xs lg:text-sm">
+                                        ระบุสาเหตุในการเปลี่ยนแปลงไฟล์ <span className="font-bold text-indigo-600">{selectedImageToReplace?.type}</span>
+                                    </p>
                                     <br></br>
                                     <div className="relative">
                                         <textarea 
-                                            className="textarea textarea-bordered w-full h-32 lg:h-40 text-base lg:text-lg shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10" 
+                                            className="textarea textarea-bordered w-full h-32 lg:h-40 text-base lg:text-lg shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 bg-white border-slate-200 text-slate-900 placeholder:text-slate-300" 
+                                            style={{ backgroundColor: 'white', color: '#0f172a' }} // Force inline style เพื่อความแน่นอน
                                             placeholder="พิมพ์เหตุผลที่ต้องเปลี่ยนไฟล์..." 
                                             value={reason} 
                                             onChange={(e) => setReason(e.target.value)}
                                         ></textarea>
-                                        <div className="absolute bottom-4 right-4 text-xs font-bold text-slate-300 pointer-events-none">{reason.length} CHARS</div>
+                                        <div className="absolute bottom-4 right-4 text-xs font-bold text-slate-300 pointer-events-none">
+                                            {reason.length} CHARS
+                                        </div>
                                     </div>
                                 </div>
                             )}
-                        </>
+                                                    </>
                     )}
                 </div>
 
@@ -768,7 +772,7 @@ export default function ManageCase() {
                         )}
                     </div>
                 )}
-           </div>
+            </div>
         )}
       </div>
 

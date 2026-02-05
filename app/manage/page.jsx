@@ -121,12 +121,11 @@ export default function Manage() {
         });
         if (res.ok) {
             setNewEmail("");
-            setNewRole(""); // ล้างค่า Role หลังสำเร็จ
+            setNewRole(""); 
             fetchAdmins();
             setSidebarKey(prev => prev + 1);
             document.getElementById('add_admin_modal').close();
-        }else {
-          // ✅ ดึงข้อความ Error (เช่น "อีเมลนี้มีอยู่ในระบบ...") มาแสดง
+        } else {
           const errorData = await res.json();
           alert(errorData.message || "เกิดข้อผิดพลาดในการเพิ่มข้อมูล");
       }
@@ -134,33 +133,17 @@ export default function Manage() {
     finally { setIsSubmitting(false); }
   };
 
-//   const handleDeleteEmail = async (targetId) => {
-//     if(!confirm("ยืนยันการลบสิทธิ์นี้?")) return;
-//     const currentAdminId = getCurrentAdminId();
-//     try {
-//         await fetch(`${API_URL}?id=${targetId}`, {
-//             method: "DELETE",
-//             headers: { "Content-Type": "application/json" },
-//             body: JSON.stringify({ current_admin_id: currentAdminId }),
-//         });
-//         fetchAdmins();
-//     } catch (error) { console.error(error); }
-//   };
-
-    const handleDeleteEmail = async (targetId) => {
-    // ปรับข้อความให้ดู soft ลงตาม logic
+  const handleDeleteEmail = async (targetId) => {
     if(!confirm("ยืนยันการระงับสิทธิ์ผู้ใช้งานนี้? (ข้อมูลจะยังคงอยู่ในระบบแต่ไม่สามารถเข้าระบบได้)")) return;
-    
     const currentAdminId = getCurrentAdminId();
     try {
         const res = await fetch(`${API_URL}?id=${targetId}`, {
-            method: "DELETE", // เรายังใช้ method DELETE ตาม REST API pattern ได้ แต่ข้างในเป็น soft delete
+            method: "DELETE", 
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ current_admin_id: currentAdminId }),
         });
-        
         if (res.ok) {
-            fetchAdmins(); // Refresh ข้อมูลใหม่ รายการที่ถูก delete จะหายไปเพราะติดเงื่อนไข WHERE is_deleted = false
+            fetchAdmins(); 
         } else {
             const err = await res.json();
             alert(err.message || "เกิดข้อผิดพลาด");
@@ -168,13 +151,6 @@ export default function Manage() {
     } catch (error) { 
         console.error(error); 
         alert("ไม่สามารถติดต่อ Server ได้");
-    }
-    };
-
-  const handleEmailMobileClick = (email) => {
-    if (window.innerWidth < 1024) {
-      setSelectedEmailForMobile(email);
-      document.getElementById('email_mobile_modal').showModal();
     }
   };
 
@@ -185,19 +161,17 @@ export default function Manage() {
       <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
       <script src="https://cdn.tailwindcss.com"></script>
 
-      {/* ✅ เรียกใช้ Sidebar คอมโพเนนต์ที่แยกออกมา */}
       <Sidebar 
         key={sidebarKey}
         isDesktopSidebarOpen={isDesktopSidebarOpen} 
         setIsDesktopSidebarOpen={setIsDesktopSidebarOpen} 
       />
 
-      {/* ================= MAIN CONTENT ================= */}
       <div className={`container mx-auto px-4 lg:px-8 pt-20 lg:pt-8 max-w-7xl transition-all duration-300 pb-24 ${
           isDesktopSidebarOpen ? "lg:pl-80" : "lg:pl-8"
       }`}>
-       
-        {/* --- Header Desktop --- */}
+        
+        {/* Header Desktop */}
         <div className="hidden lg:flex justify-between items-center mb-8">
             <div>
                 <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">Team Directory</h1>
@@ -210,13 +184,15 @@ export default function Manage() {
                   <input 
                     type="text" 
                     placeholder="Search members..." 
-                    className="input bg-white w-full h-12 !pl-12 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100 rounded-2xl shadow-sm border border-slate-100 placeholder:text-slate-300"
+                    className="input !bg-white !text-slate-900 w-full h-12 !pl-12 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100 rounded-2xl shadow-sm border border-slate-100 placeholder:text-slate-300"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
             </div>
         </div>
-       <div className="lg:hidden mb-6">
+
+        {/* Header Mobile */}
+        <div className="lg:hidden mb-6">
             <h1 className="text-2xl font-bold text-slate-900">Contacts</h1>
             <div className="mt-4 flex gap-3 items-center">
                  <div className="relative flex-1 group">
@@ -225,7 +201,7 @@ export default function Manage() {
                       </div>
                       <input 
                         type="text"
-                        className="input w-full !pl-12 bg-white text-slate-900 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 border-slate-200"
+                        className="input w-full !pl-12 !bg-white !text-slate-900 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 border-slate-200"
                         placeholder="Search..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -240,14 +216,15 @@ export default function Manage() {
             </div>
         </div>
 
-        {/* --- GRID VIEW --- */}
+        {/* GRID VIEW */}
         <div className={`grid grid-cols-1 gap-4 ${
             isDesktopSidebarOpen 
                 ? "md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" 
                 : "md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" 
         }`}>
+            {/* Add Member Card */}
             <div 
-               className={`hidden lg:flex group relative flex-col items-center justify-center border-2 border-dashed border-indigo-300 bg-white hover:border-indigo-600 hover:bg-indigo-50 transition-all duration-300 cursor-pointer rounded-2xl shadow-md hover:shadow-xl hover:shadow-indigo-200/50 hover:-translate-y-2 h-full ${
+               className={`hidden lg:flex group relative flex-col items-center justify-center border-2 border-dashed border-indigo-300 !bg-white hover:border-indigo-600 hover:bg-indigo-50 transition-all duration-300 cursor-pointer rounded-2xl shadow-md hover:shadow-xl hover:shadow-indigo-200/50 hover:-translate-y-2 h-full ${
                  isDesktopSidebarOpen ? 'p-4' : 'p-6'
                }`}
                onClick={() => document.getElementById('add_admin_modal').showModal()}
@@ -267,7 +244,7 @@ export default function Manage() {
                 const userRoles = item.roles && item.roles.length > 0 ? item.roles : (item.role ? [item.role] : ['member']);
                 return (
                     <div key={item.admin_id} 
-                        className={`relative bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col items-center text-center justify-center h-full hover:z-30 ${
+                        className={`relative !bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col items-center text-center justify-center h-full hover:z-30 ${
                             isDesktopSidebarOpen ? "p-4" : "p-6"
                         }`}
                     >
@@ -294,17 +271,18 @@ export default function Manage() {
 
                         <div className="w-full px-1"> 
                             <div className="tooltip lg:tooltip-bottom w-full before:text-[10px]" data-tip={item.email}>
-                                <h3 className={`font-bold text-slate-800 truncate whitespace-nowrap overflow-hidden ${
+                                <h3 className={`font-bold !text-slate-800 truncate whitespace-nowrap overflow-hidden ${
                                     isDesktopSidebarOpen ? "text-[10px] mb-1" : "text-sm mb-2"
                                 }`}>
                                     {item.email}
                                 </h3>
                             </div>
-                            </div>
+                        </div>
                         
-                        <div className="lg:hidden mt-2 w-full px-2 flex flex-wrap gap-2 justify-center items-center">
+                        {/* ✅ แก้ไข Role บน Mobile: บังคับแถวเดียว และสีปุ่ม +more ให้ซอฟต์ลง */}
+                        <div className="lg:hidden mt-2 w-full px-2 flex flex-nowrap gap-2 justify-center items-center overflow-x-hidden">
                             {userRoles.length > 0 && (
-                                <span className="inline-block align-middle text-indigo-600 font-bold text-[10px] uppercase tracking-wider bg-indigo-50 px-4 py-1.5 rounded-full border border-indigo-100 truncate max-w-[80%]">
+                                <span className="flex-shrink-0 !text-indigo-600 font-bold text-[9px] uppercase tracking-wider !bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 whitespace-nowrap">
                                     {userRoles[0].replace(/_/g, ' ')}
                                 </span>
                             )}
@@ -315,27 +293,28 @@ export default function Manage() {
                                         setRoleModalData(userRoles);
                                         document.getElementById('role_modal').showModal();
                                     }}
-                                    className="btn btn-xs h-7 min-h-0 bg-white border border-indigo-500 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-600 rounded-full px-3 text-[10px] font-bold tracking-wide uppercase shadow-sm shrink-0"
+                                    className="flex-shrink-0 btn btn-xs h-7 min-h-0 !bg-slate-100 border border-slate-200 !text-slate-600 hover:bg-slate-200 rounded-full px-2.5 text-[9px] font-bold tracking-wide uppercase shadow-sm"
                                 >
                                     +{userRoles.length - 1} more
                                 </button>
                             )}
                         </div>
 
+                        {/* ✅ แก้ไข Role บน Desktop: บังคับแถวเดียว ไม่ตัดคำ */}
                         <div className="hidden lg:flex flex-nowrap gap-2 justify-center items-center mt-2 w-full px-1">
                             {userRoles.length > 0 && (
-                                <span className={`inline-block font-bold uppercase tracking-wider bg-indigo-50 rounded-full border border-indigo-100 text-indigo-600 truncate ${
+                                <span className={`flex-shrink-0 font-bold uppercase tracking-wider !bg-indigo-50 rounded-full border border-indigo-100 !text-indigo-600 whitespace-nowrap ${
                                     isDesktopSidebarOpen 
-                                        ? "text-[9px] px-2 py-0.5 max-w-[100px]" 
-                                        : "text-[10px] px-3 py-1 max-w-[140px]" 
+                                        ? "text-[9px] px-2 py-0.5" 
+                                        : "text-[10px] px-3 py-1" 
                                 }`}>
                                     {userRoles[0].replace(/_/g, ' ')}
                                 </span>
                             )}
                             {userRoles.length > 1 && (
-                                <div className="tooltip tooltip-bottom z-50 flex-shrink-0 before:max-w-[12rem] before:whitespace-normal before:text-center before:content-[attr(data-tip)]" 
+                                <div className="tooltip tooltip-bottom z-50 flex-shrink-0 before:max-w-[15rem] before:content-[attr(data-tip)]" 
                                      data-tip={userRoles.slice(1).map(r => r.replace(/_/g, ' ')).join(', ')}>
-                                    <span className={`cursor-help text-slate-500 font-bold tracking-wider bg-slate-100 rounded-full whitespace-nowrap border border-slate-200 hover:bg-slate-200 transition-colors flex-shrink-0 ${
+                                    <span className={`cursor-help !text-slate-500 font-bold tracking-wider !bg-slate-100 rounded-full whitespace-nowrap border border-slate-200 hover:bg-slate-200 transition-colors flex-shrink-0 ${
                                         isDesktopSidebarOpen 
                                             ? "text-[9px] px-2 py-0.5" 
                                             : "text-[10px] px-2.5 py-1"
@@ -351,26 +330,28 @@ export default function Manage() {
         </div>
       </div>
 
-      {/* --- MODALS (ADD, ROLE, MOBILE EMAIL) --- */}
+      {/* --- MODALS --- */}
+      
+      {/* 1. Add Member Modal */}
       <dialog id="add_admin_modal" className="modal modal-bottom sm:modal-middle z-[999]">
-          <div className="modal-box bg-white p-6 rounded-t-[2rem] sm:rounded-2xl">
+          <div className="modal-box !bg-white p-6 rounded-t-[2rem] sm:rounded-2xl shadow-2xl">
               <div className="flex justify-between items-center mb-6">
-                  <h3 className="font-bold text-xl text-slate-800">Add Member</h3>
+                  <h3 className="font-bold text-xl !text-slate-800">Add Member</h3>
                   <button onClick={() => document.getElementById('add_admin_modal').close()} className="btn btn-sm btn-circle btn-ghost text-slate-400 bg-slate-100 hover:bg-slate-200">
                       <X size={16} />
                   </button>
               </div>
               <form onSubmit={handleAddEmail} className="flex flex-col gap-4">
                   <div className="form-control">
-                      <label className="label text-slate-700 font-bold">Email Address</label>
-                      <label className="input input-bordered h-12 flex items-center gap-2 bg-slate-50 rounded-xl">
-                          <Mail size={18} className="opacity-50" />
-                          <input type="email" className="grow" placeholder="mail@site.com" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} required />
+                      <label className="label !text-slate-700 font-bold">Email Address</label>
+                      <label className="input input-bordered h-12 flex items-center gap-2 !bg-slate-50 rounded-xl">
+                          <Mail size={18} className="opacity-50 !text-slate-400" />
+                          <input type="email" className="grow !text-slate-800" placeholder="mail@site.com" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} required />
                       </label>
                   </div>
                   <div className="form-control">
-                      <label className="label text-slate-700 font-bold">Assign Role</label>
-                      <select className="select select-bordered bg-slate-50 rounded-xl" value={newRole} onChange={(e) => setNewRole(e.target.value)}>
+                      <label className="label !text-slate-700 font-bold">Assign Role</label>
+                      <select className="select select-bordered !bg-slate-50 !text-slate-800 rounded-xl" value={newRole} onChange={(e) => setNewRole(e.target.value)}>
                           <option value="" disabled>-- กรุณาเลือกบทบาท --</option>
                           <option value="editor_manage_user">Admin Email</option>
                           <option value="editor_manage_case">Admin Case</option>
@@ -386,24 +367,26 @@ export default function Manage() {
           <form method="dialog" className="modal-backdrop bg-slate-900/40 backdrop-blur-sm"><button>close</button></form>
       </dialog>
 
+      {/* 2. ✅ FIXED: Role Modal (แก้ปัญหาตามรูปแรกสุด) */}
       <dialog id="role_modal" className="modal modal-bottom sm:modal-middle z-[9999]">
-          <div className="modal-box bg-white p-6 rounded-t-[2rem] sm:rounded-2xl text-center">
-              <h3 className="font-bold text-lg text-slate-800 mb-4">All Roles</h3>
-              <div className="flex flex-wrap gap-2 justify-center">
+          <div className="modal-box !bg-white p-8 rounded-t-[2rem] sm:rounded-2xl text-center shadow-2xl border-none">
+              <h3 className="font-bold text-xl !text-slate-800 mb-6">All Roles</h3>
+              <div className="flex flex-wrap gap-3 justify-center">
                   {roleModalData && roleModalData.map((role, idx) => (
-                      <span key={idx} className="text-indigo-600 font-bold text-xs uppercase tracking-wider bg-indigo-50 px-3 py-2 rounded-lg border border-indigo-100">
+                      <span key={idx} className="!text-indigo-600 font-bold text-xs uppercase tracking-wider !bg-indigo-50 px-4 py-2.5 rounded-xl border border-indigo-100 shadow-sm whitespace-nowrap">
                           {role.replace(/_/g, ' ')}
                       </span>
                   ))}
               </div>
           </div>
-          <form method="dialog" className="modal-backdrop bg-slate-900/40 backdrop-blur-sm"><button>close</button></form>
+          <form method="dialog" className="modal-backdrop bg-slate-900/60 backdrop-blur-sm"><button>close</button></form>
       </dialog>
 
+      {/* 3. Mobile Email Modal */}
       <dialog id="email_mobile_modal" className="modal modal-bottom sm:modal-middle z-[99999]">
-          <div className="modal-box bg-white p-6 rounded-t-[2rem] sm:rounded-2xl text-center">
-              <h3 className="font-bold text-lg text-slate-400 mb-2 uppercase tracking-widest text-xs">Email Address</h3>
-              <p className="text-slate-800 font-bold text-xl break-all">{selectedEmailForMobile}</p>
+          <div className="modal-box !bg-white p-6 rounded-t-[2rem] sm:rounded-2xl text-center shadow-2xl">
+              <h3 className="font-bold !text-slate-400 mb-2 uppercase tracking-widest text-xs">Email Address</h3>
+              <p className="!text-slate-800 font-bold text-xl break-all">{selectedEmailForMobile}</p>
               <div className="modal-action justify-center mt-6">
                   <form method="dialog">
                       <button className="btn btn-primary rounded-xl px-10 text-white font-bold h-12 shadow-lg shadow-indigo-100">ปิด</button>
