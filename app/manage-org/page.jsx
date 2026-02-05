@@ -399,22 +399,28 @@ export default function ManageOrgPage() {
                 </div>
               </div>
               
-
-                            {/* QR Section */}
+              {/* QR Section */}
               <div className="!bg-white p-6 rounded-[2rem] shadow-[0_0_30px_rgba(0,0,0,0.03)] border-2 border-white">
-                 <div className="flex items-center gap-3 mb-4">
-                    <QrCode size={20} className="text-slate-400" />
-                    <p className="font-bold text-sm !text-slate-900">QR Code สำหรับแจ้งเหตุ</p>
-                 </div>
-                 <div className="flex items-center gap-6">
-                    <div className="w-24 h-24 !bg-white border-2 border-slate-100 rounded-2xl p-2 flex items-center justify-center overflow-hidden">
-                       <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://line.me/R/ti/p/@org_${orgId}`} alt="QR" className="w-full h-full" />
-                    </div>
-                    <div className="flex-1">
-                       <p className="text-xs text-slate-500 font-bold mb-2">ลิงก์แจ้งเหตุประจำหน่วยงาน</p>
-                       <button className="btn btn-sm btn-outline rounded-full text-[10px] font-bold !bg-white !text-slate-600 border-slate-200 hover:!border-black transition-colors">ดาวน์โหลดไฟล์ QR</button>
-                    </div>
-                 </div>
+                <div className="flex items-center gap-3 mb-4">
+                  <QrCode size={20} className="text-slate-400" />
+                  <p className="font-bold text-sm !text-slate-900">QR Code สำหรับแจ้งเหตุ</p>
+                </div>
+                <div className="flex flex-nowrap items-center gap-4 sm:gap-6">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 !bg-white border-2 border-slate-100 rounded-2xl p-2 flex items-center justify-center overflow-hidden">
+                    <img 
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://line.me/R/ti/p/@org_${orgId}`} 
+                      alt="QR" 
+                      className="w-full h-full object-contain" 
+                    />
+                  </div>
+           
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] sm:text-xs text-slate-500 font-bold mb-2 truncate">ลิงก์แจ้งเหตุประจำหน่วยงาน</p><br></br>
+                    <button className="btn btn-sm btn-outline rounded-full text-[9px] sm:text-[10px] font-bold !bg-white !text-slate-600 border-slate-200 hover:!border-black transition-colors whitespace-nowrap">
+                      ดาวน์โหลดไฟล์ QR
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="!bg-white p-6 rounded-[2rem] shadow-[0_0_30px_rgba(0,0,0,0.03)] border-2 border-white">
@@ -446,11 +452,15 @@ export default function ManageOrgPage() {
                     <Trash2 size={18} /> ลบหน่วยงาน
                   </button>
                 )}
-                
                 <button 
                   onClick={handleUpdate}
-                  disabled={isSearching}
-                  className="btn flex-1 h-14 !rounded-2xl !bg-[#16a34a] hover:!bg-[#15803d] !text-white !border-none font-bold shadow-[0_0_20px_rgba(22,163,74,0.2)] transition-all"
+                 
+                  disabled={isSearching || !updateDescription.trim()}
+                  className={`btn flex-1 h-14 !rounded-2xl !text-white !border-none font-bold transition-all ${
+                    (isSearching || !updateDescription.trim()) 
+                      ? '!bg-slate-300 !cursor-not-allowed shadow-none'
+                      : '!bg-[#16a34a] hover:!bg-[#15803d] shadow-[0_0_20px_rgba(22,163,74,0.2)]' 
+                  }`}
                 >
                   {isSearching ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
                   {cases.find(c => c.org_id === orgId)?.is_deleted ? "อัปเดตและกู้คืน" : "ยืนยันการอัปเดตทั้งหมด"}
