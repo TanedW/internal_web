@@ -265,7 +265,7 @@ export default function Sidebar({
                   </span>
                 </Link>
               )}
-              {hasAccess(["admin", "editor", "editor_manage_flex"]) && (
+              {hasAccess(["admin", "editor", "editor_search_org"]) && (
                 <Link
                   href="/search-org"
                   className={getMenuClass("/search-org")}
@@ -350,7 +350,7 @@ export default function Sidebar({
             </Link>
           )}
 
-          {hasAccess(["admin", "editor", "editor_manage_flex"]) && (
+          {hasAccess(["admin", "editor", "editor_search_org"]) && (
             <Link href="/search-org" className={getMenuClass("/search-org")}>
               <Search size={20} />
               <span className="font-bold text-[15px]">ค้นหาหน่วยงานซ้ำ</span>
