@@ -85,11 +85,19 @@ export default function Sidebar({
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      localStorage.removeItem("current_admin_id");
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("user_email");
-      localStorage.removeItem("org_logo_1");
-      localStorage.removeItem("last_updated_org_1");
+      // localStorage.removeItem("current_admin_id");
+      // localStorage.removeItem("access_token");
+      // localStorage.removeItem("user_email");
+      // localStorage.removeItem("org_logo_1");
+      // localStorage.removeItem("last_updated_org_1");
+
+
+      localStorage.clear(); // ล้างหมดเลยจะง่ายกว่า
+    
+    // ลบ Cookies
+    document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    document.cookie = "user_email=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    document.cookie = "user_role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
       router.push("/");
     } catch (error) {
       console.error("Logout error:", error);

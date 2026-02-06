@@ -49,19 +49,27 @@ export default function Login() {
           body: JSON.stringify(userData),
         });
 
+        // 
         if (response.ok) {
-          const responseData = await response.json();
-          console.log("API Response:", responseData);
-          localStorage.setItem("access_token", userData.access_token);
-          localStorage.setItem("user_email", userData.email);
-           localStorage.setItem("current_admin_id", JSON.stringify(responseData.admin_id));
+  const responseData = await response.json();
+  
+  // ข้อมูลที่ได้จาก Backend (สมมติว่า backend ส่ง role หรือ roles มาให้)
+  // ถ้า backend ส่งมาเป็น Array เช่น ["admin", "editor"] ให้เก็บเป็น string คั่นด้วยจุลภาค
+  const rolesString = Array.isArray(responseData.roles) 
+    ? responseData.roles.join(',') 
+    : (responseData.role || 'guest');
 
+  localStorage.setItem("access_token", userData.access_token);
+  localStorage.setItem("user_email", userData.email);
+  localStorage.setItem("current_admin_id", JSON.stringify(responseData.admin_id));
 
-          setCookie("access_token", userData.access_token, 1); // เก็บไว้ 1 วัน
-          setCookie("user_email", userData.email, 1);
-          
-          router.push("/manage"); 
-        } else {
+  // เซ็ต Cookies เพิ่มเติม
+  setCookie("access_token", userData.access_token, 1);
+  setCookie("user_email", userData.email, 1);
+  setCookie("user_role", rolesString, 1); // <--- เพิ่มบรรทัดนี้
+
+  router.push("/manage"); 
+} else {
           // อ่านข้อความ Error จาก Backend
           const errorData = await response.json(); 
           console.log("API Error:", response.status, errorData.message);
