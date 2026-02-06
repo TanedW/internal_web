@@ -11,9 +11,9 @@ const getSize = (size, type) => {
   if (type === 'image-width') {
      const map = { 
          xxs: '40px', xs: '60px', 
-         sm: '80px',  
+         sm: '80px', 
          md: '100px', 
-         lg: '120px',  
+         lg: '120px', 
          xl: '140px', 
          xxl: '160px', 
          '3xl': '180px', 
@@ -23,10 +23,12 @@ const getSize = (size, type) => {
      };
      return map[size] || '100%';
   }
+  
   if (type === 'text') {
     const map = { xxs: '11px', xs: '12px', sm: '14px', md: '16px', lg: '19px', xl: '22px', xxl: '29px', '3xl': '35px', '4xl': '48px', '5xl': '74px' };
     return map[size] || '16px';
   }
+  
   if (type === 'width') {
     const map = { xxs: '20%', xs: '40%', sm: '60%', md: '80%', lg: '100%', xl: '100%', xxl: '100%', full: '100%' };
     return map[size] || size || '100%';
@@ -39,12 +41,13 @@ const getCornerRadius = (size) => {
   return radiusMap[size] || size || '0px';
 };
 
-// Helper: Checks if a value is defined (Respects '0px', 'none', and 0)
+// Helper: Checks if a value is defined
 const isDefined = (val) => val !== undefined && val !== null;
 
 // --- 2. Common Styles ---
 const getCommonStyles = (node, parentLayout) => {
   const style = {};
+  
   if (node.position === 'absolute') {
     style.position = 'absolute';
     if (node.offsetTop) style.top = node.offsetTop;
@@ -54,16 +57,37 @@ const getCommonStyles = (node, parentLayout) => {
   } else {
     style.position = 'relative';
   }
+
   if (node.margin && node.position !== 'absolute') {
     const mVal = getSpacing(node.margin);
-    if (parentLayout === 'horizontal' || parentLayout === 'baseline') style.marginLeft = mVal;
-    else style.marginTop = mVal;
+    if (parentLayout === 'horizontal' || parentLayout === 'baseline') {
+      style.marginLeft = mVal;
+    } else {
+      style.marginTop = mVal;
+    }
   }
+
   if (node.position !== 'absolute') {
-    if (node.flex === 0) style.flex = '0 0 auto';
-    else if (typeof node.flex === 'number') style.flex = `${node.flex} 1 0%`;
-    else if (parentLayout === 'horizontal') style.flex = '0 1 auto';
+    if (node.flex === 0) {
+        // Was: flex: 0 0 auto
+        style.flexGrow = 0;
+        style.flexShrink = 0;
+        style.flexBasis = 'auto';
+    }
+    else if (typeof node.flex === 'number') {
+        // Was: flex: {val} 1 0%
+        style.flexGrow = node.flex;
+        style.flexShrink = 1;
+        style.flexBasis = '0%';
+    }
+    else if (parentLayout === 'horizontal') {
+        // Was: flex: 0 1 auto (default for horizontal children)
+        style.flexGrow = 0;
+        style.flexShrink = 1;
+        style.flexBasis = 'auto';
+    }
   }
+
   if (parentLayout === 'vertical') {
      if (node.align === 'center') style.alignSelf = 'center';
      if (node.align === 'end') style.alignSelf = 'flex-end';
@@ -75,15 +99,18 @@ const getCommonStyles = (node, parentLayout) => {
      if (node.gravity === 'bottom') style.alignSelf = 'flex-end';
      if (node.gravity === 'top') style.alignSelf = 'flex-start';
   }
+
   if (node.action) style.cursor = 'pointer';
   if (node.shadow) style.boxShadow = node.shadow;
   if (node.boxShadow) style.boxShadow = node.boxShadow;
+
   return style;
 };
 
 // --- 3. FlexBox ---
 const FlexBox = ({ node, parentLayout, section }) => {
   const isHorizontal = node.layout === 'horizontal' || node.layout === 'baseline';
+  
   let defaultWidth = parentLayout === 'vertical' ? '100%' : 'auto';
   if (node.width) defaultWidth = getSize(node.width, 'width');
   if (node.position === 'absolute') defaultWidth = (!node.contents || node.contents.length === 0) ? '100%' : 'auto';
@@ -99,6 +126,7 @@ const FlexBox = ({ node, parentLayout, section }) => {
     minWidth: 0, 
   };
 
+  // Prevent fixed width items from being squashed
   if (node.width) {
       style.flexShrink = 0; 
       style.flexGrow = 0;
@@ -111,10 +139,14 @@ const FlexBox = ({ node, parentLayout, section }) => {
   if (hasPaddingAll) {
     style.padding = getSpacing(node.paddingAll);
   } else {
-    const pTop = isDefined(node.paddingTop) ? getSpacing(node.paddingTop) : (isRootBox ? '19px' : undefined);
-    const pBottom = isDefined(node.paddingBottom) ? getSpacing(node.paddingBottom) : (isRootBox ? '20px' : undefined);
-    const pLeft = isDefined(node.paddingStart || node.paddingLeft) ? getSpacing(node.paddingStart || node.paddingLeft) : (isRootBox ? '20px' : undefined);
-    const pRight = isDefined(node.paddingEnd || node.paddingRight) ? getSpacing(node.paddingEnd || node.paddingRight) : (isRootBox ? '20px' : undefined);
+    // Default: Body/Header = 20px, Footer = 10px
+    let defaultPad = '20px'; 
+    if (section === 'footer') defaultPad = '10px';
+
+    const pTop = isDefined(node.paddingTop) ? getSpacing(node.paddingTop) : (isRootBox ? (section === 'footer' ? '10px' : '20px') : undefined);
+    const pBottom = isDefined(node.paddingBottom) ? getSpacing(node.paddingBottom) : (isRootBox ? (section === 'footer' ? '10px' : '20px') : undefined);
+    const pLeft = isDefined(node.paddingStart || node.paddingLeft) ? getSpacing(node.paddingStart || node.paddingLeft) : (isRootBox ? defaultPad : undefined);
+    const pRight = isDefined(node.paddingEnd || node.paddingRight) ? getSpacing(node.paddingEnd || node.paddingRight) : (isRootBox ? defaultPad : undefined);
 
     if (pTop) style.paddingTop = pTop;
     if (pBottom) style.paddingBottom = pBottom;
@@ -131,13 +163,11 @@ const FlexBox = ({ node, parentLayout, section }) => {
   if (node.borderWidth) { style.borderWidth = node.borderWidth; style.borderStyle = 'solid'; }
 
   const justifyMap = { 'flex-start':'flex-start', 'center':'center', 'flex-end':'flex-end', 'space-between':'space-between' };
-
-  // This removes the white gaps above/below the right-side images by forcing them to fill the height.
+  
+  // Default to stretch for horizontal to fix white gaps
   const alignMap = { 'flex-start':'flex-start', 'center':'center', 'flex-end':'flex-end', 'baseline':'baseline' };
   
   style.justifyContent = justifyMap[node.justifyContent] || 'flex-start';
-  
-  // Logic: If horizontal, default to 'stretch'. If vertical, default to 'stretch' (unless aligned otherwise).
   style.alignItems = alignMap[node.alignItems] || (isHorizontal ? 'stretch' : 'stretch'); 
   
   if (node.spacing) style.gap = getSpacing(node.spacing);
@@ -171,9 +201,10 @@ const FlexText = ({ node, parentLayout }) => {
     overflow: node.wrap ? 'visible' : 'hidden',
     textOverflow: node.wrap ? 'clip' : 'ellipsis',
     lineHeight: 1.4,
-    flexShrink: 0,
+    flexShrink: 0, 
     minWidth: 0,
   };
+  
   if (node.decoration === 'underline') style.textDecoration = 'underline';
   if (node.decoration === 'line-through') style.textDecoration = 'line-through';
   if (node.style === 'italic') style.fontStyle = 'italic';
