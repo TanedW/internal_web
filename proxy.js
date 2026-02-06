@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-export function middleware(request) {
+export function proxy(request) {
   const { pathname } = request.nextUrl;
   
   // 1. ดึงข้อมูลจาก Header และ Cookies
@@ -8,7 +8,7 @@ export function middleware(request) {
   const token = request.cookies.get('access_token')?.value;
   const email = request.cookies.get('user_email')?.value;
   
-  // 2. ป้องกันการยิง API ตรงๆ (Security Check)
+  // 2. Security Check (ป้องกันการเข้า API โดยตรงใน Production)
   if (pathname.startsWith('/api/CheckSession')) {
     if (!origin && process.env.NODE_ENV === 'production') {
        return new Response(JSON.stringify({ message: 'Direct access not allowed' }), {
@@ -18,7 +18,7 @@ export function middleware(request) {
     }
   }
 
-  // 3. กำหนดรายการหน้าที่ต้องการป้องกัน (Array)
+  // 3. กำหนดรายการหน้าที่ต้องการป้องกัน
   const protectedRoutes = [
     '/manage',
     '/manage-case',
@@ -28,11 +28,10 @@ export function middleware(request) {
     '/search-org',
   ];
 
-  // ตรวจสอบว่า pathname ปัจจุบันอยู่ในรายการที่ต้องป้องกันหรือไม่
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
 
   if (isProtectedRoute) {
-    // ถ้าเป็นหน้าที่มีการป้องกัน แต่ไม่มีกุญแจ (Token หรือ Email) ให้ Redirect ทันที
+    // เช็คสิทธิ์การเข้าถึง (Auth Check)
     if (!token || !email) {
       return NextResponse.redirect(new URL('/', request.url));
     }
@@ -41,7 +40,7 @@ export function middleware(request) {
   return NextResponse.next();
 }
 
-// 4. Matcher ต้องครอบคลุมทุก Path ใน Array ด้านบน
+// 4. Config ยังคงใช้ matcher เหมือนเดิม
 export const config = {
   matcher: [
     '/manage/:path*',
