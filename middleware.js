@@ -37,7 +37,7 @@ export async function middleware(request) {
       const roleResponse = await fetch(`${request.nextUrl.origin}/api/GetUserRoles?email=${email}`, {
         // headers: { Authorization: `Bearer ${token}` }
         method: 'GET',
-  credentials: 'omit',
+        credentials: 'omit',
       });
       
       const { roles } = await roleResponse.json(); 
