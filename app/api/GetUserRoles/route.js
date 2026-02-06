@@ -46,6 +46,7 @@ export async function GET(request) {
            * stale-while-revalidate=30: ถ้าเกิน 60 วินาที ให้ใช้ค่าเดิมไปก่อน แต่หลังบ้านจะแอบไปดึงค่าใหม่มาอัปเดต
            */
           'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30',
+      'Content-Type': 'application/json',
         },
       }
     );

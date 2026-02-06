@@ -35,7 +35,9 @@ export async function middleware(request) {
       
       // ตัวอย่าง: เรียก API ภายในเพื่อเอา Role (ต้องเป็น Absolute URL)
       const roleResponse = await fetch(`${request.nextUrl.origin}/api/GetUserRoles?email=${email}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        // headers: { Authorization: `Bearer ${token}` }
+        method: 'GET',
+  credentials: 'omit',
       });
       
       const { roles } = await roleResponse.json(); 

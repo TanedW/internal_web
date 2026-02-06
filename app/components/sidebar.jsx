@@ -30,6 +30,18 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 
+const prefetchData = async (url) => {
+  if (!url) return;
+  try {
+    // ยิง fetch ทิ้งไว้เพื่อให้ Vercel Edge Cache (HIT) และ Browser จำค่าไว้
+    // credentials: 'omit' สำคัญมากเพื่อให้ตรงกับที่ Middleware และ API คาดหวัง
+    await fetch(url, { credentials: 'omit' });
+  } catch (e) {
+    // เงียบไว้ถ้าโหลดไม่สำเร็จ ไม่ให้กวนหน้าจอผู้ใช้
+  }
+};
+
+
 export default function Sidebar({
   isDesktopSidebarOpen,
   setIsDesktopSidebarOpen,
@@ -43,6 +55,38 @@ export default function Sidebar({
   const [isSidebarRolesExpanded, setIsSidebarRolesExpanded] = useState(false);
 
   const API_URL_ADMIN = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
+
+  // --- ฟังก์ชันสำหรับแอบโหลดข้อมูล (Prefetch) ---
+  const prefetchData = async (url) => {
+    if (!url) return;
+    try {
+      // ใช้ credentials: 'omit' เพื่อให้ Edge Cache ทำงาน (HIT)
+      await fetch(url, { credentials: 'omit' });
+    } catch (e) {
+      console.warn("Prefetch failed:", e);
+    }
+  };
+
+  const handleMouseEnter = (path) => {
+    const email = localStorage.getItem("user_email");
+    const adminId = localStorage.getItem("current_admin_id")?.replace(/^"|"$/g, "");
+    
+    // 1. Prefetch Roles เสมอ
+    if (email) {
+      prefetchData(`/api/GetUserRoles?email=${email}`);
+    }
+
+    // 2. ถ้าชี้ที่เมนูจัดการ ORG ให้แอบโหลด AdminList รอเลย (เพราะหน้านี้โหลดนาน)
+    if (path === "/manage-org" && adminId && API_URL_ADMIN) {
+      prefetchData(`${API_URL_ADMIN}?requester_id=${adminId}`);
+    }
+    if (path === "/manage-case" && adminId && API_URL_ADMIN) {
+      prefetchData(`${API_URL_ADMIN}?requester_id=${adminId}`);
+    }
+    if (path === "/manage-flex-message" && adminId && API_URL_ADMIN) {
+      prefetchData(`${API_URL_ADMIN}?requester_id=${adminId}`);
+    }
+  };
 
   const getAvatarUrl = (seed) =>
     `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed || "Admin")}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
@@ -82,33 +126,16 @@ export default function Sidebar({
     }
   };
 
-
-  // localStorage.removeItem("current_admin_id");
-      // localStorage.removeItem("access_token");
-      // localStorage.removeItem("user_email");
-      // localStorage.removeItem("org_logo_1");
-      // localStorage.removeItem("last_updated_org_1");
-
   const handleLogout = async () => {
     try {
-      // 1. Sign out จาก Firebase
       await signOut(auth);
-
-      // 2. ฟังก์ชันสำหรับลบ Cookie
       const deleteCookie = (name) => {
-        // การตั้ง expires เป็นอดีต และกำหนด path ให้ตรงกับตอนที่ set จะเป็นการลบ cookie
         document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
       };
-
-      // ลบ Cookie ทุกตัวที่คุณเคยสร้างไว้ (อ้างอิงจากไฟล์ Login.jsx ที่คุณส่งมา)
       deleteCookie("access_token");
       deleteCookie("user_email");
       deleteCookie("user_role");
-
-      // 3. ล้างข้อมูลทั้งหมดใน localStorage
       localStorage.clear(); 
-
-      // 4. กลับไปยังหน้าแรก
       router.push("/");
     } catch (error) {
       console.error("Logout error:", error);
@@ -126,7 +153,6 @@ export default function Sidebar({
     }`;
   };
 
-  // --- ส่วนจัดการ Role และปุ่ม More ---
   const SidebarRoleDisplay = () => (
     <div className="flex flex-col items-center mt-2 px-2 w-full">
       {currentRoles.length > 0 ? (
@@ -176,14 +202,10 @@ export default function Sidebar({
     <div className="flex flex-col items-center text-center mb-8 mt-2">
       <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg bg-slate-100 flex items-center justify-center">
         <img
-          src={
-            adminData?.profile_url || user?.photoURL || getAvatarUrl("Admin")
-          }
+          src={adminData?.profile_url || user?.photoURL || getAvatarUrl("Admin")}
           alt="User Profile"
           className="w-full h-full object-cover"
-          onError={(e) => {
-            e.target.src = getAvatarUrl("Admin");
-          }}
+          onError={(e) => { e.target.src = getAvatarUrl("Admin"); }}
         />
       </div><br></br>
       <h2 className="text-sm font-bold mt-4 px-2 break-words w-full" style={{ color: '#1e293b' }}>
@@ -195,15 +217,11 @@ export default function Sidebar({
 
   return (
     <>
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
+      <style dangerouslySetInnerHTML={{ __html: `
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .force-light { background-color: #ffffff !important; color: #1e293b !important; }
-      `,
-        }}
-      />
+      `}} />
 
       {/* MOBILE NAVBAR */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 force-light z-40 px-5 flex items-center border-b border-slate-100 shadow-sm">
@@ -213,18 +231,13 @@ export default function Sidebar({
         >
           <Menu className="w-6 h-6" strokeWidth={2.5} />
         </button>
-        <span className="ml-4 font-bold text-slate-800 text-sm">
-          Admin Portal
-        </span>
+        <span className="ml-4 font-bold text-slate-800 text-sm">Admin Portal</span>
       </div>
 
       {/* MOBILE SIDEBAR DRAW */}
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-            onClick={() => setIsMobileMenuOpen(false)}
-          ></div>
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
           <div className="relative w-[280px] h-full force-light shadow-2xl flex flex-col p-8 rounded-r-[2rem] animate-in slide-in-from-left duration-300 overflow-y-auto no-scrollbar">
             <button
               onClick={() => setIsMobileMenuOpen(false)}
@@ -238,6 +251,7 @@ export default function Sidebar({
                 href="/manage"
                 className={getMenuClass("/manage")}
                 onClick={() => setIsMobileMenuOpen(false)}
+                onMouseEnter={() => handleMouseEnter("/manage")}
               >
                 <Mail size={20} />
                 <span className="text-[15px] font-bold">จัดการ Email</span>
@@ -247,6 +261,7 @@ export default function Sidebar({
                   href="/manage-case"
                   className={getMenuClass("/manage-case")}
                   onClick={() => setIsMobileMenuOpen(false)}
+                  onMouseEnter={() => handleMouseEnter("/manage-case")}
                 >
                   <Briefcase size={20} />
                   <span className="text-[15px] font-bold">จัดการ Case</span>
@@ -257,6 +272,7 @@ export default function Sidebar({
                   href="/manage-richmenu"
                   className={getMenuClass("/manage-richmenu")}
                   onClick={() => setIsMobileMenuOpen(false)}
+                  onMouseEnter={() => handleMouseEnter("/manage-richmenu")}
                 >
                   <LayoutGrid size={20} />
                   <span className="text-[15px] font-bold">จัดการ Menu</span>
@@ -267,6 +283,7 @@ export default function Sidebar({
                   href="/manage-org"
                   className={getMenuClass("/manage-org")}
                   onClick={() => setIsMobileMenuOpen(false)}
+                  onMouseEnter={() => handleMouseEnter("/manage-org")}
                 >
                   <Users size={20} />
                   <span className="text-[15px] font-bold">จัดการ ORG</span>
@@ -277,11 +294,10 @@ export default function Sidebar({
                   href="/manage-flex-message"
                   className={getMenuClass("/manage-flex-message")}
                   onClick={() => setIsMobileMenuOpen(false)}
+                  onMouseEnter={() => handleMouseEnter("/manage-flex-message")}
                 >
                   <MessageSquareCode size={20} />
-                  <span className="text-[15px] font-bold">
-                    จัดการ Flex Message
-                  </span>
+                  <span className="text-[15px] font-bold">จัดการ Flex Message</span>
                 </Link>
               )}
               {hasAccess(["admin", "editor", "editor_search_org"]) && (
@@ -289,28 +305,19 @@ export default function Sidebar({
                   href="/search-org"
                   className={getMenuClass("/search-org")}
                   onClick={() => setIsMobileMenuOpen(false)}
+                  onMouseEnter={() => handleMouseEnter("/search-org")}
                 >
                   <Search size={20} />
-                  <span className="text-[15px] font-bold">
-                    ค้นหาหน่วยงานซ้ำ
-                  </span>
+                  <span className="text-[15px] font-bold">ค้นหาหน่วยงานซ้ำ</span>
                 </Link>
               )}
             </nav>
             <div className="mt-auto pt-4 border-t border-slate-100">
-              <button
-                onClick={handleLogout}
-                className="group flex items-center gap-2.5 px-4 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 w-full"
-              >
+              <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 w-full">
                 <div className="p-1.5 bg-red-100/50 rounded-lg group-hover:bg-red-100 transition-colors">
-                  <LogOut
-                    size={20}
-                    className="text-red-500"
-                  />
+                  <LogOut size={20} className="text-red-500" />
                 </div>
-                <span className="text-red-600 font-bold tracking-wide text-[15px]">
-                  Logout
-                </span>
+                <span className="text-red-600 font-bold tracking-wide text-[15px]">Logout</span>
               </button>
             </div>
           </div>
@@ -330,47 +337,41 @@ export default function Sidebar({
         <SidebarHeader />
 
         <nav className="flex flex-col gap-1.5 flex-1 mt-4 overflow-y-auto no-scrollbar">
-          <Link href="/manage" className={getMenuClass("/manage")}>
+          <Link href="/manage" className={getMenuClass("/manage")} onMouseEnter={() => handleMouseEnter("/manage")}>
             <Mail size={20} />
             <span className="font-bold text-[15px]">จัดการ Email</span>
           </Link>
 
           {hasAccess(["admin", "editor", "editor_manage_case"]) && (
-            <Link href="/manage-case" className={getMenuClass("/manage-case")}>
+            <Link href="/manage-case" className={getMenuClass("/manage-case")} onMouseEnter={() => handleMouseEnter("/manage-case")}>
               <Briefcase size={20} />
               <span className="font-bold text-[15px]">จัดการ Case</span>
             </Link>
           )}
 
           {hasAccess(["admin", "editor", "editor_manage_menu"]) && (
-            <Link
-              href="/manage-richmenu"
-              className={getMenuClass("/manage-richmenu")}
-            >
+            <Link href="/manage-richmenu" className={getMenuClass("/manage-richmenu")} onMouseEnter={() => handleMouseEnter("/manage-richmenu")}>
               <LayoutGrid size={20} />
               <span className="font-bold text-[15px]">จัดการ Menu</span>
             </Link>
           )}
 
           {hasAccess(["admin", "editor", "editor_manage_org", "editor_manage_org_info"]) && (
-            <Link href="/manage-org" className={getMenuClass("/manage-org")}>
+            <Link href="/manage-org" className={getMenuClass("/manage-org")} onMouseEnter={() => handleMouseEnter("/manage-org")}>
               <Users size={20} />
               <span className="font-bold text-[15px]">จัดการ ORG</span>
             </Link>
           )}
 
           {hasAccess(["admin", "editor", "editor_manage_flex"]) && (
-            <Link
-              href="/manage-flex-message"
-              className={getMenuClass("/manage-flex-message")}
-            >
+            <Link href="/manage-flex-message" className={getMenuClass("/manage-flex-message")} onMouseEnter={() => handleMouseEnter("/manage-flex-message")}>
               <MessageSquareCode size={20} />
               <span className="font-bold text-[15px]">จัดการ Flex Message</span>
             </Link>
           )}
 
           {hasAccess(["admin", "editor", "editor_search_org"]) && (
-            <Link href="/search-org" className={getMenuClass("/search-org")}>
+            <Link href="/search-org" className={getMenuClass("/search-org")} onMouseEnter={() => handleMouseEnter("/search-org")}>
               <Search size={20} />
               <span className="font-bold text-[15px]">ค้นหาหน่วยงานซ้ำ</span>
             </Link>
@@ -378,24 +379,15 @@ export default function Sidebar({
         </nav>
 
         <div className="mt-auto pt-4 border-t border-slate-100">
-          <button
-            onClick={handleLogout}
-            className="group flex items-center gap-2.5 px-4 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 w-full"
-          >
+          <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 w-full">
             <div className="p-1.5 bg-red-100/50 rounded-lg group-hover:bg-red-100 transition-colors">
-              <LogOut
-                size={20}
-                className="text-red-500"
-              />
+              <LogOut size={20} className="text-red-500" />
             </div>
-            <span className="text-red-600 font-bold tracking-wide text-[15px]">
-              Logout
-            </span>
+            <span className="text-red-600 font-bold tracking-wide text-[15px]">Logout</span>
           </button>
         </div>
       </aside>
 
-      {/* DESKTOP OPEN BUTTON */}
       {!isDesktopSidebarOpen && (
         <div className="hidden lg:block fixed top-8 left-8 z-30">
           <button
