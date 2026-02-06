@@ -82,22 +82,33 @@ export default function Sidebar({
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      // localStorage.removeItem("current_admin_id");
+
+  // localStorage.removeItem("current_admin_id");
       // localStorage.removeItem("access_token");
       // localStorage.removeItem("user_email");
       // localStorage.removeItem("org_logo_1");
       // localStorage.removeItem("last_updated_org_1");
 
+  const handleLogout = async () => {
+    try {
+      // 1. Sign out จาก Firebase
+      await signOut(auth);
 
-      localStorage.clear(); // ล้างหมดเลยจะง่ายกว่า
-    
-    // ลบ Cookies
-    document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    document.cookie = "user_email=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    document.cookie = "user_role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      // 2. ฟังก์ชันสำหรับลบ Cookie
+      const deleteCookie = (name) => {
+        // การตั้ง expires เป็นอดีต และกำหนด path ให้ตรงกับตอนที่ set จะเป็นการลบ cookie
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      };
+
+      // ลบ Cookie ทุกตัวที่คุณเคยสร้างไว้ (อ้างอิงจากไฟล์ Login.jsx ที่คุณส่งมา)
+      deleteCookie("access_token");
+      deleteCookie("user_email");
+      deleteCookie("user_role");
+
+      // 3. ล้างข้อมูลทั้งหมดใน localStorage
+      localStorage.clear(); 
+
+      // 4. กลับไปยังหน้าแรก
       router.push("/");
     } catch (error) {
       console.error("Logout error:", error);
