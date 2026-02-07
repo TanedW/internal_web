@@ -117,9 +117,133 @@ sequenceDiagram
     LoginPage->>User: Stores session in cookies/localStorage, redirects to /manage
 ```
 
-## 3. Core Components & Functionality
+## 3. Page Workflows
 
-### 3.1. API Routes (`app/api/`)
+This section explains the workflow of each management page with a diagram.
+
+### 3.1. Manage Emails (`/manage`)
+
+This page allows admins to manage user access.
+
+```mermaid
+flowchart TD
+    A[Start] --> B{Load Page};
+    B --> C{Fetch users from /api/.../user};
+    C --> D[Display User List];
+    D --> E{Admin Action};
+    E --> F[Add New User];
+    E --> G[Delete User];
+    F --> H{POST to /api/.../user};
+    G --> I{DELETE to /api/.../user};
+    H --> B;
+    I --> B;
+```
+
+### 3.2. Manage Case (`/manage-case`)
+
+This page is for managing support cases.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant ManageCasePage as "Manage Case Page"
+    participant BackendAPI as "Backend API"
+
+    User->>ManageCasePage: Enters Case ID and clicks Search
+    ManageCasePage->>BackendAPI: GET /api/search-case?id=...
+    BackendAPI-->>ManageCasePage: Returns case details and files
+    ManageCasePage->>User: Displays case info and attached files
+    User->>ManageCasePage: Selects a file to replace and uploads a new one
+    ManageCasePage->>User: Enters reason for replacement
+    User->>ManageCasePage: Clicks 'Update'
+    ManageCasePage->>BackendAPI: PUT /api/manage-case?id=... (with new file and reason)
+    BackendAPI-->>ManageCasePage: Confirms update
+    ManageCasePage->>User: Shows success message
+```
+
+### 3.3. Manage Flex Message (`/manage-flex-message`)
+
+This page is for creating and managing LINE Flex Messages.
+
+```mermaid
+flowchart TD
+    A[Start] --> B{Load Page};
+    B --> C{Fetch Flex Messages from API};
+    C --> D[Display Message Grid];
+    D --> E{User clicks 'Create New'};
+    E --> F{Choose 'From Scratch' or 'Template'};
+    F --> G[Open Editor Modal];
+    G --> H{User edits JSON and details};
+    H --> I{POST to /api/.../flex-message};
+    I --> B;
+```
+
+### 3.4. Manage Org (`/manage-org`)
+
+This page is for managing organization details.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant ManageOrgPage as "Manage Org Page"
+    participant BackendAPI as "Backend API"
+
+    User->>ManageOrgPage: Searches for an organization
+    ManageOrgPage->>BackendAPI: GET /api/search-org?q=...
+    BackendAPI-->>ManageOrgPage: Returns organization data
+    ManageOrgPage->>User: Displays organization details
+    User->>ManageOrgPage: Edits name, logo, or permissions
+    User->>ManageOrgPage: Clicks 'Update'
+    ManageOrgPage->>BackendAPI: PUT /api/manage-org?id=... (with updated data)
+    BackendAPI-->>ManageOrgPage: Confirms update
+    ManageOrgPage->>User: Shows success message
+```
+
+### 3.5. Manage Rich Menu (`/manage-richmenu`)
+
+This page is for managing LINE Rich Menus.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant RichMenuPage as "Rich Menu Page"
+    participant BackendAPI as "Backend API"
+    participant LINE_API as "LINE API"
+
+    User->>RichMenuPage: Selects a bot
+    RichMenuPage->>BackendAPI: GET /api/richmenu/list?botKey=...
+    BackendAPI-->>RichMenuPage: Returns list of menus
+    User->>RichMenuPage: Fills out new menu form (name, image, actions)
+    RichMenuPage->>BackendAPI: POST /api/richmenu/upload
+    BackendAPI->>LINE_API: Create Rich Menu object
+    LINE_API-->>BackendAPI: Returns richMenuId
+    BackendAPI->>LINE_API: Upload image to richMenuId
+    BackendAPI->>BackendAPI: Save menu to DB
+    BackendAPI-->>RichMenuPage: Success
+```
+
+### 3.6. Search Org (`/search-org`)
+
+This page is for finding duplicate organizations.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant SearchOrgPage as "Search Org Page"
+    participant ProxyAPI as "/api/proxy-search-org"
+    participant ExternalAPI as "External Search Service"
+
+    User->>SearchOrgPage: Enters organization name
+    SearchOrgPage->>ProxyAPI: GET /api/proxy-search-org?search=...
+    ProxyAPI->>ExternalAPI: Forwards the search query
+    ExternalAPI-->>ProxyAPI: Returns search results
+    ProxyAPI-->>SearchOrgPage: Returns results to the client
+    SearchOrgPage->>User: Displays list of similar organizations
+```
+
+## 4. Core Components & Functionality
+
+### 4.1. API Routes (`app/api/`)
 
 This directory contains the backend logic of the application, handling all server-side operations.
 
@@ -139,12 +263,12 @@ This directory contains the backend logic of the application, handling all serve
     -   `upload`: A multi-step process that first creates a Rich Menu object on LINE, then uploads the image content, and finally links it to the bot.
     -   `verify-token`: Validates a LINE bot's channel access token by making a request to the LINE API's `/v2/bot/info` endpoint.
 
-### 3.2. UI Components (`app/components/`)
+### 4.2. UI Components (`app/components/`)
 
 -   **`Login.jsx`**: The application's entry point for unauthenticated users. It utilizes Firebase UI for a seamless Google Sign-In experience. Upon successful authentication, it sends the user's profile and OAuth token to the backend to establish a session and retrieve application-specific roles.
 -   **`sidebar.jsx`**: The primary navigation component. It dynamically renders menu items based on the user's roles fetched from the `GetUserRoles` API. It displays user profile information (avatar, name, roles) and includes a prefetching mechanism on mouse hover to reduce perceived latency when navigating between pages.
 
-### 3.3. Management Pages
+### 4.3. Management Pages
 
 -   **`manage/`**: A page for administrators to manage user access. It lists all registered users, their roles, and provides functionality to add new users or revoke access.
 -   **`manage-case/`**: An interface for support staff to handle specific cases. It allows searching for a case by its ID and provides tools to view, upload, or replace associated media files (images, videos, documents).
@@ -153,7 +277,7 @@ This directory contains the backend logic of the application, handling all serve
 -   **`manage-richmenu/`**: A comprehensive dashboard for managing LINE Rich Menus. It provides a visual interface to create, upload, and switch between different Rich Menus for each registered bot. It includes a mapping tool to define tappable areas and their corresponding actions (link, text, API call).
 -   **`search-org/`**: A utility page to help prevent data duplication. It uses a similarity search algorithm (via the `proxy-search-org` API) to find organizations with similar names.
 
-## 4. Key Libraries & Technologies
+## 5. Key Libraries & Technologies
 
 -   **Next.js**: The core framework for the application.
 -   **React**: For building the user interface.
@@ -167,7 +291,7 @@ This directory contains the backend logic of the application, handling all serve
 -   **`pg`**: The PostgreSQL client for Node.js.
 -   **`sweetalert2`**: For displaying alerts and confirmations.
 
-## 5. Getting Started
+## 6. Getting Started
 
 1.  Install the dependencies:
     ```bash
