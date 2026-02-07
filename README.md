@@ -1,6 +1,6 @@
 # `app/` Directory Documentation
 
-This document provides a detailed overview of the `app/` directory in the My Internal Web project. It covers the structure, functionality, and key components of the application.
+This document provides a detailed overview of the `app/` directory in the My Internal Web project. It covers the structure, functionality, and key components of the application, with diagrams to help readers deeply understand the project.
 
 ## 1. Directory Structure
 
@@ -35,9 +35,34 @@ The application follows a standard Next.js App Router structure.
 -   **Authorization:** Role-based access control is managed by Permit.io.
 -   **External Services:** The application interacts with the LINE API for managing Rich Menus and bots.
 
-### Mermaid ER Diagram
+### Component Diagram
 
-This diagram illustrates the relationships between the main entities in the system.
+This diagram shows the main components of the system and how they interact.
+
+```mermaid
+graph TD
+    subgraph "User Interface"
+        A[Next.js Frontend]
+    end
+
+    subgraph "Backend Services"
+        B[Next.js API Routes]
+        C[PostgreSQL (Neon)]
+        D[Firebase Auth]
+        E[Permit.io]
+        F[LINE API]
+    end
+
+    A -- "HTTP Requests" --> B
+    B -- "DB Queries" --> C
+    A -- "Authentication" --> D
+    B -- "Authorization" --> E
+    B -- "Rich Menu Mgmt" --> F
+```
+
+### Data Model (ER Diagram)
+
+This diagram illustrates the relationships between the main database entities.
 
 ```mermaid
 erDiagram
@@ -88,44 +113,65 @@ erDiagram
     admin_system -- "Permit.io" : "has roles in"
     line_bots -- "LINE API" : "interacts with"
     bot_rich_menus -- "LINE API" : "represents"
+```
 
+### User Login Sequence Diagram
+
+This diagram shows the sequence of events during the user login process.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant LoginPage as "Login Page (Client)"
+    participant FirebaseAuth as "Firebase Auth"
+    participant BackendAPI as "Backend API"
+    participant Database
+
+    User->>LoginPage: Clicks 'Sign in with Google'
+    LoginPage->>FirebaseAuth: Initiates Google Sign-In Popup
+    FirebaseAuth-->>LoginPage: Returns User Credentials & Token
+    LoginPage->>BackendAPI: POST /api/login (sends user data)
+    BackendAPI->>Database: SELECT/INSERT admin_system
+    Database-->>BackendAPI: Returns admin_id and roles
+    BackendAPI-->>LoginPage: Returns session data (cookies, roles)
+    LoginPage->>User: Stores session in cookies/localStorage, redirects to /manage
 ```
 
 ## 3. Core Components & Functionality
 
 ### 3.1. API Routes (`app/api/`)
 
-This directory contains the backend logic of the application.
+This directory contains the backend logic of the application, handling all server-side operations.
 
--   **`Checksession`**: Verifies the user's session by checking the access token against the database.
--   **`GetUserRoles`**: Fetches the user's roles from the database and Permit.io. It uses a `stale-while-revalidate` caching strategy for performance.
--   **`proxy-search-org`**: A proxy API to an external service for searching organizations. This is done to hide the actual API endpoint and to avoid CORS issues.
--   **`richmenu`**: A collection of API routes for managing LINE Rich Menus.
-    -   `add`: Adds a new LINE bot to the database.
-    -   `bots`: Lists all the LINE bots.
-    -   `current`: Gets the currently active Rich Menu for a bot.
-    -   `delete`: Deletes a Rich Menu.
-    -   `details`: Gets the details of a Rich Menu.
-    -   `image`: Serves the image of a Rich Menu.
-    -   `list`: Lists all the Rich Menus for a bot.
-    -   `switch`: Switches the active Rich Menu for a bot.
-    -   `sync`: Syncs the Rich Menus from the LINE API to the database.
-    -   `upload`: Uploads a new Rich Menu.
-    -   `verify-token`: Verifies a LINE bot's channel access token.
+-   **`Checksession`**: Verifies the user's session by comparing the `access_token` from the client's cookie with the one stored in the `admin_system` table. This ensures that a user's session is still valid and hasn't been superseded by a login on another device.
+-   **`GetUserRoles`**: Fetches the user's roles from the `admin_system` table and cross-references them with Permit.io for fine-grained permissions. It uses a `stale-while-revalidate` caching strategy to minimize latency for frequent requests.
+-   **`proxy-search-org`**: Acts as a secure intermediary to an external organization search service. This proxy prevents exposing the external API endpoint to the client and bypasses potential CORS issues.
+-   **`richmenu`**: A comprehensive suite of API routes for managing LINE Rich Menus.
+    -   `add`: Inserts a new LINE bot's configuration (name, key, token) into the `line_bots` table.
+    -   `bots`: Retrieves and lists all registered LINE bots from the database.
+    -   `current`: Fetches the `richMenuId` of the currently active Rich Menu for a specific bot directly from the LINE API.
+    -   `delete`: Removes a Rich Menu from both the LINE platform and the `bot_rich_menus` table.
+    -   `details`: Fetches the detailed JSON structure of a specific Rich Menu from the LINE API.
+    -   `image`: Serves the image content of a Rich Menu by fetching it from the LINE API and streaming it back to the client.
+    -   `list`: Retrieves all Rich Menus associated with a bot from the `bot_rich_menus` table and syncs it with the list from the LINE API.
+    -   `switch`: Sets a specific Rich Menu as the default for all users of a bot via the LINE API and updates the `is_active` flag in the database.
+    -   `sync`: Synchronizes the list of Rich Menus from the LINE API with the local database, adding any menus that exist on LINE but not locally.
+    -   `upload`: A multi-step process that first creates a Rich Menu object on LINE, then uploads the image content, and finally links it to the bot.
+    -   `verify-token`: Validates a LINE bot's channel access token by making a request to the LINE API's `/v2/bot/info` endpoint.
 
 ### 3.2. UI Components (`app/components/`)
 
--   **`Login.jsx`**: The main login component. It uses Firebase for Google authentication and then sends the user's data to the backend for session creation.
--   **`sidebar.jsx`**: The application's sidebar. It handles navigation between pages and displays the user's profile information and roles. It also implements a prefetching strategy to improve navigation speed.
+-   **`Login.jsx`**: The application's entry point for unauthenticated users. It utilizes Firebase UI for a seamless Google Sign-In experience. Upon successful authentication, it sends the user's profile and OAuth token to the backend to establish a session and retrieve application-specific roles.
+-   **`sidebar.jsx`**: The primary navigation component. It dynamically renders menu items based on the user's roles fetched from the `GetUserRoles` API. It displays user profile information (avatar, name, roles) and includes a prefetching mechanism on mouse hover to reduce perceived latency when navigating between pages.
 
 ### 3.3. Management Pages
 
--   **`manage/`**: A page for managing user emails and their roles.
--   **`manage-case/`**: A page for managing support cases, including uploading and replacing files associated with a case.
--   **`manage-flex-message/`**: A page for creating and managing LINE Flex Messages. It includes a visual editor and a template gallery.
--   **`manage-org/`**: A page for managing organizations. It allows admins to update organization details, logos, and generate QR codes for reporting issues.
--   **`manage-richmenu/`**: A dashboard for managing LINE Rich Menus. It provides an interface to create, upload, and switch between different Rich Menus for each bot.
--   **`search-org/`**: A page for searching for duplicate organizations in the database.
+-   **`manage/`**: A page for administrators to manage user access. It lists all registered users, their roles, and provides functionality to add new users or revoke access.
+-   **`manage-case/`**: An interface for support staff to handle specific cases. It allows searching for a case by its ID and provides tools to view, upload, or replace associated media files (images, videos, documents).
+-   **`manage-flex-message/`**: A powerful tool for creating and managing LINE Flex Messages. It features a JSON editor for raw message creation, a gallery of pre-built templates (e.g., receipts, profiles, menus), and a live preview renderer.
+-   **`manage-org/`**: A high-level management page for organization-specific settings. Admins can update an organization's name and logo, toggle permissions for CSV data exports, and generate unique QR codes that link to the LINE bot for issue reporting.
+-   **`manage-richmenu/`**: A comprehensive dashboard for managing LINE Rich Menus. It provides a visual interface to create, upload, and switch between different Rich Menus for each registered bot. It includes a mapping tool to define tappable areas and their corresponding actions (link, text, API call).
+-   **`search-org/`**: A utility page to help prevent data duplication. It uses a similarity search algorithm (via the `proxy-search-org` API) to find organizations with similar names.
 
 ## 4. Key Libraries & Technologies
 
