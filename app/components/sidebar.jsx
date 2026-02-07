@@ -53,6 +53,7 @@ export default function Sidebar({
   const [adminData, setAdminData] = useState(null);
   const [currentRoles, setCurrentRoles] = useState([]);
   const [isSidebarRolesExpanded, setIsSidebarRolesExpanded] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const API_URL_ADMIN = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
 
@@ -97,34 +98,35 @@ export default function Sidebar({
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        fetchAdminProfile();
+        // ต้องใส่ await เพื่อให้รอดึง Profile และ Roles ให้เสร็จก่อน
+        await fetchAdminProfile(); 
+      } else {
+        setIsLoading(false);
       }
     });
     return () => unsubscribe();
   }, []);
 
   const fetchAdminProfile = async () => {
-    const adminId = localStorage
-      .getItem("current_admin_id")
-      ?.replace(/^"|"$/g, "");
-    if (!adminId || !API_URL_ADMIN) return;
+    const adminId = localStorage.getItem("current_admin_id")?.replace(/^"|"$/g, "");
+    if (!adminId || !API_URL_ADMIN) {
+      setIsLoading(false);
+      return;
+    }
     try {
       const res = await fetch(`${API_URL_ADMIN}?requester_id=${adminId}`);
       const json = await res.json();
       const data = Array.isArray(json) ? json : json.data || [];
-      const myProfile = data.find(
-        (u) => String(u.admin_id) === String(adminId),
-      );
+      const myProfile = data.find((u) => String(u.admin_id) === String(adminId));
       if (myProfile) {
         setAdminData(myProfile);
-        setCurrentRoles(
-          Array.isArray(myProfile.roles)
-            ? myProfile.roles
-            : [myProfile.role || "guest"],
-        );
+        setCurrentRoles(Array.isArray(myProfile.roles) ? myProfile.roles : [myProfile.role || "guest"]);
       }
     } catch (error) {
-      console.error("Error loading profile:", error);
+      console.error("Error:", error);
+    } finally {
+      // ปิดการโหลดที่นี่เพื่อให้ทุกอย่างแสดงพร้อมกัน
+      setIsLoading(false); 
     }
   };
 
@@ -217,6 +219,23 @@ export default function Sidebar({
     </div>
   );
 
+  const SidebarSkeleton = () => (
+  <div className="flex flex-col items-center w-full animate-pulse">
+    {/* วงกลมรูปโปรไฟล์ */}
+    <div className="w-24 h-24 rounded-full bg-slate-200 mb-8"></div>
+    {/* แถบชื่อ */}
+    <div className="h-4 w-32 bg-slate-200 rounded mb-4"></div>
+    {/* แถบ Role */}
+    <div className="h-6 w-24 bg-slate-100 rounded-full mb-10"></div>
+    {/* แถบเมนูจำลอง */}
+    <div className="w-full space-y-3">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="h-12 w-full bg-slate-50 rounded-xl"></div>
+      ))}
+    </div>
+  </div>
+);
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: `
@@ -236,7 +255,7 @@ export default function Sidebar({
         <span className="ml-4 font-bold text-slate-800 text-sm">Admin Portal</span>
       </div>
 
-      {/* MOBILE SIDEBAR DRAW */}
+{/* MOBILE SIDEBAR DRAW */}
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
@@ -247,148 +266,175 @@ export default function Sidebar({
             >
               <X size={18} style={{ color: '#000000' }} strokeWidth={3} />
             </button>
-            <SidebarHeader />
-            <nav className="flex flex-col gap-1.5 flex-1 mt-6 overflow-y-auto no-scrollbar">
-              <Link
-                href="/manage"
-                className={getMenuClass("/manage")}
-                onClick={() => setIsMobileMenuOpen(false)}
-                onMouseEnter={() => handleMouseEnter("/manage")}
-              >
-                <Mail size={20} />
-                <span className="text-[15px] font-bold">จัดการ Email</span>
-              </Link>
-              {hasAccess(["admin", "editor", "editor_manage_case"]) && (
-                <Link
-                  href="/manage-case"
-                  className={getMenuClass("/manage-case")}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  onMouseEnter={() => handleMouseEnter("/manage-case")}
-                >
-                  <Briefcase size={20} />
-                  <span className="text-[15px] font-bold">จัดการ Case</span>
-                </Link>
-              )}
-              {hasAccess(["admin", "editor", "editor_manage_menu"]) && (
-                <Link
-                  href="/manage-richmenu"
-                  className={getMenuClass("/manage-richmenu")}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  onMouseEnter={() => handleMouseEnter("/manage-richmenu")}
-                >
-                  <LayoutGrid size={20} />
-                  <span className="text-[15px] font-bold">จัดการ Menu</span>
-                </Link>
-              )}
-              {hasAccess(["admin", "editor", "editor_manage_org_info", "editor_manage_org"]) && (
-                <Link
-                  href="/manage-org"
-                  className={getMenuClass("/manage-org")}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  onMouseEnter={() => handleMouseEnter("/manage-org")}
-                >
-                  <Users size={20} />
-                  <span className="text-[15px] font-bold">จัดการ ORG</span>
-                </Link>
-              )}
-              {hasAccess(["admin", "editor", "editor_manage_flex"]) && (
-                <Link
-                  href="/manage-flex-message"
-                  className={getMenuClass("/manage-flex-message")}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  onMouseEnter={() => handleMouseEnter("/manage-flex-message")}
-                >
-                  <MessageSquareCode size={20} />
-                  <span className="text-[15px] font-bold">จัดการ Flex Message</span>
-                </Link>
-              )}
-              {hasAccess(["admin", "editor", "editor_search_duplicate_org"]) && (
-                <Link
-                  href="/search-org"
-                  className={getMenuClass("/search-org")}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  onMouseEnter={() => handleMouseEnter("/search-org")}
-                >
-                  <Search size={20} />
-                  <span className="text-[15px] font-bold">ค้นหาหน่วยงานซ้ำ</span>
-                </Link>
-              )}
-            </nav>
-            <div className="mt-auto pt-4 border-t border-slate-100">
-              <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 w-full">
-                <div className="p-1.5 bg-red-100/50 rounded-lg group-hover:bg-red-100 transition-colors">
-                  <LogOut size={20} className="text-red-500" />
+
+            {isLoading ? (
+              /* 1. แสดง Skeleton ตอนรอโหลดใน Mobile */
+              <div className="mt-8">
+                <SidebarSkeleton />
+              </div>
+            ) : (
+              /* 2. แสดงข้อมูลจริงเมื่อโหลดเสร็จ */
+              <div className="flex flex-col h-full animate-in fade-in duration-500">
+                <SidebarHeader />
+                <nav className="flex flex-col gap-1.5 flex-1 mt-6 overflow-y-auto no-scrollbar">
+                  <Link
+                    href="/manage"
+                    className={getMenuClass("/manage")}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    onMouseEnter={() => handleMouseEnter("/manage")}
+                  >
+                    <Mail size={20} />
+                    <span className="text-[15px] font-bold">จัดการ Email</span>
+                  </Link>
+
+                  {hasAccess(["admin", "editor", "editor_manage_case"]) && (
+                    <Link
+                      href="/manage-case"
+                      className={getMenuClass("/manage-case")}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      onMouseEnter={() => handleMouseEnter("/manage-case")}
+                    >
+                      <Briefcase size={20} />
+                      <span className="text-[15px] font-bold">จัดการ Case</span>
+                    </Link>
+                  )}
+
+                  {hasAccess(["admin", "editor", "editor_manage_menu"]) && (
+                    <Link
+                      href="/manage-richmenu"
+                      className={getMenuClass("/manage-richmenu")}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      onMouseEnter={() => handleMouseEnter("/manage-richmenu")}
+                    >
+                      <LayoutGrid size={20} />
+                      <span className="text-[15px] font-bold">จัดการ Menu</span>
+                    </Link>
+                  )}
+
+                  {hasAccess(["admin", "editor", "editor_manage_org_info", "editor_manage_org"]) && (
+                    <Link
+                      href="/manage-org"
+                      className={getMenuClass("/manage-org")}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      onMouseEnter={() => handleMouseEnter("/manage-org")}
+                    >
+                      <Users size={20} />
+                      <span className="text-[15px] font-bold">จัดการ ORG</span>
+                    </Link>
+                  )}
+
+                  {hasAccess(["admin", "editor", "editor_manage_flex"]) && (
+                    <Link
+                      href="/manage-flex-message"
+                      className={getMenuClass("/manage-flex-message")}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      onMouseEnter={() => handleMouseEnter("/manage-flex-message")}
+                    >
+                      <MessageSquareCode size={20} />
+                      <span className="text-[15px] font-bold">จัดการ Flex Message</span>
+                    </Link>
+                  )}
+
+                  {hasAccess(["admin", "editor", "editor_search_duplicate_org"]) && (
+                    <Link
+                      href="/search-org"
+                      className={getMenuClass("/search-org")}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      onMouseEnter={() => handleMouseEnter("/search-org")}
+                    >
+                      <Search size={20} />
+                      <span className="text-[15px] font-bold">ค้นหาหน่วยงานซ้ำ</span>
+                    </Link>
+                  )}
+                </nav>
+                
+                <div className="mt-auto pt-4 border-t border-slate-100">
+                  <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 w-full">
+                    <div className="p-1.5 bg-red-100/50 rounded-lg group-hover:bg-red-100 transition-colors">
+                      <LogOut size={20} className="text-red-500" />
+                    </div>
+                    <span className="text-red-600 font-bold tracking-wide text-[15px]">Logout</span>
+                  </button>
                 </div>
-                <span className="text-red-600 font-bold tracking-wide text-[15px]">Logout</span>
-              </button>
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* DESKTOP SIDEBAR */}
       <aside
-        className={`hidden lg:flex fixed top-4 bottom-4 left-4 w-72 force-light rounded-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] border border-slate-100 flex-col py-10 px-8 z-50 transition-all duration-300 ease-in-out overflow-y-auto no-scrollbar ${isDesktopSidebarOpen ? "translate-x-0 opacity-100" : "-translate-x-[120%] opacity-0 pointer-events-none"}`}
-      >
-        <button
-          onClick={() => setIsDesktopSidebarOpen(false)}
-          className="absolute top-8 right-8 p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-all"
-        >
-          <X size={20} style={{ color: '#000000' }} strokeWidth={3} />
-        </button>
-        <SidebarHeader />
+  className={`hidden lg:flex fixed top-4 bottom-4 left-4 w-72 force-light rounded-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] border border-slate-100 flex-col py-10 px-8 z-50 transition-all duration-300 ease-in-out overflow-y-auto no-scrollbar ${isDesktopSidebarOpen ? "translate-x-0 opacity-100" : "-translate-x-[120%] opacity-0 pointer-events-none"}`}
+>
+  {/* ปุ่มกากบาท (X) ให้แสดงตลอดเพื่อให้ User ปิด Sidebar ได้แม้ยังโหลดไม่เสร็จ */}
+  <button
+    onClick={() => setIsDesktopSidebarOpen(false)}
+    className="absolute top-8 right-8 p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-all"
+  >
+    <X size={20} style={{ color: '#000000' }} strokeWidth={3} />
+  </button>
 
-        <nav className="flex flex-col gap-1.5 flex-1 mt-4 overflow-y-auto no-scrollbar">
-          <Link href="/manage" className={getMenuClass("/manage")} onMouseEnter={() => handleMouseEnter("/manage")}>
-            <Mail size={20} />
-            <span className="font-bold text-[15px]">จัดการ Email</span>
+  {isLoading ? (
+    /* 1. แสดง Skeleton ตอนรอโหลด */
+    <SidebarSkeleton />
+  ) : (
+    /* 2. แสดงข้อมูลจริงเมื่อ isLoading เป็น false เท่านั้น */
+    <div className="flex flex-col h-full animate-in fade-in duration-500">
+      <SidebarHeader />
+
+      <nav className="flex flex-col gap-1.5 flex-1 mt-4 overflow-y-auto no-scrollbar">
+        <Link href="/manage" className={getMenuClass("/manage")} onMouseEnter={() => handleMouseEnter("/manage")}>
+          <Mail size={20} />
+          <span className="font-bold text-[15px]">จัดการ Email</span>
+        </Link>
+
+        {hasAccess(["admin", "editor", "editor_manage_case"]) && (
+          <Link href="/manage-case" className={getMenuClass("/manage-case")} onMouseEnter={() => handleMouseEnter("/manage-case")}>
+            <Briefcase size={20} />
+            <span className="font-bold text-[15px]">จัดการ Case</span>
           </Link>
+        )}
 
-          {hasAccess(["admin", "editor", "editor_manage_case"]) && (
-            <Link href="/manage-case" className={getMenuClass("/manage-case")} onMouseEnter={() => handleMouseEnter("/manage-case")}>
-              <Briefcase size={20} />
-              <span className="font-bold text-[15px]">จัดการ Case</span>
-            </Link>
-          )}
+        {hasAccess(["admin", "editor", "editor_manage_menu"]) && (
+          <Link href="/manage-richmenu" className={getMenuClass("/manage-richmenu")} onMouseEnter={() => handleMouseEnter("/manage-richmenu")}>
+            <LayoutGrid size={20} />
+            <span className="font-bold text-[15px]">จัดการ Menu</span>
+          </Link>
+        )}
 
-          {hasAccess(["admin", "editor", "editor_manage_menu"]) && (
-            <Link href="/manage-richmenu" className={getMenuClass("/manage-richmenu")} onMouseEnter={() => handleMouseEnter("/manage-richmenu")}>
-              <LayoutGrid size={20} />
-              <span className="font-bold text-[15px]">จัดการ Menu</span>
-            </Link>
-          )}
+        {hasAccess(["admin", "editor", "editor_manage_org", "editor_manage_org_info"]) && (
+          <Link href="/manage-org" className={getMenuClass("/manage-org")} onMouseEnter={() => handleMouseEnter("/manage-org")}>
+            <Users size={20} />
+            <span className="font-bold text-[15px]">จัดการ ORG</span>
+          </Link>
+        )}
 
-          {hasAccess(["admin", "editor", "editor_manage_org", "editor_manage_org_info"]) && (
-            <Link href="/manage-org" className={getMenuClass("/manage-org")} onMouseEnter={() => handleMouseEnter("/manage-org")}>
-              <Users size={20} />
-              <span className="font-bold text-[15px]">จัดการ ORG</span>
-            </Link>
-          )}
+        {hasAccess(["admin", "editor", "editor_manage_flex"]) && (
+          <Link href="/manage-flex-message" className={getMenuClass("/manage-flex-message")} onMouseEnter={() => handleMouseEnter("/manage-flex-message")}>
+            <MessageSquareCode size={20} />
+            <span className="font-bold text-[15px]">จัดการ Flex Message</span>
+          </Link>
+        )}
 
-          {hasAccess(["admin", "editor", "editor_manage_flex"]) && (
-            <Link href="/manage-flex-message" className={getMenuClass("/manage-flex-message")} onMouseEnter={() => handleMouseEnter("/manage-flex-message")}>
-              <MessageSquareCode size={20} />
-              <span className="font-bold text-[15px]">จัดการ Flex Message</span>
-            </Link>
-          )}
+        {hasAccess(["admin", "editor", "editor_search_duplicate_org"]) && (
+          <Link href="/search-org" className={getMenuClass("/search-org")} onMouseEnter={() => handleMouseEnter("/search-org")}>
+            <Search size={20} />
+            <span className="font-bold text-[15px]">ค้นหาหน่วยงานซ้ำ</span>
+          </Link>
+        )}
+      </nav>
 
-          {hasAccess(["admin", "editor", "editor_search_duplicate_org"]) && (
-            <Link href="/search-org" className={getMenuClass("/search-org")} onMouseEnter={() => handleMouseEnter("/search-org")}>
-              <Search size={20} />
-              <span className="font-bold text-[15px]">ค้นหาหน่วยงานซ้ำ</span>
-            </Link>
-          )}
-        </nav>
-
-        <div className="mt-auto pt-4 border-t border-slate-100">
-          <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 w-full">
-            <div className="p-1.5 bg-red-100/50 rounded-lg group-hover:bg-red-100 transition-colors">
-              <LogOut size={20} className="text-red-500" />
-            </div>
-            <span className="text-red-600 font-bold tracking-wide text-[15px]">Logout</span>
-          </button>
-        </div>
-      </aside>
+      <div className="mt-auto pt-4 border-t border-slate-100">
+        <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 w-full">
+          <div className="p-1.5 bg-red-100/50 rounded-lg group-hover:bg-red-100 transition-colors">
+            <LogOut size={20} className="text-red-500" />
+          </div>
+          <span className="text-red-600 font-bold tracking-wide text-[15px]">Logout</span>
+        </button>
+      </div>
+    </div>
+  )}
+</aside>
 
       {!isDesktopSidebarOpen && (
         <div className="hidden lg:block fixed top-8 left-8 z-30">
