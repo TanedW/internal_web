@@ -6,7 +6,7 @@ const ROLE_PERMISSIONS = {
   '/manage-org': ["admin", "editor", "editor_manage_org_info", "editor_manage_org"],
   '/manage-flex-message': ["admin", "editor", "editor_manage_flex"],
   '/manage-rich-menu': ["admin", "editor", "editor_manage_menu"],
-  '/search-org': ["admin", "editor", "editor_search_org"],
+  '/search-org': ["admin", "editor", "editor_search_duplicate_org"],
 };
 
 export async function middleware(request) {
@@ -19,42 +19,82 @@ export async function middleware(request) {
   // 2. ตรวจสอบว่าหน้าปัจจุบันต้องเช็คสิทธิ์หรือไม่
   const matchedPath = Object.keys(ROLE_PERMISSIONS).find(path => pathname.startsWith(path));
 
+  // if (matchedPath) {
+  //   // กฎข้อที่ 1: ต้อง Login ก่อน
+  //   if (!token || !email) {
+  //     return NextResponse.redirect(new URL('/', request.url));
+  //   }
+
+  //   try {
+  //     /**
+  //      * กลยุทธ์: ดึง Role สดๆ จากแหล่งข้อมูล
+  //      * ในที่นี้แนะนำให้เรียก API ภายในของคุณที่ไปเช็คกับ Permit.io หรือ DB 
+  //      * หรือใช้ fetch ไปที่ Endpoint ที่คืนค่า Role ของ User นั้นๆ
+  //      */
+  //     const adminIdRaw = request.cookies.get('admin_id')?.value; // คุณอาจต้องเซ็ต cookie นี้ตอน login
+      
+  //     // ตัวอย่าง: เรียก API ภายในเพื่อเอา Role (ต้องเป็น Absolute URL)
+  //     const roleResponse = await fetch(`${request.nextUrl.origin}/api/GetUserRoles?email=${email}`, {
+  //       // headers: { Authorization: `Bearer ${token}` }
+  //       method: 'GET',
+  //       credentials: 'omit',
+  //     });
+      
+  //     const { roles } = await roleResponse.json(); 
+  //     // console.log("Middleware fetched roles:", roles);
+  //     const currentRoles = Array.isArray(roles) ? roles : [];
+
+  //     // กฎข้อที่ 2: Authorization (เช็คสิทธิ์สดๆ)
+  //     const allowedRoles = ROLE_PERMISSIONS[matchedPath];
+  //     const hasAccess = currentRoles.some(role => allowedRoles.includes(role));
+
+  //     if (!hasAccess) {
+  //       // ถ้าไม่มีสิทธิ์ ดีดไปหน้า /manage (หน้าแรกของ Admin)
+  //       return NextResponse.redirect(new URL('/manage', request.url)); 
+  //     }
+
+  //   } catch (error) {
+  //     console.error("Middleware Auth Error:", error);
+  //     return NextResponse.redirect(new URL('/', request.url));
+  //   }
+  // }
+
+
   if (matchedPath) {
     // กฎข้อที่ 1: ต้อง Login ก่อน
-    if (!token || !email) {
+    if (!token) { // ไม่ต้องพึ่งพา email จาก cookie เพราะเราจะใช้ token ยืนยันตัวตน
       return NextResponse.redirect(new URL('/', request.url));
     }
 
     try {
-      /**
-       * กลยุทธ์: ดึง Role สดๆ จากแหล่งข้อมูล
-       * ในที่นี้แนะนำให้เรียก API ภายในของคุณที่ไปเช็คกับ Permit.io หรือ DB 
-       * หรือใช้ fetch ไปที่ Endpoint ที่คืนค่า Role ของ User นั้นๆ
-       */
-      const adminIdRaw = request.cookies.get('admin_id')?.value; // คุณอาจต้องเซ็ต cookie นี้ตอน login
-      
-      // ตัวอย่าง: เรียก API ภายในเพื่อเอา Role (ต้องเป็น Absolute URL)
-      const roleResponse = await fetch(`${request.nextUrl.origin}/api/GetUserRoles?email=${email}`, {
-        // headers: { Authorization: `Bearer ${token}` }
+      // แก้ไข: เรียก API โดยส่ง Token ไปใน Header แทนการส่ง email ใน URL
+      const roleResponse = await fetch(`${request.nextUrl.origin}/api/GetUserRoles`, {
         method: 'GET',
-        credentials: 'omit',
+        headers: {
+          'Authorization': `Bearer ${token}`, // ส่ง Token เพื่อยืนยันตัวตนที่ Server
+        },
+        // credentials: 'omit', // ปิดการส่ง cookie อัตโนมัติถ้าต้องการความรัดกุม
       });
-      
-      const { roles } = await roleResponse.json(); 
-      // console.log("Middleware fetched roles:", roles);
-      const currentRoles = Array.isArray(roles) ? roles : [];
 
+      if (!roleResponse.ok) {
+        throw new Error('Failed to fetch roles or Invalid token');
+      }
+      
+      const { roles, isValid } = await roleResponse.json(); 
+      
       // กฎข้อที่ 2: Authorization (เช็คสิทธิ์สดๆ)
+      // เพิ่มการเช็ค isValid ที่ได้รับกลับมาจาก API
+      const currentRoles = Array.isArray(roles) ? roles : [];
       const allowedRoles = ROLE_PERMISSIONS[matchedPath];
-      const hasAccess = currentRoles.some(role => allowedRoles.includes(role));
+      const hasAccess = isValid && currentRoles.some(role => allowedRoles.includes(role));
 
       if (!hasAccess) {
-        // ถ้าไม่มีสิทธิ์ ดีดไปหน้า /manage (หน้าแรกของ Admin)
         return NextResponse.redirect(new URL('/manage', request.url)); 
       }
 
     } catch (error) {
       console.error("Middleware Auth Error:", error);
+      // หาก Token หมดอายุหรือผิดพลาด ให้ดีดกลับหน้า Login
       return NextResponse.redirect(new URL('/', request.url));
     }
   }

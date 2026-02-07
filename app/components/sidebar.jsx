@@ -77,13 +77,15 @@ export default function Sidebar({
     }
 
     // 2. ถ้าชี้ที่เมนูจัดการ ORG ให้แอบโหลด AdminList รอเลย (เพราะหน้านี้โหลดนาน)
-    if (path === "/manage-org" && adminId && API_URL_ADMIN) {
-      prefetchData(`${API_URL_ADMIN}?requester_id=${adminId}`);
-    }
-    if (path === "/manage-case" && adminId && API_URL_ADMIN) {
-      prefetchData(`${API_URL_ADMIN}?requester_id=${adminId}`);
-    }
-    if (path === "/manage-flex-message" && adminId && API_URL_ADMIN) {
+    const targetPaths = [
+      "/manage-org", 
+      "/manage-case", 
+      "/manage-flex-message",
+      "/manage-richmenu",
+      "/search-org"
+    ];
+
+    if (targetPaths.includes(path) && adminId && API_URL_ADMIN) {
       prefetchData(`${API_URL_ADMIN}?requester_id=${adminId}`);
     }
   };
@@ -300,7 +302,7 @@ export default function Sidebar({
                   <span className="text-[15px] font-bold">จัดการ Flex Message</span>
                 </Link>
               )}
-              {hasAccess(["admin", "editor", "editor_search_org"]) && (
+              {hasAccess(["admin", "editor", "editor_search_duplicate_org"]) && (
                 <Link
                   href="/search-org"
                   className={getMenuClass("/search-org")}
@@ -370,7 +372,7 @@ export default function Sidebar({
             </Link>
           )}
 
-          {hasAccess(["admin", "editor", "editor_search_org"]) && (
+          {hasAccess(["admin", "editor", "editor_search_duplicate_org"]) && (
             <Link href="/search-org" className={getMenuClass("/search-org")} onMouseEnter={() => handleMouseEnter("/search-org")}>
               <Search size={20} />
               <span className="font-bold text-[15px]">ค้นหาหน่วยงานซ้ำ</span>

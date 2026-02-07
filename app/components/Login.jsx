@@ -63,10 +63,10 @@ if (response.ok) {
   const rolesString = rolesArray.join(',');
 
   // 2. เก็บข้อมูลลง LocalStorage สำหรับ UI / Sidebar
-  localStorage.setItem("access_token", userData.access_token);
-  localStorage.setItem("user_email", userData.email);
-  localStorage.setItem("current_admin_id", JSON.stringify(responseData.admin_id));
-  localStorage.setItem("user_roles", rolesString); 
+  // localStorage.setItem("access_token", userData.access_token);
+    localStorage.setItem("user_email", userData.email);
+    localStorage.setItem("current_admin_id", JSON.stringify(responseData.admin_id));
+    // localStorage.setItem("user_roles", rolesString); 
 
   // 3. เซ็ต Cookies สำหรับ Middleware 
   // *สำคัญ* ไม่เก็บ user_role ในนี้เพื่อความปลอดภัย แต่เก็บ admin_id เพื่อให้ Middleware ไปเช็คต่อได้
