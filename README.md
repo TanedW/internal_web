@@ -45,19 +45,19 @@ graph TD
         A[Next.js Frontend]
     end
 
-    subgraph "Backend Services"
+    subgraph "Backend & External Services"
         B[Next.js API Routes]
-        C[PostgreSQL (Neon)]
-        D[Firebase Auth]
-        E[Permit.io]
-        F[LINE API]
+        C["PostgreSQL (Neon)"]
+        D["Firebase Auth"]
+        E["Permit.io"]
+        F["LINE API"]
     end
 
     A -- "HTTP Requests" --> B
     B -- "DB Queries" --> C
-    A -- "Authentication" --> D
-    B -- "Authorization" --> E
-    B -- "Rich Menu Mgmt" --> F
+    A -- "Authentication Flow" --> D
+    B -- "Permission Checks" --> E
+    B -- "Rich Menu Management" --> F
 ```
 
 ### Data Model (ER Diagram)
@@ -93,26 +93,6 @@ erDiagram
 
     admin_system ||--o{ line_bots : "creates"
     line_bots ||--o{ bot_rich_menus : "has"
-
-    subgraph "External Services"
-        Firebase {
-            string uid
-            string email
-        }
-        "Permit.io" {
-            string user_id
-            string role
-        }
-        "LINE API" {
-            string richMenuId
-            string channelToken
-        }
-    end
-
-    admin_system -- Firebase : "authenticates with"
-    admin_system -- "Permit.io" : "has roles in"
-    line_bots -- "LINE API" : "interacts with"
-    bot_rich_menus -- "LINE API" : "represents"
 ```
 
 ### User Login Sequence Diagram
