@@ -21,14 +21,13 @@ export default function FlexRender({ json }) {
     // Find the actual Root Node (Handle { type: 'flex', contents: ... } wrapper)
     let content = (data.type === 'flex' && data.contents) ? data.contents : data;
     
-    // 🟢 REMOVED: cleanFlexData (This was messing up your colors and padding)
     return content;
   }, [json]);
 
   if (!rootNode) return <div className="text-red-500 text-xs p-4 text-center">Invalid Data</div>;
 
   return (
-    // 🟢 CONTAINER FIX:
+    // CONTAINER FIX:
     // 1. Removed 'px-4' entirely. This was adding 32px of unwanted width/squeeze.
     // 2. Used 'grid place-items-center' for safer centering without flex shrinking.
     <div className="w-full py-10 overflow-x-auto grid place-items-center bg-transparent">
