@@ -1,16 +1,16 @@
 "use client";
 import React, { useState, useMemo, useRef, useEffect } from "react";
-// 🟢 Added Icons: Undo2, Redo2, Layers (for Bubble), GalleryHorizontal (for Carousel)
+// Added Icons for Validation & Toolbar
 import { 
   X, Code, LayoutTemplate, CheckCircle2, ArrowRight, Sparkles, 
   Eye, AlertCircle, Type, Image as ImageIcon, MousePointer2, 
-  Box, Minus, Undo2, Redo2, Layers, GalleryHorizontal 
+  Box, Minus, Undo2, Redo2, Layers, GalleryHorizontal,
+  Loader2, ShieldCheck, ShieldAlert // Added validation icons
 } from "lucide-react";
 import FlexRender from "./FlexRender"; 
 
-// --- SNIPPET DATA ---
+// --- SNIPPET DATA (Create Mode has Base Structures) ---
 const SNIPPETS = [
-  // 🟢 NEW: Basic Base Structures
   { 
     label: "Carousel", 
     icon: <GalleryHorizontal size={14} />, 
@@ -21,21 +21,20 @@ const SNIPPETS = [
     icon: <Layers size={14} />, 
     code: { "type": "bubble", "body": { "type": "box", "layout": "vertical", "contents": [] } } 
   },
-  // --- Existing Snippets ---
   { 
     label: "Text", 
     icon: <Type size={14} />, 
-    code: { "type": "text", "text": "Text", "size": "sm", "color": "#000000" } 
+    code: { "type": "text", "text": "Text.....", "size": "sm", "color": "#000000" } 
   },
   { 
     label: "Bold Text", 
     icon: <Type size={14} className="stroke-[3px]" />, 
-    code: { "type": "text", "text": "Bold Text", "weight": "bold", "size": "md" } 
+    code: { "type": "text", "text": "Bold Text.....", "weight": "bold", "size": "md" } 
   },
   { 
     label: "Button", 
     icon: <MousePointer2 size={14} />, 
-    code: { "type": "button", "style": "primary", "height": "sm", "action": { "type": "uri", "label": "Button", "uri": "https://line.me" } } 
+    code: { "type": "button", "style": "primary", "height": "sm", "action": { "type": "uri", "label": "Button.....", "uri": "https://line.me" } } 
   },
   { 
     label: "Image", 
@@ -56,132 +55,42 @@ const SNIPPETS = [
 
 // --- TEMPLATES DATA ---
 const SAMPLE_TEMPLATES = [
-  // ... (Your existing templates b1 - b4, c1 - c4 remain here) ...
   {
     id: "b1",
     name: "Restaurant Info",
     category: "Business",
-    description: "Restaurant card with rating stars, location, and call-to-action buttons.",
+    description: "Restaurant card with rating stars.",
     content: {
       "type": "bubble",
-      "hero": { "type": "image", "url": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80", "size": "full", "aspectRatio": "20:13", "aspectMode": "cover" },
       "body": {
         "type": "box", "layout": "vertical",
         "contents": [
           { "type": "text", "text": "Brown Cafe", "weight": "bold", "size": "xl" },
-          { "type": "box", "layout": "baseline", "margin": "md", "contents": [
-              { "type": "icon", "size": "sm", "url": "https://scdn.line-apps.com/n/channel_devcenter/img/fx/review_gold_star_28.png" },
-              { "type": "icon", "size": "sm", "url": "https://scdn.line-apps.com/n/channel_devcenter/img/fx/review_gold_star_28.png" },
-              { "type": "icon", "size": "sm", "url": "https://scdn.line-apps.com/n/channel_devcenter/img/fx/review_gold_star_28.png" },
-              { "type": "icon", "size": "sm", "url": "https://scdn.line-apps.com/n/channel_devcenter/img/fx/review_gold_star_28.png" },
-              { "type": "text", "text": "4.0", "size": "sm", "color": "#999999", "margin": "md", "flex": 0 },
-              { "type": "text", "text": "Siam Square", "size": "sm", "color": "#aaaaaa", "align": "end" }
-            ]
-          }
-        ]
-      },
-      "footer": {
-        "type": "box", "layout": "vertical", "spacing": "sm",
-        "contents": [
-          { "type": "button", "style": "primary", "height": "sm", "action": { "type": "uri", "label": "Call Now", "uri": "tel:0000000000" } },
-          { "type": "button", "style": "secondary", "height": "sm", "action": { "type": "uri", "label": "Website", "uri": "https://linecorp.com" } }
+          { "type": "text", "text": "4.0 Stars", "size": "sm", "color": "#999999" }
         ]
       }
     }
   },
-  // ... [Other templates b2, b3, b4, c1, c2, c3, c4 skipped for brevity, but keep them in your code] ...
-  
-  // 🟢 NEW TEMPLATE: Restaurant Carousel (Based on your JSON)
   {
     id: "c5",
     name: "Restaurant Carousel",
     category: "Carousel",
-    description: "A carousel of restaurant listings with ratings and descriptions.",
+    description: "A carousel of restaurant listings.",
     content: {
       "type": "carousel",
       "contents": [
         {
           "type": "bubble",
-          "size": "micro",
-          "hero": {
-            "type": "image",
-            "url": "https://developers-resource.landpress.line.me/fx/clip/clip10.jpg",
-            "size": "full",
-            "aspectMode": "cover",
-            "aspectRatio": "320:213"
-          },
           "body": {
-            "type": "box",
-            "layout": "vertical",
-            "contents": [
-              { "type": "text", "text": "Name", "weight": "bold", "size": "sm", "wrap": true },
-              {
-                "type": "box", "layout": "baseline",
-                "contents": [
-                  { "type": "icon", "size": "xs", "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png" },
-                  { "type": "icon", "size": "xs", "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png" },
-                  { "type": "icon", "size": "xs", "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png" },
-                  { "type": "icon", "size": "xs", "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png" },
-                  { "type": "icon", "size": "xs", "url": "https://developers-resource.landpress.line.me/fx/img/review_gray_star_28.png" },
-                  { "type": "text", "text": "4.0", "size": "xs", "color": "#8c8c8c", "margin": "md", "flex": 0 }
-                ]
-              },
-              {
-                "type": "box", "layout": "vertical",
-                "contents": [
-                  {
-                    "type": "box", "layout": "baseline", "spacing": "sm",
-                    "contents": [
-                      { "type": "text", "text": "Description", "wrap": true, "color": "#8c8c8c", "size": "xs", "flex": 5 }
-                    ]
-                  }
-                ]
-              }
-            ],
-            "spacing": "sm",
-            "paddingAll": "13px"
+            "type": "box", "layout": "vertical",
+            "contents": [{ "type": "text", "text": "Shop A" }]
           }
         },
         {
           "type": "bubble",
-          "size": "micro",
-          "hero": {
-            "type": "image",
-            "url": "https://developers-resource.landpress.line.me/fx/clip/clip11.jpg",
-            "size": "full",
-            "aspectMode": "cover",
-            "aspectRatio": "320:213"
-          },
           "body": {
-            "type": "box",
-            "layout": "vertical",
-            "contents": [
-              { "type": "text", "text": "Name", "weight": "bold", "size": "sm", "wrap": true },
-              {
-                "type": "box", "layout": "baseline",
-                "contents": [
-                  { "type": "icon", "size": "xs", "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png" },
-                  { "type": "icon", "size": "xs", "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png" },
-                  { "type": "icon", "size": "xs", "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png" },
-                  { "type": "icon", "size": "xs", "url": "https://developers-resource.landpress.line.me/fx/img/review_gold_star_28.png" },
-                  { "type": "icon", "size": "xs", "url": "https://developers-resource.landpress.line.me/fx/img/review_gray_star_28.png" },
-                  { "type": "text", "text": "4.0", "size": "sm", "color": "#8c8c8c", "margin": "md", "flex": 0 }
-                ]
-              },
-              {
-                "type": "box", "layout": "vertical",
-                "contents": [
-                  {
-                    "type": "box", "layout": "baseline", "spacing": "sm",
-                    "contents": [
-                      { "type": "text", "text": "Description", "wrap": true, "color": "#8c8c8c", "size": "xs", "flex": 5 }
-                    ]
-                  }
-                ]
-              }
-            ],
-            "spacing": "sm",
-            "paddingAll": "13px"
+            "type": "box", "layout": "vertical",
+            "contents": [{ "type": "text", "text": "Shop B" }]
           }
         }
       ]
@@ -194,25 +103,77 @@ const CreateModal = ({ isOpen, onClose, onCreate }) => {
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   
-  // 🟢 Undo/Redo State
+  // Undo/Redo State
   const [json, setJson] = useState("{\n  \"type\": \"bubble\",\n  \"body\": {\n    \"type\": \"box\",\n    \"layout\": \"vertical\",\n    \"contents\": [\n      { \"type\": \"text\", \"text\": \"Hello World\" }\n    ]\n  }\n}");
   const [history, setHistory] = useState([json]);
   const [historyIndex, setHistoryIndex] = useState(0);
 
+  // Validation State
+  const [jsonError, setJsonError] = useState(null); // Local Syntax Error
+  const [lineValidationError, setLineValidationError] = useState(null); // API Error
+  const [isValidating, setIsValidating] = useState(false); // Loading State
+
   const [quickReply, setQuickReply] = useState("");
   const textAreaRef = useRef(null); 
 
-  // Reset history when modal opens
+  // Reset when modal opens
   useEffect(() => {
     if (isOpen) {
         const initial = "{\n  \"type\": \"bubble\",\n  \"body\": {\n    \"type\": \"box\",\n    \"layout\": \"vertical\",\n    \"contents\": [\n      { \"type\": \"text\", \"text\": \"Hello World\" }\n    ]\n  }\n}";
         setJson(initial);
         setHistory([initial]);
         setHistoryIndex(0);
+        setName("");
+        setDesc("");
+        setJsonError(null);
+        setLineValidationError(null);
+        setActiveTab("scratch");
     }
   }, [isOpen]);
 
-  // 🟢 Smart Update Function (Records History)
+  // Real-time Validation Effect
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // 1. Check Local Syntax
+    try {
+        JSON.parse(json);
+        setJsonError(null);
+    } catch (e) {
+        setJsonError(e.message);
+        setLineValidationError(null);
+        return;
+    }
+
+    // 2. Debounce & Check API
+    const timer = setTimeout(async () => {
+        setIsValidating(true);
+        try {
+            const res = await fetch("/api/validate-push", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: json, 
+            });
+            
+            const data = await res.json();
+            
+            if (!res.ok) {
+                setLineValidationError(data.message || "Invalid Flex Message structure");
+            } else {
+                setLineValidationError(null);
+            }
+        } catch (error) {
+            console.error("Validation error:", error);
+        } finally {
+            setIsValidating(false);
+        }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [json, isOpen]);
+
+
+  // History Management
   const updateJson = (newJson) => {
     setJson(newJson);
     const newHistory = history.slice(0, historyIndex + 1);
@@ -238,13 +199,13 @@ const CreateModal = ({ isOpen, onClose, onCreate }) => {
   };
 
   // Live Preview Logic
-  const { previewData, jsonError } = useMemo(() => {
+  const { previewData } = useMemo(() => {
     try {
-      if (!json || json.trim() === "") return { previewData: null, jsonError: null };
+      if (!json || json.trim() === "") return { previewData: null };
       const parsed = JSON.parse(json);
-      return { previewData: parsed, jsonError: null };
+      return { previewData: parsed };
     } catch (e) {
-      return { previewData: null, jsonError: e.message };
+      return { previewData: null };
     }
   }, [json]);
 
@@ -254,6 +215,7 @@ const CreateModal = ({ isOpen, onClose, onCreate }) => {
     setName(template.name);
     setDesc(template.description);
     const newJson = JSON.stringify(template.content, null, 2);
+    
     // Reset History for new template
     setJson(newJson);
     setHistory([newJson]);
@@ -273,7 +235,6 @@ const CreateModal = ({ isOpen, onClose, onCreate }) => {
     const snippetString = JSON.stringify(snippetCode, null, 2);
     const newText = text.substring(0, start) + snippetString + text.substring(end);
     
-    // Update using our smart function
     updateJson(newText);
     
     setTimeout(() => {
@@ -374,31 +335,21 @@ const CreateModal = ({ isOpen, onClose, onCreate }) => {
                             <div className="flex justify-between items-end">
                                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Flex Message JSON</label>
                                 
-                                {/* 🟢 Tools Container */}
+                                {/* Tools & Validation Status */}
                                 <div className="flex items-center gap-2">
-                                    <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
-                                        <button 
-                                            onClick={handleUndo} 
-                                            disabled={historyIndex <= 0}
-                                            className="p-1 hover:bg-white rounded-md transition-all text-slate-500 disabled:opacity-30 disabled:hover:bg-transparent"
-                                            title="Undo"
-                                        >
-                                            <Undo2 size={14} />
-                                        </button>
-                                        <button 
-                                            onClick={handleRedo} 
-                                            disabled={historyIndex >= history.length - 1}
-                                            className="p-1 hover:bg-white rounded-md transition-all text-slate-500 disabled:opacity-30 disabled:hover:bg-transparent"
-                                            title="Redo"
-                                        >
-                                            <Redo2 size={14} />
-                                        </button>
+                                     {isValidating && <span className="flex items-center gap-1 text-[10px] text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full"><Loader2 size={10} className="animate-spin"/> Checking...</span>}
+                                     {!isValidating && !jsonError && !lineValidationError && <span className="flex items-center gap-1 text-[10px] text-green-600 bg-green-50 px-2 py-0.5 rounded-full"><ShieldCheck size={10}/> Valid</span>}
+                                     {!isValidating && (jsonError || lineValidationError) && <span className="flex items-center gap-1 text-[10px] text-red-600 bg-red-50 px-2 py-0.5 rounded-full"><ShieldAlert size={10}/> Invalid</span>}
+
+                                    <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200 ml-2">
+                                        <button onClick={handleUndo} disabled={historyIndex <= 0} className="p-1 hover:bg-white rounded-md transition-all text-slate-500 disabled:opacity-30 disabled:hover:bg-transparent" title="Undo"><Undo2 size={14} /></button>
+                                        <button onClick={handleRedo} disabled={historyIndex >= history.length - 1} className="p-1 hover:bg-white rounded-md transition-all text-slate-500 disabled:opacity-30 disabled:hover:bg-transparent" title="Redo"><Redo2 size={14} /></button>
                                     </div>
                                     <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded font-mono font-medium">Main Content</span>
                                 </div>
                             </div>
 
-                            {/* Snippet Toolbar */}
+                            {/* Snippet Toolbar (Includes Base Structures) */}
                             <div className="flex gap-2 pb-2 overflow-x-auto no-scrollbar">
                                 {SNIPPETS.map((item, idx) => (
                                     <button 
@@ -412,18 +363,23 @@ const CreateModal = ({ isOpen, onClose, onCreate }) => {
                                 ))}
                             </div>
 
-                            <textarea 
-                                ref={textAreaRef}
-                                className={`w-full h-64 lg:h-80 p-4 border rounded-xl font-mono text-xs leading-relaxed bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all resize-none shadow-sm text-slate-700 ${jsonError ? 'border-red-300 ring-2 ring-red-50' : 'border-slate-200'}`}
-                                value={json} onChange={e => updateJson(e.target.value)}
-                                spellCheck="false"
-                                placeholder="{ ... }"
-                            />
-                            {jsonError && (
-                                <p className="text-red-500 text-xs flex items-center gap-1 mt-1">
-                                    <AlertCircle size={12} /> {jsonError}
-                                </p>
-                            )}
+                            <div className="flex-1 relative">
+                                <textarea 
+                                    ref={textAreaRef}
+                                    className={`w-full h-64 lg:h-80 p-4 border rounded-xl font-mono text-xs leading-relaxed bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all resize-none shadow-sm text-slate-700 ${(jsonError || lineValidationError) ? 'border-red-300 ring-2 ring-red-50' : 'border-slate-200'}`}
+                                    value={json} onChange={e => updateJson(e.target.value)}
+                                    spellCheck="false"
+                                    placeholder="{ ... }"
+                                />
+                                
+                                {/* Error Message Area */}
+                                {(jsonError || lineValidationError) && (
+                                    <div className="absolute bottom-0 left-0 right-0 bg-red-50 text-red-600 text-xs p-3 border-t border-red-100 font-mono z-20 animate-in slide-in-from-bottom-2">
+                                         <div className="font-bold flex items-center gap-2 mb-1"><ShieldAlert size={14}/> Error Detected:</div>
+                                         {jsonError || lineValidationError}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         <div className="space-y-2">
@@ -482,15 +438,15 @@ const CreateModal = ({ isOpen, onClose, onCreate }) => {
         {/* Footer */}
         <div className="p-4 md:p-5 border-t border-slate-100 bg-white flex justify-between items-center z-20 shrink-0">
           <div className="text-xs text-slate-400 font-medium px-2 hidden md:block">
-             {activeTab === "scratch" ? (jsonError ? "Fix JSON errors to continue" : "Ready to create") : "Choose a template to get started"}
+             {activeTab === "scratch" ? ((jsonError || lineValidationError) ? "Fix JSON errors to continue" : "Ready to create") : "Choose a template to get started"}
           </div>
           <div className="flex gap-3 ml-auto">
             <button onClick={onClose} className="px-5 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
             {activeTab === "scratch" ? (
                 <button 
-                    disabled={!!jsonError}
+                    disabled={!!jsonError || !!lineValidationError || isValidating}
                     onClick={() => { onCreate(name, desc, json, quickReply); onClose(); }} 
-                    className={`px-6 py-2.5 text-white text-sm font-bold rounded-xl shadow-lg transition-all flex items-center gap-2 ${jsonError ? 'bg-slate-300 cursor-not-allowed' : 'bg-slate-900 hover:bg-black shadow-slate-900/20 active:scale-95'}`}
+                    className={`px-6 py-2.5 text-white text-sm font-bold rounded-xl shadow-lg transition-all flex items-center gap-2 ${ (!!jsonError || !!lineValidationError || isValidating) ? 'bg-slate-300 cursor-not-allowed' : 'bg-slate-900 hover:bg-black shadow-slate-900/20 active:scale-95'}`}
                 >
                     Create Message <ArrowRight size={16} />
                 </button>
