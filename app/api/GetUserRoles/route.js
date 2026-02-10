@@ -1,15 +1,6 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
-import { Permit } from "permitio";
 import { cookies } from 'next/headers';
-
-// แนะนำให้เอา edge runtime ออกเพื่อให้ Library ทำงานได้เสถียรขึ้นบน Node.js
-// export const runtime = 'edge'; 
-
-const permit = new Permit({
-  pdp: "https://cloudpdp.api.permit.io",
-  token: process.env.PERMIT_API_KEY,
-});
 
 export async function GET(request) {
   let debugLog = {
@@ -17,31 +8,21 @@ export async function GET(request) {
     hasTokenInCookie: false,
     foundInDb: false,
     adminIdFromDb: null,
-    emailFromToken: null,
     permitUserFound: false,
     permitError: null
   };
 
   try {
-    // 1. ดึง Token จาก Cookie (Next.js 15 ต้องใช้ await)
     const cookieStore = await cookies(); 
     const tokenFromCookie = cookieStore.get('access_token')?.value; 
     debugLog.hasTokenInCookie = !!tokenFromCookie;
 
     if (!tokenFromCookie) {
-      return NextResponse.json({ 
-        roles: ['guest'], 
-        isValid: false, 
-        debug: debugLog 
-      }, { status: 401 });
+      return NextResponse.json({ roles: ['guest'], isValid: false, debug: debugLog }, { status: 401 });
     }
 
-    // 2. ตรวจสอบ Token กับ Database (Neon) โดยตรง
-    // เพื่อความปลอดภัยและรองรับการย้ายระบบในอนาคต (Vendor Agnostic)
-    debugLog.step = 'querying_db_by_token';
+    // 1. ตรวจสอบใน Database
     const sql = neon(process.env.DATA_BASE_URL);
-    
-    // ค้นหา user จาก access_token ที่เก็บไว้ในตาราง admin_system
     const userInDb = await sql`
       SELECT admin_id, email FROM admin_system 
       WHERE access_token = ${tokenFromCookie} 
@@ -50,61 +31,51 @@ export async function GET(request) {
     `;
 
     if (userInDb.length === 0) {
-      debugLog.foundInDb = false;
-      return NextResponse.json({ 
-        roles: ['guest'], 
-        isValid: false, 
-        message: 'Invalid session or token mismatch',
-        debug: debugLog 
-      }, { status: 401 });
+      return NextResponse.json({ roles: ['guest'], isValid: false, debug: debugLog }, { status: 401 });
     }
 
     const userData = userInDb[0];
     debugLog.foundInDb = true;
-    debugLog.adminIdFromDb = userData.admin_id; // UUID: 5e6c5a43-c89b-4500-91b4-d163e254a8c6
-    debugLog.emailFromToken = userData.email;
+    debugLog.adminIdFromDb = userData.admin_id;
 
-    // 3. ดึง Roles จาก Permit.io 
-    debugLog.step = 'fetching_permit_roles';
+    // 2. ดึง Roles จาก Permit.io ผ่าน Native Fetch API
+    // วิธีนี้จะแก้ปัญหา "could not fetch the api key scope" เพราะเราไม่ผ่านการตั้งค่า Context ของ SDK
+    debugLog.step = 'fetching_permit_roles_via_fetch';
     let userRoles = ['guest'];
-    
+
     try {
-      // ดึงข้อมูล User โดยใช้ admin_id จาก Database
-      const permitUser = await permit.api.getUser(userData.admin_id);
-      
-      if (permitUser) {
+      const permitRes = await fetch(
+        `https://api.permit.io/v2/facts/default/development/users/${userData.admin_id}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.PERMIT_API_KEY}`
+          }
+        }
+      );
+
+      if (permitRes.ok) {
+        const permitUser = await permitRes.json();
         debugLog.permitUserFound = true;
-        // จัดการรูปแบบ Role ทั้งแบบ String และ Object
-        userRoles = permitUser.roles?.map(r => typeof r === 'object' ? r.role : r) || ['guest'];
+        // ดึง roles ออกมา (Permit คืนค่ามาเป็น list ของ role strings)
+        userRoles = permitUser.roles || ['guest'];
+      } else {
+        const errData = await permitRes.json();
+        debugLog.permitError = `API Status ${permitRes.status}: ${errData.message}`;
       }
-    } catch (permitError) {
-      // หากเกิด Error เรื่อง Scope (เช่น API Key ไม่ครอบคลุม) จะบันทึกไว้และ fallback เป็น guest
-      console.error("Permit API Error:", permitError.message);
-      debugLog.permitError = permitError.message;
-      userRoles = ['guest'];
+    } catch (fetchError) {
+      debugLog.permitError = fetchError.message;
     }
 
-    debugLog.step = 'success';
-    return NextResponse.json(
-      { 
-        roles: userRoles, 
-        isValid: true, 
-        email: userData.email,
-        debug: debugLog 
-      },
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    return NextResponse.json({ 
+      roles: userRoles, 
+      isValid: true, 
+      email: userData.email,
+      debug: debugLog 
+    }, { status: 200 });
 
   } catch (error) {
-    console.error("API Critical Error:", error);
-    return NextResponse.json({ 
-      roles: ['guest'], 
-      isValid: false, 
-      error: error.message,
-      debug: debugLog 
-    }, { status: 500 });
+    return NextResponse.json({ roles: ['guest'], isValid: false, error: error.message, debug: debugLog }, { status: 500 });
   }
 }
