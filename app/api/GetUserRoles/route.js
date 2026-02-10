@@ -61,7 +61,8 @@ export async function GET(request) {
       // ตรวจสอบโครงสร้าง roles ที่เป็น Array ของ Object ตามผลลัพธ์ cURL
       if (permitUser.roles && permitUser.roles.length > 0) {
         // ดึงเฉพาะค่าจาก key "role" ออกมา (เช่น "admin")
-        userRoles = permitUser.roles.map(r => typeof r === 'object' ? r.role : r);
+        userRoles = permitUser.roles.map(r => r.role);
+
       } else {
         // ถ้าใน Permit ไม่มี Role เลย ให้เป็น guest
         userRoles = ['guest'];
