@@ -3,7 +3,7 @@ import { neon } from '@neondatabase/serverless';
 import { Permit } from "permitio";
 import { cookies } from 'next/headers';
 
-// แนะนำให้เอา edge runtime ออกเพื่อให้ Library ทำงานได้เสถียรขึ้นบน Node.js
+// แนะนำให้ใช้ Node.js runtime สำหรับ Permit.io และการต่อ Database
 // export const runtime = 'edge'; 
 
 const permit = new Permit({
@@ -15,7 +15,7 @@ export async function GET(request) {
   let debugLog = {
     step: 'init',
     hasTokenInCookie: false,
-    googleVerifyOk: false,
+    firebaseVerifyOk: false,
     emailFromToken: null,
     foundInDb: false,
     adminIdFromDb: null,
@@ -24,7 +24,7 @@ export async function GET(request) {
   };
 
   try {
-    // 1. ดึง Token จาก Cookie (Next.js 15 ต้องใช้ await)
+    // 1. ดึง Token จาก Cookie (Next.js 15)
     const cookieStore = await cookies(); 
     const token = cookieStore.get('access_token')?.value; 
     debugLog.hasTokenInCookie = !!token;
@@ -37,12 +37,25 @@ export async function GET(request) {
       }, { status: 401 });
     }
 
-    // 2. ตรวจสอบ Token กับ Google
-    debugLog.step = 'verifying_google_token';
-    const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${token}`);
-    debugLog.googleVerifyOk = verifyRes.ok;
+    // 2. ตรวจสอบ Token กับ Firebase Identity Toolkit
+    debugLog.step = 'verifying_firebase_token';
+    const firebaseApiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+    
+    // ใช้ endpoint สำหรับการยืนยัน ID Token ผ่าน REST API
+    const verifyRes = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${firebaseApiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: token }),
+      }
+    );
+
+    debugLog.firebaseVerifyOk = verifyRes.ok;
     
     if (!verifyRes.ok) {
+      const errorData = await verifyRes.json();
+      debugLog.verifyError = errorData;
       return NextResponse.json({ 
         roles: ['guest'], 
         isValid: false, 
@@ -50,15 +63,25 @@ export async function GET(request) {
       }, { status: 401 });
     }
 
-    const tokenInfo = await verifyRes.json();
-    const emailFromToken = tokenInfo.email; 
+    const tokenData = await verifyRes.json();
+    // ดึง email จากผลลัพธ์ของ Firebase users array
+    const emailFromToken = tokenData.users?.[0]?.email; 
     debugLog.emailFromToken = emailFromToken;
 
-    // 3. ตรวจสอบใน Database
+    if (!emailFromToken) {
+        return NextResponse.json({ 
+          roles: ['guest'], 
+          isValid: false, 
+          message: 'Email not found in token',
+          debug: debugLog 
+        }, { status: 401 });
+    }
+
+    // 3. ตรวจสอบใน Database (Neon Postgres)
     debugLog.step = 'querying_db';
     const sql = neon(process.env.DATA_BASE_URL);
     
-    // ใช้ LOWER() เพื่อป้องกันปัญหาเรื่องตัวพิมพ์เล็ก-ใหญ่ใน Email
+    // ป้องกัน Case Sensitive ของ Email ด้วย LOWER()
     const userInDb = await sql`
       SELECT admin_id FROM admin_system 
       WHERE LOWER(email) = LOWER(${emailFromToken}) 
@@ -71,6 +94,7 @@ export async function GET(request) {
       return NextResponse.json({ 
         roles: ['guest'], 
         isValid: true, 
+        email: emailFromToken,
         debug: debugLog 
       }, { status: 200 });
     }
@@ -83,16 +107,19 @@ export async function GET(request) {
     let userRoles = ['guest'];
     
     try {
+      // ตรวจสอบว่ามี User ใน Permit หรือไม่ โดยใช้ admin_id เป็น User Key
       const permitUser = await permit.api.getUser(adminId.toString());
       if (permitUser) {
         debugLog.permitUserFound = true;
         debugLog.permitRawRoles = permitUser.roles;
-        // จัดการรูปแบบ Role ทั้งแบบ String และ Object
+        
+        // จัดการ Format ของ Roles (เผื่อกรณี Permit คืนค่ามาเป็น Object หรือ String)
         userRoles = permitUser.roles?.map(r => typeof r === 'object' ? r.role : r) || ['guest'];
       }
     } catch (permitError) {
       console.error("Permit API Error:", permitError.message);
       debugLog.permitError = permitError.message;
+      // ถ้าไม่พบ User ใน Permit จะปล่อยให้เป็น guest ตามค่าเริ่มต้น
     }
 
     debugLog.step = 'success';
@@ -101,6 +128,7 @@ export async function GET(request) {
         roles: userRoles, 
         isValid: true, 
         email: emailFromToken,
+        adminId: adminId,
         debug: debugLog 
       },
       {
