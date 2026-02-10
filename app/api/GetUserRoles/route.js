@@ -44,7 +44,7 @@ export async function GET(request) {
     const permitRes = await fetch(
       // This is the standard endpoint to get a user and their roles.
       // It automatically uses the environment associated with your API key.
-      `https://api.permit.io/v2/dev/users/${userData.admin_id}`,
+      `https://api.permit.io/v2/facts/default/dev/users/${userData.admin_id}`,
       {
         method: 'GET',
         headers: {
