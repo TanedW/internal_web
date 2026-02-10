@@ -56,16 +56,16 @@ export async function GET(request) {
 
     if (permitRes.ok) {
       const permitUser = await permitRes.json();
-      // The /v2/users endpoint returns roles as a simple array of strings.
-      const roles = permitUser.roles || [];
-      if (roles.length > 0) {
-        userRoles = roles;
+      debugLog.permitUserFound = true;
+      
+      // ตรวจสอบโครงสร้าง roles ที่เป็น Array ของ Object ตามผลลัพธ์ cURL
+      if (permitUser.roles && permitUser.roles.length > 0) {
+        // ดึงเฉพาะค่าจาก key "role" ออกมา (เช่น "admin")
+        userRoles = permitUser.roles.map(r => typeof r === 'object' ? r.role : r);
+      } else {
+        // ถ้าใน Permit ไม่มี Role เลย ให้เป็น guest
+        userRoles = ['guest'];
       }
-    } else {
-      // Log the error but fall back to the 'guest' role
-      const errData = await permitRes.json().catch(() => ({}));
-      debugLog.permitError = `Permit API Error: Status ${permitRes.status} - ${errData.message || 'Could not fetch roles'}`;
-      console.error(debugLog.permitError);
     }
 
     // 4. Return the final user data and roles
