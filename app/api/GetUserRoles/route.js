@@ -1,66 +1,10 @@
-// import { NextResponse } from 'next/server';
-// import { neon } from '@neondatabase/serverless';
-// import { Permit } from "permitio";
-
-// export const runtime = 'edge';
-
-// const permit = new Permit({
-//   pdp: "https://cloudpdp.api.permit.io",
-//   token: process.env.PERMIT_API_KEY,
-// });
-
-// export async function GET(request) {
-//   try {
-//     const { searchParams } = new URL(request.url);
-//     const email = searchParams.get('email');
-
-//     console.log("-----------------------------------------");
-//   console.log(`🔍 API CALLED FOR: ${email} at ${new Date().toISOString()}`);
-//   console.log("-----------------------------------------");
-
-//     if (!email) return NextResponse.json({ roles: ['guest'] }, { status: 400 });
-
-//     const sql = neon(process.env.DATA_BASE_URL);
-
-//     // 1. เช็คแค่ว่า User ยังมีตัวตนและไม่ถูกลบ (Query นี้เร็วมากใน Neon)
-//     const userInDb = await sql`SELECT admin_id FROM admin_system WHERE email = ${email} AND is_deleted = false LIMIT 1`;
-
-//     if (userInDb.length === 0) {
-//       return NextResponse.json({ roles: ['guest'] }, { status: 200 });
-//     }
-
-//     const adminId = userInDb[0].admin_id;
-
-//     // 2. ดึง Roles จาก Permit.io
-//     const permitUser = await permit.api.getUser(adminId.toString());
-//     const userRoles = permitUser?.roles?.map(r => typeof r === 'object' ? r.role : r) || ['guest'];
-
-//     // 3. ส่งคำตอบพร้อมกำหนด Cache ในระดับ Edge Network (Vercel)
-//     return NextResponse.json(
-//       { roles: userRoles },
-//       {
-//         status: 200,
-//         headers: {
-//           /**
-//            * s-maxage=60: ให้ Edge Server จำค่านี้ไว้ 60 วินาที (เร็วมากสำหรับคนคลิกเปลี่ยนเมนูไปมา)
-//            * stale-while-revalidate=30: ถ้าเกิน 60 วินาที ให้ใช้ค่าเดิมไปก่อน แต่หลังบ้านจะแอบไปดึงค่าใหม่มาอัปเดต
-//            */
-//           'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30',
-//         'Content-Type': 'application/json',
-//         },
-//       }
-//     );
-//   } catch (error) {
-//     return NextResponse.json({ roles: ['guest'] }, { status: 500 });
-//   }
-// }
-
-
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { Permit } from "permitio";
+import { cookies } from 'next/headers';
 
-export const runtime = 'edge';
+// แนะนำให้เอา edge runtime ออกเพื่อให้ Library ทำงานได้เสถียรขึ้นบน Node.js
+// export const runtime = 'edge'; 
 
 const permit = new Permit({
   pdp: "https://cloudpdp.api.permit.io",
@@ -68,65 +12,110 @@ const permit = new Permit({
 });
 
 export async function GET(request) {
+  let debugLog = {
+    step: 'init',
+    hasTokenInCookie: false,
+    googleVerifyOk: false,
+    emailFromToken: null,
+    foundInDb: false,
+    adminIdFromDb: null,
+    permitUserFound: false,
+    permitRawRoles: null
+  };
+
   try {
-    // 1. ดึง Token จาก Authorization Header
-    const authHeader = request.headers.get('Authorization');
-    const token = authHeader?.split(' ')[1]; // แยกคำว่า 'Bearer' ออก
+    // 1. ดึง Token จาก Cookie (Next.js 15 ต้องใช้ await)
+    const cookieStore = await cookies(); 
+    const token = cookieStore.get('access_token')?.value; 
+    debugLog.hasTokenInCookie = !!token;
 
     if (!token) {
-      return NextResponse.json({ roles: ['guest'], isValid: false }, { status: 401 });
+      return NextResponse.json({ 
+        roles: ['guest'], 
+        isValid: false, 
+        debug: debugLog 
+      }, { status: 401 });
     }
 
-    /**
-     * 2. Verify Token กับ Google/Firebase
-     * ใน Edge Runtime เราสามารถใช้ fetch ยิงไปที่ Google Token Info API เพื่อตรวจสอบความถูกต้อง
-     */
+    // 2. ตรวจสอบ Token กับ Google
+    debugLog.step = 'verifying_google_token';
     const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${token}`);
+    debugLog.googleVerifyOk = verifyRes.ok;
     
     if (!verifyRes.ok) {
-      return NextResponse.json({ roles: ['guest'], isValid: false }, { status: 401 });
+      return NextResponse.json({ 
+        roles: ['guest'], 
+        isValid: false, 
+        debug: debugLog 
+      }, { status: 401 });
     }
 
     const tokenInfo = await verifyRes.json();
-    const emailFromToken = tokenInfo.email; // นี่คือ Email จริงๆ ที่แกะมาจาก Token (ปลอมไม่ได้)
+    const emailFromToken = tokenInfo.email; 
+    debugLog.emailFromToken = emailFromToken;
 
+    // 3. ตรวจสอบใน Database
+    debugLog.step = 'querying_db';
     const sql = neon(process.env.DATA_BASE_URL);
-
-    // 3. ตรวจสอบใน Database โดยใช้ Email จาก Token
+    
+    // ใช้ LOWER() เพื่อป้องกันปัญหาเรื่องตัวพิมพ์เล็ก-ใหญ่ใน Email
     const userInDb = await sql`
-      SELECT admin_id 
-      FROM admin_system 
-      WHERE email = ${emailFromToken} AND is_deleted = false 
-      LIMIT 1
+      SELECT admin_id FROM admin_system 
+      WHERE LOWER(email) = LOWER(${emailFromToken}) 
+      AND is_deleted = false LIMIT 1
     `;
 
+    debugLog.foundInDb = userInDb.length > 0;
+
     if (userInDb.length === 0) {
-      return NextResponse.json({ roles: ['guest'], isValid: true }, { status: 200 });
+      return NextResponse.json({ 
+        roles: ['guest'], 
+        isValid: true, 
+        debug: debugLog 
+      }, { status: 200 });
     }
 
     const adminId = userInDb[0].admin_id;
-
+    debugLog.adminIdFromDb = adminId;
+    
     // 4. ดึง Roles จาก Permit.io
-    const permitUser = await permit.api.getUser(adminId.toString());
-    const userRoles = permitUser?.roles?.map(r => typeof r === 'object' ? r.role : r) || ['guest'];
+    debugLog.step = 'fetching_permit_roles';
+    let userRoles = ['guest'];
+    
+    try {
+      const permitUser = await permit.api.getUser(adminId.toString());
+      if (permitUser) {
+        debugLog.permitUserFound = true;
+        debugLog.permitRawRoles = permitUser.roles;
+        // จัดการรูปแบบ Role ทั้งแบบ String และ Object
+        userRoles = permitUser.roles?.map(r => typeof r === 'object' ? r.role : r) || ['guest'];
+      }
+    } catch (permitError) {
+      console.error("Permit API Error:", permitError.message);
+      debugLog.permitError = permitError.message;
+    }
 
-    // 5. ส่งคำตอบกลับไปที่ Middleware
+    debugLog.step = 'success';
     return NextResponse.json(
       { 
         roles: userRoles, 
-        isValid: true,
-        email: emailFromToken // ส่งกลับไปเพื่อให้ Middleware รู้ว่าเป็นใครถ้าจำเป็น
+        isValid: true, 
+        email: emailFromToken,
+        debug: debugLog 
       },
       {
         status: 200,
-        headers: {
-          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30',
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       }
     );
+
   } catch (error) {
-    console.error("API Error:", error);
-    return NextResponse.json({ roles: ['guest'], isValid: false }, { status: 500 });
+    console.error("API Critical Error:", error);
+    return NextResponse.json({ 
+      roles: ['guest'], 
+      isValid: false, 
+      error: error.message,
+      debug: debugLog 
+    }, { status: 500 });
   }
 }

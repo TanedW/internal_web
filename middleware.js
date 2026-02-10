@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-// กำหนดสิทธิ์การเข้าถึง (Single Source of Truth)
+// 1. กำหนดสิทธิ์การเข้าถึง (Single Source of Truth)
 const ROLE_PERMISSIONS = {
   '/manage-case': ["admin", "editor", "editor_manage_case"],
   '/manage-org': ["admin", "editor", "editor_manage_org_info", "editor_manage_org"],
@@ -12,89 +12,57 @@ const ROLE_PERMISSIONS = {
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
   
-  // 1. ดึงข้อมูลพื้นฐานจาก Cookies
+  // 2. ดึง Token จาก Cookies (เนื่องจากเราเก็บแบบ HttpOnly Cookie)
   const token = request.cookies.get('access_token')?.value;
-  const email = request.cookies.get('user_email')?.value;
 
-  // 2. ตรวจสอบว่าหน้าปัจจุบันต้องเช็คสิทธิ์หรือไม่
+  // 3. ตรวจสอบว่าหน้าปัจจุบันต้องเช็คสิทธิ์หรือไม่
   const matchedPath = Object.keys(ROLE_PERMISSIONS).find(path => pathname.startsWith(path));
 
-  // if (matchedPath) {
-  //   // กฎข้อที่ 1: ต้อง Login ก่อน
-  //   if (!token || !email) {
-  //     return NextResponse.redirect(new URL('/', request.url));
-  //   }
-
-  //   try {
-  //     /**
-  //      * กลยุทธ์: ดึง Role สดๆ จากแหล่งข้อมูล
-  //      * ในที่นี้แนะนำให้เรียก API ภายในของคุณที่ไปเช็คกับ Permit.io หรือ DB 
-  //      * หรือใช้ fetch ไปที่ Endpoint ที่คืนค่า Role ของ User นั้นๆ
-  //      */
-  //     const adminIdRaw = request.cookies.get('admin_id')?.value; // คุณอาจต้องเซ็ต cookie นี้ตอน login
-      
-  //     // ตัวอย่าง: เรียก API ภายในเพื่อเอา Role (ต้องเป็น Absolute URL)
-  //     const roleResponse = await fetch(`${request.nextUrl.origin}/api/GetUserRoles?email=${email}`, {
-  //       // headers: { Authorization: `Bearer ${token}` }
-  //       method: 'GET',
-  //       credentials: 'omit',
-  //     });
-      
-  //     const { roles } = await roleResponse.json(); 
-  //     // console.log("Middleware fetched roles:", roles);
-  //     const currentRoles = Array.isArray(roles) ? roles : [];
-
-  //     // กฎข้อที่ 2: Authorization (เช็คสิทธิ์สดๆ)
-  //     const allowedRoles = ROLE_PERMISSIONS[matchedPath];
-  //     const hasAccess = currentRoles.some(role => allowedRoles.includes(role));
-
-  //     if (!hasAccess) {
-  //       // ถ้าไม่มีสิทธิ์ ดีดไปหน้า /manage (หน้าแรกของ Admin)
-  //       return NextResponse.redirect(new URL('/manage', request.url)); 
-  //     }
-
-  //   } catch (error) {
-  //     console.error("Middleware Auth Error:", error);
-  //     return NextResponse.redirect(new URL('/', request.url));
-  //   }
-  // }
-
-
   if (matchedPath) {
-    // กฎข้อที่ 1: ต้อง Login ก่อน
-    if (!token) { // ไม่ต้องพึ่งพา email จาก cookie เพราะเราจะใช้ token ยืนยันตัวตน
+    // กฎข้อที่ 1: ต้อง Login ก่อน (ต้องมี Token)
+    if (!token) {
       return NextResponse.redirect(new URL('/', request.url));
     }
 
     try {
-      // แก้ไข: เรียก API โดยส่ง Token ไปใน Header แทนการส่ง email ใน URL
+      /**
+       * 4. เรียก API GetUserRoles เพื่อเอา Role ล่าสุด
+       * ต้องส่ง Cookie ทั้งหมดที่มีใน Browser ต่อไปให้ API ด้วยเพื่อให้ API อ่าน access_token ได้
+       */
       const roleResponse = await fetch(`${request.nextUrl.origin}/api/GetUserRoles`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`, // ส่ง Token เพื่อยืนยันตัวตนที่ Server
+          'Cookie': request.headers.get('cookie') || '', // ส่ง Cookie ต่อไป
         },
-        // credentials: 'omit', // ปิดการส่ง cookie อัตโนมัติถ้าต้องการความรัดกุม
+        cache: 'no-store', // บังคับไม่ให้ใช้ Cache เพื่อเช็คสิทธิ์สดๆ
       });
 
+      // ถ้า API ตายหรือตอบกลับไม่สำเร็จ (เช่น 401 หรือ 500)
       if (!roleResponse.ok) {
-        throw new Error('Failed to fetch roles or Invalid token');
+        console.error("Middleware: Role API responded with error status:", roleResponse.status);
+        return NextResponse.redirect(new URL('/', request.url));
       }
       
-      const { roles, isValid } = await roleResponse.json(); 
+      const data = await roleResponse.json(); 
+      const { roles, isValid } = data; // รับค่าจาก API ที่เราแก้ใหม่
       
-      // กฎข้อที่ 2: Authorization (เช็คสิทธิ์สดๆ)
-      // เพิ่มการเช็ค isValid ที่ได้รับกลับมาจาก API
       const currentRoles = Array.isArray(roles) ? roles : [];
+
+      // กฎข้อที่ 2: Authorization (เช็คสิทธิ์สดๆ)
       const allowedRoles = ROLE_PERMISSIONS[matchedPath];
+      
+      // ต้องผ่านทั้งการ Verify (isValid) และมี Role ที่ได้รับอนุญาต
       const hasAccess = isValid && currentRoles.some(role => allowedRoles.includes(role));
 
       if (!hasAccess) {
+        console.warn(`Access denied for ${pathname}. Roles: ${currentRoles}`);
+        // ถ้าไม่มีสิทธิ์ ดีดไปหน้า /manage (หน้าแรกของ Admin)
         return NextResponse.redirect(new URL('/manage', request.url)); 
       }
 
     } catch (error) {
-      console.error("Middleware Auth Error:", error);
-      // หาก Token หมดอายุหรือผิดพลาด ให้ดีดกลับหน้า Login
+      console.error("Middleware Critical Error:", error);
+      // หากเกิด Error ร้ายแรง ให้ดีดกลับหน้า Login เพื่อความปลอดภัย
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
@@ -102,6 +70,7 @@ export async function middleware(request) {
   return NextResponse.next();
 }
 
+// 5. กำหนดหน้าที่ Middleware จะเข้าไปทำงาน
 export const config = {
   matcher: [
     '/manage-case/:path*',

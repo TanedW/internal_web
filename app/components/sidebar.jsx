@@ -30,16 +30,16 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 
-const prefetchData = async (url) => {
-  if (!url) return;
-  try {
-    // ยิง fetch ทิ้งไว้เพื่อให้ Vercel Edge Cache (HIT) และ Browser จำค่าไว้
-    // credentials: 'omit' สำคัญมากเพื่อให้ตรงกับที่ Middleware และ API คาดหวัง
-    await fetch(url, { credentials: 'omit' });
-  } catch (e) {
-    // เงียบไว้ถ้าโหลดไม่สำเร็จ ไม่ให้กวนหน้าจอผู้ใช้
-  }
-};
+// const prefetchData = async (url) => {
+//   if (!url) return;
+//   try {
+//     // ยิง fetch ทิ้งไว้เพื่อให้ Vercel Edge Cache (HIT) และ Browser จำค่าไว้
+//     // credentials: 'omit' สำคัญมากเพื่อให้ตรงกับที่ Middleware และ API คาดหวัง
+//     await fetch(url, { credentials: 'omit' });
+//   } catch (e) {
+//     // เงียบไว้ถ้าโหลดไม่สำเร็จ ไม่ให้กวนหน้าจอผู้ใช้
+//   }
+// };
 
 
 export default function Sidebar({
@@ -62,7 +62,7 @@ export default function Sidebar({
     if (!url) return;
     try {
       // ใช้ credentials: 'omit' เพื่อให้ Edge Cache ทำงาน (HIT)
-      await fetch(url, { credentials: 'omit' });
+      await fetch(url, { credentials: 'include' });
     } catch (e) {
       console.warn("Prefetch failed:", e);
     }
@@ -114,8 +114,9 @@ export default function Sidebar({
       return;
     }
     try {
-      const res = await fetch(`${API_URL_ADMIN}?requester_id=${adminId}`);
-      const json = await res.json();
+const res = await fetch(`${API_URL_ADMIN}?requester_id=${adminId}`, {
+  credentials: 'include' // เพื่อให้ Browser ส่ง HttpOnly Cookie ไปด้วย
+});      const json = await res.json();
       const data = Array.isArray(json) ? json : json.data || [];
       const myProfile = data.find((u) => String(u.admin_id) === String(adminId));
       if (myProfile) {
