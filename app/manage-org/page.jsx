@@ -28,9 +28,9 @@ export default function ManageOrgPage() {
   const [orgName, setOrgName] = useState("");
   const [logoPreview, setLogoPreview] = useState(null);
   const [logoFile, setLogoFile] = useState(null);
+  const [qrReportUrl, setQrReportUrl] = useState("");
   const [updateDescription, setUpdateDescription] = useState("");
   const [selectedImageToReplace, setSelectedImageToReplace] = useState(null);
-
   const [staffCode, setStaffCode] = useState("-");
   const [adminCode, setAdminCode] = useState("-");
   const [isCsvEnabled, setIsCsvEnabled] = useState(false);
@@ -209,7 +209,8 @@ export default function ManageOrgPage() {
           is_deleted: !!item.deleted_at || item.status === 'deleted',
           is_official: item.official_group === true, 
           allow_csv: item.download_csv === true, 
-          admin_codes: item.admin_codes || []
+          admin_codes: item.admin_codes || [],
+          qr_report_url: item.qr_report_url || ""
         })));
       } else {
         setCases([]);
@@ -223,6 +224,32 @@ export default function ManageOrgPage() {
     navigator.clipboard.writeText(text);
     alert("คัดลอกรหัสแล้ว: " + text);
   };
+
+  const handleDownloadQR = async (url, orgName) => {
+  if (!url) return;
+  
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    // ตั้งชื่อไฟล์ให้สื่อความหมาย
+    link.download = `QR_Report_${orgName || 'Organization'}.jpg`;
+    
+    document.body.appendChild(link);
+    link.click();
+    
+    // ทำความสะอาด Memory
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
+  } catch (error) {
+    console.error("Download failed:", error);
+    // กรณี fetch ไม่สำเร็จ (เช่นติด CORS) ให้ใช้วิธีเปิด Tab ใหม่แทน
+    window.open(url, '_blank');
+  }
+};
 
   return (
     <div data-theme="light" className="min-h-screen !bg-[#F4F6F8] !text-slate-900 font-sans pb-20">
@@ -278,6 +305,7 @@ export default function ManageOrgPage() {
                           setSelectedImageToReplace({ url: item.logo_url });
                           setIsOfficial(item.is_official); 
                           setIsCsvEnabled(item.allow_csv);
+                          setQrReportUrl(item.qr_report_url);
                           setUpdateDescription(""); // ล้าง Log เมื่อเปลี่ยนหน่วยงาน
                           setLogoFile(null);
                           if (item.admin_codes?.length > 0) {
@@ -422,7 +450,7 @@ export default function ManageOrgPage() {
                 <div className="flex flex-nowrap items-center gap-4 sm:gap-6">
                   <div className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 !bg-white border-2 border-slate-100 rounded-2xl p-2 flex items-center justify-center overflow-hidden">
                     <img 
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://line.me/R/ti/p/@org_${orgId}`} 
+                      src={qrReportUrl} 
                       alt="QR" 
                       className="w-full h-full object-contain" 
                     />
@@ -430,9 +458,29 @@ export default function ManageOrgPage() {
            
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs text-slate-500 font-bold mb-2 truncate">ลิงก์แจ้งเหตุประจำหน่วยงาน</p><br></br>
-                    <button className="btn btn-sm btn-outline rounded-full text-[9px] sm:text-[10px] font-bold !bg-white !text-slate-600 border-slate-200 hover:!border-black transition-colors whitespace-nowrap">
+                    {/* <button 
+                      className="btn btn-sm btn-outline rounded-full text-[9px] sm:text-[10px] font-bold !bg-white !text-slate-600 border-slate-200 hover:!border-black transition-colors whitespace-nowrap"
+                      onClick={() => handleDownloadQR(qrReportUrl, currentOrgData?.name)}
+                    >
                       ดาวน์โหลดไฟล์ QR
-                    </button>
+                    </button> */}
+                    <div className="flex gap-2">
+    {/* ปุ่มเปิดดูรูปขยาย */}
+    <button 
+      onClick={() => window.open(qrReportUrl, '_blank')}
+      className="btn btn-sm btn-outline rounded-full text-[9px] sm:text-[10px] font-bold !bg-white !text-slate-600 border-slate-200 hover:!border-black transition-colors"
+    >
+      ดูภาพขยาย
+    </button>
+
+    {/* ปุ่มดาวน์โหลด - เรียกใช้ฟังก์ชันที่สร้างใหม่ */}
+    <button 
+      onClick={() => handleDownloadQR(qrReportUrl, orgName)}
+      className="btn btn-sm btn-outline rounded-full text-[9px] sm:text-[10px] font-bold !bg-white !text-slate-600 border-slate-200 hover:!border-black transition-colors"
+    >
+      ดาวน์โหลดไฟล์ QR
+    </button>
+  </div>
                   </div>
                 </div>
               </div>
