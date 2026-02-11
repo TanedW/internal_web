@@ -23,11 +23,13 @@ import {
   Type,
   Zap,
   Globe,
-  Code, // <--- ตัวที่คุณเพิ่มเข้าไปล่าสุด
+  Code,
   Link as LinkIcon,
   Image as ImageIcon,
   Check,
   MousePointer2,
+  Moon,
+  Sun,
 } from "lucide-react";
 import "../richmenu-dashboard.css";
 
@@ -156,7 +158,48 @@ export default function RichMenuDashboard() {
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
 
   // --- ✅ New State: Audit Log Modal ---
+  // --- ✅ New State: Audit Log Modal ---
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+
+  // --- ✅ New State: JSON Viewer Modal ---
+  const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
+  const [selectedJsonData, setSelectedJsonData] = useState(null);
+
+  // --- ✅ New State: Dark Mode ---
+  const [darkMode, setDarkMode] = useState(false);
+
+  // --- ✅ Dark Mode: ตรวจจับ Browser Preference เมื่อโหลดครั้งแรก ---
+  useEffect(() => {
+    // ตรวจสอบว่าเคยเซฟค่าไว้ใน localStorage หรือไม่
+    const savedMode = localStorage.getItem("darkMode");
+
+    if (savedMode !== null) {
+      // ถ้าเคยเซฟไว้ ให้ใช้ค่าที่เซฟ
+      setDarkMode(savedMode === "true");
+    } else {
+      // ถ้าไม่เคยเซฟ ให้ตรวจจาก browser preference
+      const prefersDark = window.matchMedia(
+        "(prefers-color-scheme: dark)",
+      ).matches;
+      setDarkMode(prefersDark);
+    }
+  }, []);
+
+  // --- ✅ Dark Mode: บันทึกค่าเมื่อมีการเปลี่ยนแปลง ---
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark-mode");
+      localStorage.setItem("darkMode", "true");
+    } else {
+      document.documentElement.classList.remove("dark-mode");
+      localStorage.setItem("darkMode", "false");
+    }
+  }, [darkMode]);
+
+  // --- ✅ Dark Mode: ฟังก์ชัน Toggle ---
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+  };
 
   // --- ✅ Refs for Scroll Targets ---
   const uploadSectionRef = useRef(null);
@@ -751,14 +794,9 @@ export default function RichMenuDashboard() {
       const data = await res.json();
 
       if (res.ok) {
-        console.log("--- Rich Menu JSON Structure ---");
-        console.log(JSON.stringify(data, null, 2));
-
-        await Swal.fire({
-          icon: "success",
-          title: "ดึงข้อมูลสำเร็จ!",
-          html: `<strong>ชื่อเมนู:</strong> ${data.name}<br><strong>จำนวนปุ่ม:</strong> ${data.areas.length} ช่อง<br><br><small>รายละเอียดฉบับเต็มถูกส่งไปยัง Console ของ Browser แล้ว (กด F12)</small>`,
-        });
+        // เก็บข้อมูล JSON และเปิด modal
+        setSelectedJsonData(data);
+        setIsJsonModalOpen(true);
       } else {
         await Swal.fire({
           icon: "error",
@@ -842,6 +880,26 @@ export default function RichMenuDashboard() {
       />
       <script src="https://cdn.tailwindcss.com"></script>
 
+      <button
+        onClick={toggleDarkMode}
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center hover:scale-110"
+        style={{
+          background: darkMode
+            ? "linear-gradient(135deg, #1e293b 0%, #334155 100%)"
+            : "linear-gradient(135deg, #06C755 0%, #05b04b 100%)",
+          border: darkMode
+            ? "2px solid #475569"
+            : "2px solid rgba(255, 255, 255, 0.3)",
+        }}
+        title={darkMode ? "สลับเป็น Light Mode" : "สลับเป็น Dark Mode"}
+      >
+        {darkMode ? (
+          <Sun size={24} className="text-amber-300" />
+        ) : (
+          <Moon size={24} className="text-white" />
+        )}
+      </button>
+
       {/* ✅ เรียกใช้คอมโพเนนต์ Sidebar ที่แยกออกมา */}
       <Sidebar
         isDesktopSidebarOpen={isDesktopSidebarOpen}
@@ -860,9 +918,6 @@ export default function RichMenuDashboard() {
             >
               <Menu size={24} />
             </button>
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight drop-shadow-sm">
-              Rich Menu Manager
-            </h1>
           </div>
         )}
 
@@ -1488,6 +1543,103 @@ export default function RichMenuDashboard() {
                   <div className="php-modal-footer">
                     <button
                       onClick={() => setIsLogModalOpen(false)}
+                      className="php-btn-close-modal"
+                    >
+                      ปิดหน้าต่าง
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ==================== JSON Viewer Modal ==================== */}
+            {isJsonModalOpen && selectedJsonData && (
+              <div
+                className="php-modal-overlay"
+                onClick={() => setIsJsonModalOpen(false)}
+              >
+                <div
+                  className="php-json-modal-content"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="php-modal-header">
+                    <h3>
+                      <Code size={18} /> รายละเอียด JSON Structure
+                    </h3>
+                    <button
+                      onClick={() => setIsJsonModalOpen(false)}
+                      className="php-modal-close"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+
+                  {/* ส่วนแสดงข้อมูลสรุป */}
+                  <div className="php-json-summary">
+                    <div className="php-json-info-row">
+                      <span className="php-json-label">ชื่อเมนู:</span>
+                      <span className="php-json-value">
+                        {selectedJsonData.name}
+                      </span>
+                    </div>
+                    <div className="php-json-info-row">
+                      <span className="php-json-label">Rich Menu ID:</span>
+                      <span className="php-json-value-mono">
+                        {selectedJsonData.richMenuId}
+                      </span>
+                    </div>
+                    <div className="php-json-info-row">
+                      <span className="php-json-label">ขนาด:</span>
+                      <span className="php-json-value">
+                        {selectedJsonData.size?.width} ×{" "}
+                        {selectedJsonData.size?.height} px
+                      </span>
+                    </div>
+                    <div className="php-json-info-row">
+                      <span className="php-json-label">จำนวนปุ่ม:</span>
+                      <span className="php-json-value">
+                        {selectedJsonData.areas?.length || 0} ช่อง
+                      </span>
+                    </div>
+                    <div className="php-json-info-row">
+                      <span className="php-json-label">Chat Bar Text:</span>
+                      <span className="php-json-value">
+                        {selectedJsonData.chatBarText || "-"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* ส่วนแสดง JSON แบบ Code Block */}
+                  <div className="php-modal-body">
+                    <div className="php-json-header">
+                      <span className="php-json-title">
+                        JSON Structure (Full)
+                      </span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(
+                            JSON.stringify(selectedJsonData, null, 2),
+                          );
+                          Swal.fire({
+                            icon: "success",
+                            title: "คัดลอกแล้ว!",
+                            showConfirmButton: false,
+                            timer: 1000,
+                          });
+                        }}
+                        className="php-copy-btn"
+                      >
+                        <i className="fa-regular fa-copy"></i> คัดลอก JSON
+                      </button>
+                    </div>
+                    <pre className="php-json-code">
+                      {JSON.stringify(selectedJsonData, null, 2)}
+                    </pre>
+                  </div>
+
+                  <div className="php-modal-footer">
+                    <button
+                      onClick={() => setIsJsonModalOpen(false)}
                       className="php-btn-close-modal"
                     >
                       ปิดหน้าต่าง

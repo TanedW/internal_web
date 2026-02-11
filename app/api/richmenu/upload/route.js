@@ -187,8 +187,9 @@ export async function POST(request) {
 
       const botId = botResult.rows[0].id;
 
-      // ✅ สร้าง URL สำหรับดึงรูปภาพจาก LINE API
-      const imageUrl = `https://api-data.line.me/v2/bot/richmenu/${richMenuId}/content`;
+      // ✅ สร้าง URL สำหรับดึงรูปภาพผ่าน proxy endpoint
+      // เปลี่ยนจาก LINE API โดยตรงเป็น proxy เพื่อให้ browser แสดงรูปได้
+      const imageUrl = `/api/richmenu-image/${richMenuId}?botKey=${encodeURIComponent(botKey)}`;
 
       // ✅ รับ creator_id จาก request headers (Firebase Auth)
       // ถ้าไม่มี ให้ใช้ "system" เป็น default
@@ -204,7 +205,7 @@ export async function POST(request) {
           botId,
           richMenuId,
           menuName || `Menu_${Date.now()}`,
-          imageUrl, // ✅ เพิ่ม image_url
+          imageUrl, // ✅ ใช้ proxy URL แทน
           false, // ไม่ active อัตโนมัติ ให้ผู้ใช้เลือกเองในหน้า "เปลี่ยน Rich Menu"
           creatorId // ✅ ใช้ creatorId จริง
         ]
