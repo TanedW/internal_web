@@ -93,7 +93,6 @@ export default function ManageOrgPage() {
           old_official: currentOrgData?.is_official,
           old_download: currentOrgData?.allow_csv,
           old_name: currentOrgData?.org_name,
-          old_url: selectedImageToReplace?.url,
           restore: false, 
           description: updateDescription
         }),
@@ -246,19 +245,19 @@ export default function ManageOrgPage() {
             </div>
           </header>
             
-          <div className="flex items-center gap-2 mb-10">
+          <div className="flex flex-col sm:flex-row items-stretch gap-2 mb-10">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-600 z-20" size={18} />
               <input 
                 type="text" 
-                className="input input-bordered w-full h-12 !pl-11 pr-4 !bg-white !text-slate-900 !rounded-full !border-slate-200 focus:!border-black shadow-[0_0_20px_rgba(0,0,0,0.03)] outline-none font-bold text-sm" 
+                className="input input-bordered w-full h-12 !pl-11 pr-4 !bg-white !text-slate-900 !rounded-full !border-slate-200 focus:!border-black shadow-sm outline-none font-bold text-sm" 
                 placeholder="ค้นหาหน่วยงาน..." 
                 value={searchId} 
                 onChange={(e) => setSearchId(e.target.value)} 
                 onKeyDown={(e) => e.key === 'Enter' && fetchOrgData(searchId)} 
               />
             </div>
-            <button onClick={() => fetchOrgData(searchId)} className="btn h-12 px-6 !bg-black !text-white !font-bold !rounded-full hover:!bg-slate-800 border-none">
+            <button onClick={() => fetchOrgData(searchId)} className="btn h-12 px-8 !bg-black !text-white !font-bold !rounded-full hover:!bg-slate-800 border-none shrink-0">
               {isSearching ? <Loader2 className="animate-spin" size={18} /> : "ค้นหา"}
             </button>
           </div>
@@ -267,7 +266,7 @@ export default function ManageOrgPage() {
             <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-5 px-1">ผลการค้นหา</h3>
             <br />
             {cases.length > 0 ? (
-              <div className="grid grid-cols-2 gap-5 sm:gap-6">
+              <div className="grid grid-cols-2 gap-4 sm:gap-6">
                 {cases.map((item) => {
                   const isSelected = orgId === item.org_id;
                   return (
@@ -296,8 +295,8 @@ export default function ManageOrgPage() {
                       }}
                       className={`relative !bg-white rounded-[2rem] overflow-hidden cursor-pointer transition-all duration-500 border-2 flex flex-col ${
                         isSelected 
-                          ? '!border-black shadow-[0_0_30px_rgba(0,0,0,0.12)] scale-[1.03] z-10' 
-                          : '!border-white shadow-[0_0_20px_rgba(0,0,0,0.06)] hover:shadow-[0_0_25px_rgba(0,0,0,0.1)] hover:!border-slate-100'
+                          ? '!border-black shadow-lg scale-[1.02] z-10' 
+                          : '!border-white shadow-sm hover:!border-slate-100'
                       } ${item.is_deleted ? 'opacity-75' : ''}`}
                     >
                       <div className="h-28 w-full !bg-[#f8fafc] flex items-center justify-center relative overflow-hidden">
@@ -337,7 +336,8 @@ export default function ManageOrgPage() {
 
           {orgId && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
-              <div className="!bg-white rounded-[2.5rem] p-8 shadow-[0_0_40px_rgba(0,0,0,0.04)] border-2 border-white">
+              {/* ข้อมูลหน่วยงาน */}
+              <div className="!bg-white rounded-[2.5rem] p-8 shadow-sm border-2 border-white">
                 <div className="flex flex-col md:flex-row gap-8">
                   <div className="relative shrink-0 mx-auto md:mx-0">
                     <div className="w-32 h-32 !bg-slate-50 rounded-3xl flex items-center justify-center overflow-hidden border-2 border-slate-100 shadow-inner">
@@ -350,9 +350,7 @@ export default function ManageOrgPage() {
                     <label className="absolute -bottom-2 -right-2 w-10 h-10 bg-black text-white rounded-2xl flex items-center justify-center cursor-pointer shadow-xl hover:scale-110 transition-transform">
                       <Upload size={18} />
                       <input 
-                        type="file" 
-                        className="hidden" 
-                        accept="image/*"
+                        type="file" className="hidden" accept="image/*"
                         onChange={(e) => { 
                           const file = e.target.files[0]; 
                           if (file) { 
@@ -371,24 +369,19 @@ export default function ManageOrgPage() {
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">ชื่อหน่วยงาน</label>
                       <input type="text" value={orgName} onChange={(e) => setOrgName(e.target.value)} className="input input-bordered w-full rounded-2xl font-bold !bg-white !text-slate-900 border-slate-200 focus:!border-black" />
                     </div>
-
                     <div className="flex flex-col sm:grid sm:grid-cols-2 gap-4">
                       <div className="p-4 !bg-slate-50 rounded-2xl border border-slate-100 shadow-sm">
                         <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Staff Code</label>
                         <div className="flex items-center justify-between gap-2">
                           <code className="text-sm font-bold text-blue-600 break-all">{staffCode}</code>
-                          <button onClick={() => copyToClipboard(staffCode)} className="shrink-0 p-2 !bg-white rounded-lg border border-slate-100 text-slate-400 hover:text-black transition-colors shadow-sm">
-                            <Copy size={16}/>
-                          </button>
+                          <button onClick={() => copyToClipboard(staffCode)} className="shrink-0 p-2 !bg-white rounded-lg border border-slate-100 text-slate-400 hover:text-black shadow-sm"><Copy size={14}/></button>
                         </div>
                       </div>
                       <div className="p-4 !bg-slate-50 rounded-2xl border border-slate-100 shadow-sm">
                         <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Admin Code</label>
                         <div className="flex items-center justify-between gap-2">
                           <code className="text-sm font-bold text-red-600 break-all">{adminCode}</code>
-                          <button onClick={() => copyToClipboard(adminCode)} className="shrink-0 p-2 !bg-white rounded-lg border border-slate-100 text-slate-400 hover:text-black transition-colors shadow-sm">
-                            <Copy size={16}/>
-                          </button>
+                          <button onClick={() => copyToClipboard(adminCode)} className="shrink-0 p-2 !bg-white rounded-lg border border-slate-100 text-slate-400 hover:text-black shadow-sm"><Copy size={14}/></button>
                         </div>
                       </div>
                     </div>
@@ -396,83 +389,95 @@ export default function ManageOrgPage() {
                 </div>
               </div>
 
+              {/* สิทธิ์การใช้งาน */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="!bg-white p-6 rounded-[2rem] shadow-[0_0_20px_rgba(0,0,0,0.03)] border-2 border-white flex items-center justify-between">
+                <div className="!bg-white p-6 rounded-[2rem] shadow-sm border-2 border-white flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-green-50 text-green-600 rounded-xl flex items-center justify-center"><FileSpreadsheet size={20}/></div>
-                    <div className="leading-tight">
+                    <div>
                       <p className="font-bold text-sm !text-slate-900">การส่งออก CSV</p>
                       <p className="text-[10px] text-slate-400 font-bold">อนุญาตให้ดาวน์โหลดรายงาน</p>
                     </div>
                   </div>
                   <input type="checkbox" className="toggle toggle-success" checked={isCsvEnabled} onChange={(e) => setIsCsvEnabled(e.target.checked)} />
                 </div>
-
-                <div className="!bg-white p-6 rounded-[2rem] shadow-[0_0_20px_rgba(0,0,0,0.03)] border-2 border-white flex items-center justify-between">
+                <div className="!bg-white p-6 rounded-[2rem] shadow-sm border-2 border-white flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><ShieldCheck size={20}/></div>
-                    <div className="leading-tight">
+                    <div>
                       <p className="font-bold text-sm !text-slate-900">Official Account</p>
-                      <p className="text-[10px] text-slate-400 font-bold">ยืนยันตัวตนหน่วยงานทางการ</p>
+                      <p className="text-[10px] text-slate-400 font-bold">ยืนยันตัวตนทางการ</p>
                     </div>
                   </div>
                   <input type="checkbox" className="toggle toggle-info" checked={isOfficial} onChange={(e) => setIsOfficial(e.target.checked)} />
                 </div>
               </div>
               
-              {/* --- ส่วน QR Code สำหรับหน่วยงาน --- */}
-              <div className="!bg-white p-6 rounded-[2rem] shadow-[0_0_30px_rgba(0,0,0,0.03)] border-2 border-white">
+
+              <div className="!bg-white p-6 sm:p-8 rounded-[2.5rem] shadow-sm border-2 border-white">
                 <div className="flex items-center gap-3 mb-4">
                   <QrCode size={20} className="text-slate-400" />
                   <p className="font-bold text-sm !text-slate-900">QR CODE สำหรับแจ้งเหตุ</p>
                 </div>
-                <div className="flex flex-nowrap items-center gap-4 sm:gap-6">
-                  <div className="w-24 h-24 shrink-0 !bg-white border-2 border-slate-100 rounded-2xl p-2 flex items-center justify-center overflow-hidden">
+
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8">
+                  <div className="w-40 h-40 shrink-0 relative flex items-center justify-center">
                     {qrReportUrl ? (
-                      <img src={qrReportUrl} alt="QR" className="w-full h-full object-contain" />
+                      <div className="w-full h-full bg-white border border-slate-100 rounded-[1.8rem] p-4 shadow-sm group cursor-pointer overflow-hidden" onClick={() => setShowQrModal(true)}>
+                        <img src={qrReportUrl} alt="QR" className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110" />
+                      </div>
                     ) : (
-                      <div className="flex flex-col items-center text-center">
-                         <AlertCircle size={20} className="text-red-500 mb-1" />
-                         <span className="text-[8px] font-bold text-red-500 uppercase">No QR Data</span>
+                      <div className="w-full h-full bg-slate-50 border-2 border-dashed border-slate-200 rounded-[1.8rem] flex flex-col items-center justify-center gap-2">
+                        <ImageOff size={28} className="text-slate-200" />
+                        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-tighter">No Image</span>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 w-full space-y-6 text-center sm:text-left">
                     {qrReportUrl ? (
                       <>
-                        <p className="text-[10px] text-slate-500 font-bold mb-2 truncate">พร้อมสำหรับการใช้งานและดาวน์โหลด</p><br></br>
-                        <div className="flex gap-2">
+                        <div className="space-y-1">
+
+                          <p className="text-sm font-bold text-slate-900 opacity-70">พร้อมสำหรับการใช้งานและดาวน์โหลด</p>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3">
                           <button 
                             onClick={() => setShowQrModal(true)}
-                            className="btn btn-sm h-10 px-5 !bg-[#0f172a] !text-white !rounded-full !border-none font-bold text-[11px] active:scale-95 flex items-center gap-2"
+                            className="btn btn-md sm:btn-sm h-12 sm:h-10 px-6 !bg-[#0f172a] !text-white !rounded-full !border-none font-bold text-[11px] active:scale-95 flex items-center justify-center gap-2 w-full sm:w-auto shadow-md"
                           >
-                            <Maximize2 size={15} strokeWidth={2.5} />
+                            <Maximize2 size={16} strokeWidth={2.5} />
                             ดูภาพขยาย
                           </button>
                           <button 
                             onClick={() => handleDownloadQR(qrReportUrl, orgName)}
-                            className="btn btn-sm h-10 px-5 !bg-white !text-slate-900 !border-slate-100 !rounded-full font-bold text-[11px] border shadow-sm flex items-center gap-2"
+                            className="btn btn-md sm:btn-sm h-12 sm:h-10 px-6 !bg-white !text-slate-900 !border-slate-300 !rounded-full font-bold text-[11px] border-2 flex items-center justify-center gap-2 w-full sm:w-auto shadow-sm hover:!bg-slate-50 transition-all"
                           >
-                            <Download size={14} strokeWidth={2.5} className="text-slate-500" />
-                            ดาวน์โหลดรูปภาพ
+                            <Download size={16} strokeWidth={3} className="text-slate-600" />
+                            ดาวน์โหลด QR CODE
                           </button>
                         </div>
                       </>
                     ) : (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 px-3 py-1 bg-red-50 rounded-full w-fit">
+                      <div className="space-y-4">
+                        <div className="inline-flex items-center gap-2.5 px-4 py-2 bg-red-50 rounded-full border border-red-100 shadow-sm mx-auto sm:mx-0">
                            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
-                           <span className="text-[11px] font-bold text-red-600">หน่วยงานนี้ไม่มี QR Code ในระบบ</span>
+                           <span className="text-[11px] font-bold text-red-600 uppercase tracking-tight">หน่วยงานนี้ไม่มี QR Code ในระบบ</span>
                         </div>
-                        <p className="text-[10px] text-slate-400 font-bold ml-1 tracking-tight">กรุณาตรวจสอบข้อมูลในฐานข้อมูลระดับสูง</p>
+                        <div className="flex items-start gap-2 max-w-sm mx-auto sm:mx-0">
+                           <Info size={14} className="text-slate-300 mt-0.5 shrink-0" />
+                           <p className="text-[10px] font-bold text-slate-400 leading-relaxed text-left">
+                             ยังไม่มีการสร้างลิงก์สำหรับหน่วยงานนี้ กรุณาตรวจสอบข้อมูลในฐานข้อมูลระดับสูง
+                           </p>
+                        </div>
                       </div>
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="!bg-white p-6 rounded-[2rem] shadow-[0_0_30px_rgba(0,0,0,0.03)] border-2 border-white">
+              {/* Admin Log */}
+              <div className="!bg-white p-6 rounded-[2rem] shadow-sm border-2 border-white">
                 <div className="flex items-center gap-3 mb-4">
                   <AlertCircle size={20} className="text-slate-400" />
                   <p className="font-bold text-sm !text-slate-900">บันทึกรายละเอียดการแก้ไข (Admin Log)</p>
@@ -492,19 +497,14 @@ export default function ManageOrgPage() {
                 )}
               </div>
 
+              {/* ปุ่มยืนยัน/ลบ */}
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
                 {cases.find(c => c.org_id === orgId)?.is_deleted ? (
-                  <button 
-                    onClick={handleRestore}
-                    className="btn flex-1 h-14 !rounded-2xl !bg-indigo-600 hover:!bg-indigo-700 !text-white !border-none font-bold shadow-lg transition-all"
-                  >
+                  <button onClick={handleRestore} className="btn flex-1 h-14 !rounded-2xl !bg-indigo-600 hover:!bg-indigo-700 !text-white !border-none font-bold shadow-lg transition-all">
                     <RefreshCcw size={18} className={isSearching ? "animate-spin" : ""} /> กู้คืนหน่วยงาน
                   </button>
                 ) : (
-                  <button 
-                    onClick={() => setShowDeleteModal(true)} 
-                    className="btn flex-1 h-14 !rounded-2xl !bg-red-50 hover:!bg-red-100 !text-red-600 !border-red-100 font-bold transition-all"
-                  >
+                  <button onClick={() => setShowDeleteModal(true)} className="btn flex-1 h-14 !rounded-2xl !bg-red-50 hover:!bg-red-100 !text-red-600 !border-red-100 font-bold transition-all">
                     <Trash2 size={18} /> ลบหน่วยงาน
                   </button>
                 )}
@@ -514,7 +514,7 @@ export default function ManageOrgPage() {
                   className={`btn flex-1 h-14 !rounded-2xl !text-white !border-none font-bold transition-all ${
                     (isSearching || !canSubmit) 
                       ? '!bg-slate-300 !cursor-not-allowed opacity-70 shadow-none'
-                      : '!bg-[#16a34a] hover:!bg-[#15803d] shadow-[0_0_20px_rgba(22,163,74,0.2)]' 
+                      : '!bg-[#16a34a] hover:!bg-[#15803d] shadow-lg shadow-green-600/20' 
                   }`}
                 >
                   {isSearching ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
@@ -526,54 +526,57 @@ export default function ManageOrgPage() {
         </div>
       </div>
 
+      {/* Modal ยืนยันการลบ */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="!bg-white w-full max-w-md rounded-[2.5rem] p-8 border-2 border-white shadow-[0_0_60px_rgba(0,0,0,0.15)] animate-in zoom-in duration-300">
+          <div className="!bg-white w-full max-w-md rounded-[2.5rem] p-8 border-2 border-white shadow-2xl animate-in zoom-in duration-300">
             <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6"><AlertCircle size={32} /></div>
             <h3 className="text-xl font-bold text-center mb-2 !text-slate-900">ยืนยันการลบหน่วยงาน?</h3>
             <p className="text-slate-500 text-sm text-center mb-6 font-bold">ข้อมูลจะถูกซ่อนจากระบบ แต่สามารถกู้คืนได้ภายหลังโดย Admin</p>
             <textarea className="textarea textarea-bordered w-full rounded-2xl min-h-[100px] mb-6 font-bold text-sm !bg-white !text-slate-900 border-slate-200 focus:!border-red-500 outline-none shadow-sm" placeholder="ระบุสาเหตุ..." value={deleteReason} onChange={(e) => setDeleteReason(e.target.value)}></textarea>
             <div className="flex gap-3">
-              <button onClick={() => setShowDeleteModal(false)} className="btn flex-1 rounded-xl font-bold !bg-slate-100 border-none !text-slate-600 hover:!bg-slate-200">ยกเลิก</button>
-              <button onClick={() => handleDelete()} className="btn flex-1 rounded-xl !bg-red-600 !text-white hover:!bg-red-700 border-none font-bold shadow-lg">ยืนยันการลบ</button>
+              <button onClick={() => setShowDeleteModal(false)} className="btn flex-1 rounded-xl font-bold !bg-slate-100 border-none !text-slate-600 hover:!bg-slate-200 h-12">ยกเลิก</button>
+              <button onClick={() => handleDelete()} className="btn flex-1 rounded-xl !bg-red-600 !text-white hover:!bg-red-700 border-none font-bold shadow-lg h-12">ยืนยันการลบ</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* --- Pop-up ดู QR Code (กากบาทแดงพื้นขาว ไม่ Hover) --- */}
+      {/* Pop-up ดู QR (กากบาทแดงไม่ล้นขอบ) */}
       {showQrModal && (
         <div 
-          className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300"
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300"
           onClick={() => setShowQrModal(false)}
         >
           <div 
-            className="relative !bg-white p-8 rounded-[2.5rem] max-w-sm w-full shadow-2xl animate-in zoom-in duration-500"
+            className="relative !bg-white p-6 sm:p-8 rounded-[2.8rem] max-w-sm w-full shadow-2xl animate-in zoom-in duration-500 border-4 border-white/50"
             onClick={(e) => e.stopPropagation()} 
           >
-            {/* ปุ่มกากบาท: พื้นหลังแดง ตัวกากบาทขาว (ไม่เปลี่ยนตาม Hover) */}
+            {/* กากบาทสีขาวบนพื้นหลังแดง อยู่ในขอบ Pop-up */}
             <button 
               onClick={() => setShowQrModal(false)}
-              className="absolute top-6 right-6 w-9 h-9 !bg-[#ef4444] !text-white rounded-full flex items-center justify-center shadow-md active:scale-90"
+              className="absolute top-5 right-5 w-10 h-10 !bg-[#ef4444] !text-white rounded-full flex items-center justify-center shadow-lg active:scale-90"
             >
-              <X size={22} strokeWidth={3} />
+              <X size={24} strokeWidth={3} />
             </button>
 
-            <div className="text-center mb-6">
-              <h3 className="font-bold text-slate-900 text-lg tracking-tight">QR CODE สำหรับแจ้งเหตุ</h3>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-60">{orgName}</p>
+            <div className="text-center mb-6 mt-4">
+              <h3 className="font-bold text-slate-900 text-lg tracking-tight uppercase px-8">QR CODE สำหรับแจ้งเหตุ</h3>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 px-8 truncate opacity-60">{orgName}</p>
             </div>
 
-            <div className="bg-white border border-slate-100 rounded-[2rem] p-4 shadow-inner mb-6 transition-transform duration-500">
-              <img src={qrReportUrl} className="w-full h-auto object-contain rounded-xl" alt="QR Large" />
+            <div className="bg-slate-50 border border-slate-100 rounded-[2.2rem] p-5 shadow-inner mb-8">
+              <div className="bg-white rounded-[1.5rem] p-3 shadow-sm">
+                <img src={qrReportUrl} className="w-full h-auto object-contain" alt="QR Large" />
+              </div>
             </div>
 
             <button 
               onClick={() => handleDownloadQR(qrReportUrl, orgName)}
-              className="btn w-full h-14 !bg-[#0f172a] !text-white !rounded-xl font-bold border-none shadow-lg hover:!bg-black transition-all flex items-center justify-center gap-2 tracking-wide uppercase text-xs"
+              className="btn w-full h-14 !bg-[#0f172a] !text-white !rounded-2xl font-black border-none shadow-xl hover:!bg-black transition-all flex items-center justify-center gap-3 text-xs uppercase"
             >
-              <Download size={18} strokeWidth={3} />
-              ดาวน์โหลดรูปภาพ
+              <Download size={20} strokeWidth={3} />
+              ดาวน์โหลด QR CODE
             </button>
           </div>
         </div>
