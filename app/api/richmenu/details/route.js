@@ -1,52 +1,49 @@
-// app/api/richmenu/bots/route.js
-import { NextResponse } from 'next/server';
-import { Pool } from 'pg';
+import { NextResponse } from "next/server";
+import { Pool } from "pg";
 
 const pool = new Pool({
   connectionString: process.env.DATA_BASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
 });
-// ในไฟล์ page.jsx
-const fetchMenus = async () => {
-  try {
-    // ❌ ของเดิมที่คุณอาจจะเขียนผิด (พยายามใส่ botKey ต่อท้าย path)
-    // const response = await fetch(`/api/richmenu/${botKey}`); 
 
-    // ✅ แก้ไขเป็นเรียกไปที่ bots ตรงๆ ตามโครงสร้างไฟล์ของคุณ
-    const response = await fetch('/api/richmenu?action=add_bot'); 
-    
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
+export async function GET(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const botKey = searchParams.get("botKey");
+    const menuId = searchParams.get("menuId");
+
+    if (!botKey || !menuId) {
+      return NextResponse.json({ error: "Missing botKey or menuId" }, { status: 400 });
     }
 
-    const data = await response.json();
-    
-    // ถ้าคุณต้องการกรองเฉพาะบอทตัวที่เลือก (vui7526q) 
-    // คุณสามารถกรองข้อมูลที่ได้จาก Array มาพักไว้ใน state ได้ครับ
-    const currentBot = data.find(bot => bot.key === botKey);
-    setMenus(data); // หรือจัดการข้อมูลตาม logic ของคุณ
-    
-  } catch (err) {
-    console.error("Fetch error:", err);
-  }
-};
+    // 1. ดึง Token จากฐานข้อมูล
+    const dbResult = await pool.query(
+      "SELECT channel_token FROM line_bots WHERE bot_key = $1",
+      [botKey]
+    );
+    const token = dbResult.rows[0]?.channel_token;
 
-export async function GET() {
-  try {
-    // Query ข้อมูลบอททั้งหมด เรียงตามเวลาที่สร้างล่าสุด
-    const result = await pool.query('SELECT * FROM line_bots ORDER BY created_at DESC');
-    
-    // ปรับชื่อ field ให้ตรงกับที่ Frontend รอรับ (ถ้าจำเป็น)
-    const bots = result.rows.map(row => ({
-      id: row.id,
-      name: row.bot_name,
-      key: row.bot_key,
-      pictureUrl: row.picture_url,
-      creator_id: row.creator_id
-    }));
+    if (!token) {
+      return NextResponse.json({ error: "Token not found in database" }, { status: 404 });
+    }
 
-    return NextResponse.json(bots);
+    // 2. เรียกไปที่ LINE API
+    const lineRes = await fetch(`https://api.line.me/v2/bot/richmenu/${menuId}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await lineRes.json();
+
+    if (!lineRes.ok) {
+      return NextResponse.json({ error: data.message || "LINE API Error" }, { status: lineRes.status });
+    }
+
+    return NextResponse.json(data);
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("API Details Error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

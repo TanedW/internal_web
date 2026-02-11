@@ -45,7 +45,9 @@
   animation: fadeIn 0.3s ease;
 }
 .php-alert-success { background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-.php-alert-error { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+.php-alert-error { 
+  display: none !important; /* ซ่อนไม่ให้แสดง */
+}
 
 /* CARDS */
 .php-card {
@@ -786,4 +788,13 @@
 .swal2-container .swal2-actions button {
     display: inline-block !important;
     visibility: visible !important;
+}
+
+/* ซ่อนปุ่ม deny (No button) ของ SweetAlert2 อย่างสมบูรณ์ */
+.swal2-deny,
+button.swal2-deny {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }

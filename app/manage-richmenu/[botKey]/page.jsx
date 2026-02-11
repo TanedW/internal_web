@@ -137,7 +137,6 @@ export default function RichMenuDashboard() {
 
   // --- State: Rich Menu Logic ---
   const [uploading, setUploading] = useState(false);
-  const [alert, setAlert] = useState(null);
   const [menuName, setMenuName] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileDisplay, setFileDisplay] = useState("");
@@ -186,6 +185,23 @@ export default function RichMenuDashboard() {
     return icons[name] || null;
   };
 
+  const resetUploadForm = () => {
+    setMenuName("");
+    setSelectedFile(null);
+    setFileDisplay("");
+    setUploadedImage(null);
+    setActions({});
+    setChatBarText("เมนูหลัก");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    // Scroll to history section to see the result
+    historySectionRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
   const handleTemplateChange = (template) => {
     setSelectedTemplate(template);
     setSelectedAreaId(template.areas[0].id);
@@ -232,6 +248,8 @@ export default function RichMenuDashboard() {
   );
   const currentAction = actions[selectedAreaId] || {
     type: "link",
+    url: "", // เพิ่ม
+    text: "", // เพิ่ม
     data: "",
     label: "",
   };
@@ -260,24 +278,27 @@ export default function RichMenuDashboard() {
     setIsLogModalOpen(true);
   };
 
-  // --- เพิ่มโค้ดนี้ลงใน RichMenuDashboard ---
-
-  // --- เพิ่มฟังก์ชันนี้เพื่อจัดการการเลือกรูปภาพ ---
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // ✅ ปรับให้ครอบคลุมทั้ง image/jpeg (ซึ่งรวม .jpg และ .jpeg)
     const validTypes = ["image/jpeg", "image/jpg", "image/png"];
 
     if (!validTypes.includes(file.type)) {
-      alert("รองรับเฉพาะไฟล์ PNG และ JPG/JPEG เท่านั้น");
+      await Swal.fire({
+        icon: "warning",
+        title: "ไฟล์ไม่ถูกต้อง",
+        text: "รองรับเฉพาะไฟล์ PNG และ JPG/JPEG เท่านั้น",
+      });
       return;
     }
 
-    // เช็คขนาดไฟล์ (ไม่เกิน 1MB ตามที่เขียนใน UI)
     if (file.size > 1024 * 1024) {
-      alert("ขนาดไฟล์ต้องไม่เกิน 1MB");
+      await Swal.fire({
+        icon: "warning",
+        title: "ไฟล์ใหญ่เกินไป",
+        text: "ขนาดไฟล์ต้องไม่เกิน 1MB",
+      });
       return;
     }
 
@@ -296,6 +317,8 @@ export default function RichMenuDashboard() {
 
         // เก็บรูปภาพลง State เพื่อนำไปแสดงในหน้า Preview
         setUploadedImage(event.target.result);
+        setSelectedFile(file);
+        setFileDisplay(`เลือกไฟล์: ${file.name}`);
       };
       img.src = event.target.result;
     };
@@ -309,10 +332,53 @@ export default function RichMenuDashboard() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result); // สำหรับโชว์บนหน้าจอ
+        setSelectedFile(file);
+        setFileDisplay(`เลือกไฟล์: ${file.name}`);
       };
       reader.readAsDataURL(file);
     }
   };
+
+  const mappedAreas = selectedTemplate.areas.map((area) => {
+    const action = actions[area.id] || {
+      type: "link",
+      url: "",
+      text: "",
+      data: "",
+      label: "",
+    };
+    // Map action types ให้ตรงกับ LINE API
+    let lineActionType = action.type;
+    if (action.type === "link") {
+      lineActionType = "uri";
+    } else if (action.type === "text") {
+      lineActionType = "message";
+    } else if (action.type === "api") {
+      lineActionType = "postback";
+    }
+
+    return {
+      bounds: {
+        x: area.x,
+        y: area.y,
+        width: area.w,
+        height: area.h,
+      },
+      action: {
+        type: lineActionType,
+        ...(action.type === "link" && {
+          uri: action.url || "https://example.com",
+        }),
+        ...(action.type === "text" && {
+          text: action.text || "ข้อความ", // ✅ ถูก! ใช้ action.text
+        }),
+        ...(action.type === "api" && {
+          data: action.data || "action=default",
+        }),
+        ...(action.label && { label: action.label }),
+      },
+    };
+  });
 
   // ==========================================
   // MAIN LOGIC
@@ -399,29 +465,120 @@ export default function RichMenuDashboard() {
   async function handleUpload(e) {
     e.preventDefault();
 
+    // ✅ เพิ่มส่วนนี้ใหม่ - ตรวจสอบ botKey ก่อน
+    if (!botKey) {
+      await Swal.fire({
+        icon: "error",
+        title: "ข้อผิดพลาด",
+        text: "ไม่พบ Bot Key กรุณาตรวจสอบ URL",
+      });
+      console.error("botKey is missing:", botKey);
+      return;
+    }
+
     if (!selectedFile) {
-      setAlert({ type: "error", message: "กรุณาเลือกรูปภาพ" });
+      await Swal.fire({
+        icon: "warning",
+        title: "แจ้งเตือน",
+        text: "กรุณาเลือกรูปภาพ",
+      });
       return;
     }
 
     // 1. ถามยืนยันการใช้งาน
-    const confirmUseNow = window.confirm(
-      "คุณต้องการบันทึกและเปลี่ยนมาใช้เมนูนี้ให้กับผู้ใช้ทุกคนทันทีเลยหรือไม่?\n\n- ตกลง: บันทึกและเปลี่ยนเมนูทันที\n- ยกเลิก: บันทึกเก็บไว้ในประวัติเท่านั้น",
-    );
+    // 1. ถามยืนยันการใช้งานด้วย SweetAlert2
+    const confirmResult = await Swal.fire({
+      title: "ยืนยันการบันทึกเมนู",
+      text: "คุณต้องการเปลี่ยนมาใช้เมนูนี้ทันทีหรือไม่?",
+      icon: "question",
+      showCancelButton: true,
+      showDenyButton: true,
+      confirmButtonColor: "#06C755",
+      denyButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "ตกลง - เปลี่ยนใช้ทันที",
+      denyButtonText: "บันทึกไว้เท่านั้น",
+      cancelButtonText: "ยกเลิก",
+      reverseButtons: true,
+    });
+
+    // ถ้ากดยกเลิก ไม่ทำอะไร
+    if (confirmResult.isDismissed) {
+      return;
+    }
+
+    // เก็บค่าว่าจะเปลี่ยนใช้ทันทีหรือไม่
+    const confirmUseNow = confirmResult.isConfirmed;
 
     setUploading(true);
     try {
+      // ✅ Decode botKey ก่อนส่ง
+      const decodedBotKey = decodeURIComponent(botKey);
+
+      console.log("=== UPLOAD DEBUG ===");
+      console.log("📌 Original botKey:", botKey); // %40vui7526q
+      console.log("📌 Decoded botKey:", decodedBotKey); // @vui7526q
+
+      // ✅ Validate areas ก่อนส่ง
+      if (!mappedAreas || mappedAreas.length === 0) {
+        await Swal.fire({
+          icon: "warning",
+          title: "แจ้งเตือน",
+          text: "กรุณาสร้างพื้นที่คลิกอย่างน้อย 1 พื้นที่",
+        });
+        setUploading(false);
+        return;
+      }
+
+      // ✅ Validate แต่ละ area ว่ามี action หรือไม่
+      const hasInvalidArea = mappedAreas.some(
+        (area) => !area.action || !area.action.type,
+      );
+
+      if (hasInvalidArea) {
+        await Swal.fire({
+          icon: "warning",
+          title: "แจ้งเตือน",
+          text: "พื้นที่บางพื้นที่ยังไม่ได้กำหนด Action",
+        });
+        setUploading(false);
+        return;
+      }
+
       const formData = new FormData();
-      formData.append("botKey", botKey);
+      formData.append("botKey", decodedBotKey); // ✅ ใช้ decoded
+
+      // ✅ เพิ่มบรรทัดนี้ใหม่ - Debug log
+      console.log("📌 botKey being sent:", botKey);
+
       formData.append("menuName", menuName || `Menu_${botKey}`);
       formData.append("menuImage", selectedFile);
+      // ส่ง Firebase UID ของผู้ใช้ที่ล็อกอินอยู่
+      if (user?.uid) {
+        formData.append("creatorId", user.uid);
+      }
 
       // ✅ เพิ่มส่วนนี้: ส่งโครงสร้างปุ่ม (Action) ที่ตั้งค่าจากหน้าเว็บไปที่ API
       // mappedAreas คือ State ที่เก็บ Array ของตำแหน่งปุ่มและ Action ต่างๆ (Link, Postback, Text)
       formData.append("areas", JSON.stringify(mappedAreas));
 
-      // ✅ เพิ่ม: ส่งข้อความแถบเมนู (Chat Bar Text) ถ้ามีช่องให้กรอก
-      // formData.append("chatBarText", chatBarText);
+      // ✅ เพิ่ม: ส่งข้อความแถบเมนู (Chat Bar Text) และขนาดของ template
+      formData.append("chatBarText", chatBarText || "เมนูหลัก");
+      formData.append(
+        "size",
+        JSON.stringify({
+          width: selectedTemplate.width,
+          height: selectedTemplate.height,
+        }),
+      );
+
+      console.log("Sending data:", {
+        botKey,
+        menuName: menuName || `Menu_${botKey}`,
+        areasCount: mappedAreas.length,
+        chatBarText: chatBarText || "เมนูหลัก",
+        templateSize: `${selectedTemplate.width}x${selectedTemplate.height}`,
+      });
 
       const response = await fetch("/api/richmenu/upload", {
         method: "POST",
@@ -430,72 +587,135 @@ export default function RichMenuDashboard() {
 
       const result = await response.json();
 
+      console.log("API Response:", result);
+      console.log("Response Status:", response.status);
+
       if (!response.ok) {
-        throw new Error(result.error || "Upload failed");
+        const errorMsg =
+          result.error ||
+          result.message ||
+          result.details ||
+          "ไม่สามารถอัปโหลดได้";
+        console.error("API Error Details:", result);
+        throw new Error(errorMsg);
       }
 
       // ดึง richMenuId ที่เพิ่งสร้างสำเร็จมาจาก API response
       const newMenuId = result.richMenuId;
 
-      // 2. ถ้ากดยืนยันว่าจะใช้ทันที และเราได้ ID ใหม่มาแล้ว
-      if (confirmUseNow && newMenuId) {
-        await fetch("/api/richmenu/switch", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            botKey,
-            menuId: newMenuId,
-            type: "batch",
-          }),
-        });
-        alert("บันทึกและเปิดใช้งานเมนูใหม่สำเร็จ!");
-      } else {
-        alert(
-          "บันทึกเมนูเรียบร้อยแล้ว (สามารถเปิดใช้งานภายหลังได้จากส่วนประวัติ)",
-        );
+      if (!newMenuId) {
+        throw new Error("ไม่ได้รับ richMenuId จาก API");
       }
 
-      // ล้างค่าและโหลดข้อมูลใหม่
-      fetchMenus();
-      setSelectedFile(null);
-      setUploadedImage(null);
-      setMenuName("");
-      // setMappedAreas([]); // ล้างค่าปุ่มหลังทำรายการสำเร็จ (ถ้าต้องการ)
+      // 2. ถ้ากดยืนยันว่าจะใช้ทันที และเราได้ ID ใหม่มาแล้ว
+      if (confirmUseNow && newMenuId) {
+        try {
+          // ✅ เรียก API เปลี่ยนเมนู (ใช้ GET แทน POST)
+          const cleanBotKey = decodeURIComponent(botKey);
+          const queryParams = new URLSearchParams({
+            botKey: cleanBotKey,
+            menuId: newMenuId,
+            type: "batch",
+          });
+
+          const switchResponse = await fetch(
+            `/api/richmenu/switch?${queryParams.toString()}`,
+            {
+              method: "GET",
+            },
+          );
+
+          const switchData = await switchResponse.json();
+
+          // ✅ ตรวจสอบว่าเปลี่ยนสำเร็จหรือไม่
+          if (!switchResponse.ok) {
+            throw new Error(switchData.error || "ไม่สามารถเปลี่ยนเมนูได้");
+          }
+
+          // ✅ แสดง Success และรีเฟรชข้อมูล
+          await Swal.fire({
+            icon: "success",
+            title: "สำเร็จ!",
+            text: "บันทึกและเปิดใช้งานเมนูใหม่สำเร็จ!",
+            timer: 1500,
+            showConfirmButton: false,
+          });
+
+          // ✅ รีเฟรชข้อมูลและฟอร์ม
+          fetchData();
+          resetUploadForm();
+        } catch (switchError) {
+          console.error("Switch menu error:", switchError);
+          await Swal.fire({
+            icon: "warning",
+            title: "บันทึกสำเร็จ แต่เปลี่ยนเมนูไม่สำเร็จ",
+            text: "เมนูถูกบันทึกแล้ว แต่ไม่สามารถเปลี่ยนเป็นเมนูหลักได้ กรุณาเปลี่ยนด้วยตนเองในหน้าประวัติ",
+            confirmButtonText: "ตกลง",
+          });
+
+          // ✅ รีเฟรชข้อมูลและฟอร์ม แม้ว่าจะเปลี่ยนเมนูไม่สำเร็จ
+          fetchData();
+          resetUploadForm();
+        }
+      } else {
+        // ✅ แค่บันทึก ไม่เปลี่ยนเมนู
+        await Swal.fire({
+          icon: "success",
+          title: "สำเร็จ!",
+          text: "บันทึกเมนูเรียบร้อยแล้ว (สามารถเปิดใช้งานภายหลังได้จากส่วนประวัติ)",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+
+        // ✅ รีเฟรชข้อมูลและฟอร์ม
+        fetchData();
+        resetUploadForm();
+      }
     } catch (error) {
-      console.error("Upload Error:", error);
-      alert(`เกิดข้อผิดพลาด: ${error.message}`);
-    } finally {
       setUploading(false);
+      console.error("Upload Error:", error);
+      await Swal.fire({
+        icon: "error",
+        title: "เกิดข้อผิดพลาด",
+        text: error.message || "ไม่สามารถอัปโหลดได้",
+      });
     }
   }
-  const handleSwitch = async (menuId) => {
+
+  // ฟังก์ชันสำหรับเปลี่ยน Rich Menu
+  const handleSwitch = async (menuId, type = "batch") => {
     const result = await Swal.fire({
       title: "ยืนยันการเปลี่ยนเมนู?",
-      text: "ผู้ใช้ทุกคนจะถูกเปลี่ยนมาใช้เมนูนี้ทันที",
-      icon: "warning",
+      text: "คุณต้องการเปลี่ยนไปใช้เมนูนี้ทันทีหรือไม่?",
+      icon: "question",
+      showConfirmButton: true,
       showCancelButton: true,
-      confirmButtonText: "ใช่, เปลี่ยนเลย!",
+      showDenyButton: false,
+      confirmButtonColor: "#06C755",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "ตกลง",
       cancelButtonText: "ยกเลิก",
-      // เพิ่มบรรทัดด้านล่างนี้เพื่อใช้ Class จาก CSS ที่เราเขียนข้างบน
-      customClass: {
-        confirmButton: 'swal2-confirm',
-        cancelButton: 'swal2-cancel'
-      },
-      buttonsStyling: true // ให้ใช้การตั้งค่าสไตล์พื้นฐานของ Swal ร่วมกับ CSS ของเรา
     });
-    if (!result.isConfirmed) return;
 
-    setLoading(true);
+    if (!result.isConfirmed) {
+      return;
+    }
+
     try {
-      const response = await fetch("/api/richmenu/switch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          botKey: botKey, // มั่นใจว่าตัวแปร botKey ด้านบนสุดของไฟล์มีค่า
-          menuId: menuId,
-          type: "batch", // สำคัญมาก: ต้องมีเพื่อให้เข้าเงื่อนไข if (type === "batch") ใน route.js
-        }),
+      const cleanBotKey = decodeURIComponent(botKey);
+
+      const queryParams = new URLSearchParams({
+        botKey: cleanBotKey,
+        menuId: menuId,
+        type: type,
       });
+
+      const response = await fetch(
+        `/api/richmenu/switch?${queryParams.toString()}`,
+        {
+          method: "GET",
+        },
+      );
 
       const data = await response.json();
 
@@ -503,28 +723,26 @@ export default function RichMenuDashboard() {
         throw new Error(data.error || "ไม่สามารถเปลี่ยนเมนูได้");
       }
 
-      await Swal.fire("สำเร็จ!", "เปลี่ยนเมนูให้ทุกคนเรียบร้อยแล้ว", "success");
+      // ✅ เปลี่ยนสำเร็จ - แสดง success และ re-fetch data
+      await Swal.fire({
+        icon: "success",
+        title: "สำเร็จ!",
+        text: "เปลี่ยนเมนูเรียบร้อยแล้ว",
+        timer: 1500,
+        showConfirmButton: false,
+      });
 
-      // อัปเดต UI
-      setCurrentMenuId(menuId);
-      if (typeof fetchData === "function") {
-        // ตรวจสอบว่ามี botKey หรือยัง ถ้าไม่มีให้ลองดึงจาก params ของ URL (Next.js)
-        if (botKey) {
-          fetchData(); 
-        } else {
-          console.warn("FetchData skipped: botKey is missing");
-          // หรือถ้าใช้ params จาก Next.js: fetchData(params.botKey);
-        }
-      }
+      fetchData();
     } catch (error) {
-        console.error("Error switching menu:", error);
-        await Swal.fire("ผิดพลาด", `เกิดข้อผิดพลาด: ${error.message}`, "error");
-    } finally {
-        setLoading(false);
+      console.error("Error switching menu:", error);
+      await Swal.fire({
+        icon: "error",
+        title: "เกิดข้อผิดพลาด",
+        text: error.message,
+      });
     }
   };
 
-  // ค้นหาตำแหน่งแถวๆ บรรทัดที่มีฟังก์ชัน handleSwitch หรือ handleDelete
   const handleViewJson = async (menuId) => {
     try {
       const res = await fetch(
@@ -533,40 +751,75 @@ export default function RichMenuDashboard() {
       const data = await res.json();
 
       if (res.ok) {
-        // แสดงผลใน Console เพื่อให้ Copy ได้ง่าย (F12)
         console.log("--- Rich Menu JSON Structure ---");
         console.log(JSON.stringify(data, null, 2));
 
-        // แจ้งเตือนผู้ใช้
-        window.alert(
-          `ดึงข้อมูลสำเร็จ!\n\nชื่อเมนู: ${data.name}\nจำนวนปุ่ม: ${data.areas.length} ช่อง\n\n(รายละเอียดฉบับเต็มถูกส่งไปยัง Console ของ Browser แล้ว)`,
-        );
+        await Swal.fire({
+          icon: "success",
+          title: "ดึงข้อมูลสำเร็จ!",
+          html: `<strong>ชื่อเมนู:</strong> ${data.name}<br><strong>จำนวนปุ่ม:</strong> ${data.areas.length} ช่อง<br><br><small>รายละเอียดฉบับเต็มถูกส่งไปยัง Console ของ Browser แล้ว (กด F12)</small>`,
+        });
       } else {
-        setAlert({
-          type: "error",
-          message: data.error || "ดึงข้อมูลไม่สำเร็จ",
+        await Swal.fire({
+          icon: "error",
+          title: "เกิดข้อผิดพลาด",
+          text: data.error || "ดึงข้อมูลไม่สำเร็จ",
         });
       }
     } catch (err) {
       console.error("Fetch JSON error:", err);
-      setAlert({ type: "error", message: "เกิดข้อผิดพลาดในการเชื่อมต่อ API" });
+      await Swal.fire({
+        icon: "error",
+        title: "เกิดข้อผิดพลาด",
+        text: "เกิดข้อผิดพลาดในการเชื่อมต่อ API",
+      });
     }
   };
 
   async function handleDelete(menuId) {
-    if (!window.confirm("ยืนยันการลบเมนูนี้อย่างถาวร?")) return;
     try {
+      const result = await Swal.fire({
+        title: "ยืนยันการลบเมนู?",
+        text: "การลบจะไม่สามารถกู้คืนได้",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#ef4444",
+        cancelButtonColor: "#64748b",
+        confirmButtonText: "ลบเมนู",
+        cancelButtonText: "ยกเลิก",
+      });
+
+      if (!result.isConfirmed) return;
+
+      console.log("Deleting menu:", { botKey, menuId }); // Debug
+
       const response = await fetch("/api/richmenu/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ botKey, menuId }),
       });
+
+      const data = await response.json();
+      console.log("Delete response:", data); // Debug
+
       if (response.ok) {
-        setAlert({ type: "success", message: "ลบเมนูเรียบร้อยแล้ว" });
-        fetchData();
+        await Swal.fire({
+          icon: "success",
+          title: "ลบเมนูสำเร็จ!",
+          showConfirmButton: false,
+          timer: 1500,
+        });
+        fetchData(); // รีเฟรชข้อมูล
+      } else {
+        throw new Error(data.error || data.details || "ลบเมนูไม่สำเร็จ");
       }
     } catch (error) {
-      setAlert({ type: "error", message: "เกิดข้อผิดพลาด" });
+      console.error("Delete error:", error);
+      Swal.fire({
+        icon: "error",
+        title: "เกิดข้อผิดพลาด",
+        text: error.message || "ไม่สามารถลบเมนูได้",
+      });
     }
   }
 
@@ -1317,11 +1570,7 @@ export default function RichMenuDashboard() {
                                 >
                                   ลบ
                                 </button>
-                                {/* ในส่วนที่ render รายการเมนู (menus.map) */}
                                 <div className="flex gap-2">
-                                  {/* ปุ่มเดิมที่มีอยู่ เช่น ปุ่ม Switch หรือ Delete */}
-
-                                  {/* เพิ่มปุ่มดู JSON ตรงนี้ */}
                                   <button
                                     onClick={() =>
                                       handleViewJson(menu.richMenuId)
@@ -1384,5 +1633,4 @@ export default function RichMenuDashboard() {
       </div>
     </div>
   );
-
 }

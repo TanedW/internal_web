@@ -13,7 +13,7 @@ const fetchMenus = async () => {
     // const response = await fetch(`/api/richmenu/${botKey}`); 
 
     // ✅ แก้ไขเป็นเรียกไปที่ bots ตรงๆ ตามโครงสร้างไฟล์ของคุณ
-    const response = await fetch('/api/richmenu/bots'); 
+    const response = await fetch('/api/richmenu?action=add_bot'); 
     
     if (!response.ok) {
       throw new Error('Network response was not ok');

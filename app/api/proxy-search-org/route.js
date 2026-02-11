@@ -1,4 +1,11 @@
 import { NextResponse } from "next/server";
+import { Pool } from "pg";
+import { callLineAPI } from "@/lib/lineApi";
+
+const pool = new Pool({
+  connectionString: process.env.DATA_BASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
 
 export async function GET(request) {
   try {
@@ -43,5 +50,46 @@ export async function GET(request) {
   } catch (error) {
     console.error("Proxy Error:", error);
     return NextResponse.json({ message: error.message }, { status: 500 });
+  }
+}
+export async function POST(req) {
+  try {
+    // ดักจับถ้าไม่ใช่ JSON
+    const contentType = req.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      return NextResponse.json({ error: "Content-Type must be application/json" }, { status: 400 });
+    }
+
+    const body = await req.json();
+    const { action, botKey } = body;
+    
+    // 3. ดึง Token
+    const res = await pool.query("SELECT channel_token FROM line_bots WHERE bot_key = $1", [botKey]);
+    const token = res.rows[0]?.channel_token;
+
+    if (!token) return NextResponse.json({ error: "Token not found" }, { status: 404 });
+
+    // 4. แยกการทำงานตาม Action (สร้าง, ลบ, ตั้งค่า)
+    switch (action) {
+      case "createStructure":
+        const step1 = await callLineAPI('https://api.line.me/v2/bot/richmenu', 'POST', richMenuData, token);
+        return NextResponse.json(step1.response);
+      
+      case "setActive":
+        await callLineAPI(`https://api.line.me/v2/bot/user/all/richmenu/${menuId}`, 'POST', {}, token);
+        return NextResponse.json({ success: true });
+
+      case "delete":
+        await callLineAPI(`https://api.line.me/v2/bot/richmenu/${menuId}`, 'DELETE', null, token);
+        return NextResponse.json({ success: true });
+
+      default:
+        return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    }
+
+  } catch (err) {
+    // 5. ถ้าพังตรงไหน ให้คืนค่าเป็น JSON เสมอ หน้าบ้านจะได้ไม่เจอ SyntaxError <!DOCTYPE...
+    console.error("API Error:", err);
+    return NextResponse.json({ error: "Server Error: " + err.message }, { status: 500 });
   }
 }
