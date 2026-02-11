@@ -7,7 +7,8 @@ import {
   CheckCircle2, AlertCircle, Loader2, Search,
   ChevronRight, MousePointerClick, Copy, 
   QrCode, Trash2, FileSpreadsheet, ShieldCheck,
-  RefreshCcw
+  RefreshCcw, X, ImageOff, Download, Info,
+  Maximize2 
 } from "lucide-react";
 
 const fileToBase64 = (file) => {
@@ -24,7 +25,7 @@ export default function ManageOrgPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchId, setSearchId] = useState("");
   const [cases, setCases] = useState([]); 
-  const [orgId, setOrgId] = useState("");       
+  const [orgId, setOrgId] = useState("");      
   const [orgName, setOrgName] = useState("");
   const [logoPreview, setLogoPreview] = useState(null);
   const [logoFile, setLogoFile] = useState(null);
@@ -36,13 +37,13 @@ export default function ManageOrgPage() {
   const [isCsvEnabled, setIsCsvEnabled] = useState(false);
   const [isOfficial, setIsOfficial] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false); 
   const [deleteReason, setDeleteReason] = useState("");
 
   const API_URL_ORG = process.env.NEXT_PUBLIC_DB_SEARCH_ORG_API_URL || ""; 
   const API_URL_MANAGE = process.env.NEXT_PUBLIC_DB_MANAGE_ORG_API_URL || "";
   const uploadApiUrl = process.env.NEXT_PUBLIC_FILE_UPLOAD_API_URL;
 
-  // เพิ่ม Logic สำหรับเช็คการเปลี่ยนแปลง
   const currentOrgData = cases.find(item => item.org_id === orgId);
   const hasChanges = () => {
     if (!currentOrgData) return false;
@@ -54,24 +55,19 @@ export default function ManageOrgPage() {
   };
   const canSubmit = (hasChanges() || currentOrgData?.is_deleted) && updateDescription.trim() !== "";
 
-  // 1. ฟังก์ชันสำหรับการอัปเดตข้อมูล (PUT)
   const handleUpdate = async () => {
     if (!orgId) return;
-
     const currentOrgData = cases.find(item => item.org_id === orgId);
     const rawAdminId = localStorage.getItem('current_admin_id');  
     const adminId = rawAdminId ? rawAdminId.replace(/"/g, '') : null;
-
     if (!adminId) {
       alert("ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่");
       return;
     }
-
     if (!updateDescription.trim()) {
       alert("กรุณาระบุรายละเอียดการแก้ไขเพื่อบันทึก Log");
       return;
     }
-
     setIsSearching(true);
     try {
       let currentPhotoUrl = selectedImageToReplace?.url;
@@ -85,7 +81,6 @@ export default function ManageOrgPage() {
         const result = await response.json();
         if (response.ok && result.photo_link) currentPhotoUrl = result.photo_link;
       }
-      
       const response = await fetch(`${API_URL_MANAGE}?id=${orgId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -103,12 +98,11 @@ export default function ManageOrgPage() {
           description: updateDescription
         }),
       });
-
       const result = await response.json();
       if (response.ok && result.success) {
         alert("อัปเดตข้อมูลหน่วยงานสำเร็จ");
         setUpdateDescription("");
-        setLogoFile(null); // เคลียร์ไฟล์หลังอัปเดต
+        setLogoFile(null);
         await fetchOrgData(searchId); 
       } else {
         alert("เกิดข้อผิดพลาด: " + (result.message || result.error));
@@ -120,17 +114,14 @@ export default function ManageOrgPage() {
     }
   };
 
-  // 2. ฟังก์ชันสำหรับการลบหน่วยงาน (DELETE)
   const handleDelete = async () => {
     if (!orgId || !deleteReason.trim()) {
       alert("กรุณาระบุสาเหตุการลบ");
       return;
     }
-
     try {
       const rawAdminId = localStorage.getItem('current_admin_id');
       const adminId = rawAdminId ? rawAdminId.replace(/"/g, '') : null;
-
       const response = await fetch(`${API_URL_MANAGE}?id=${orgId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
@@ -139,7 +130,6 @@ export default function ManageOrgPage() {
           description: deleteReason
         }),
       });
-
       const result = await response.json();
       if (response.ok && result.success) {
         alert("ลบหน่วยงานเรียบร้อยแล้ว");
@@ -155,18 +145,14 @@ export default function ManageOrgPage() {
     }
   };
 
-  // 3. ฟังก์ชันสำหรับการกู้คืนหน่วยงาน (RESTORE)
   const handleRestore = async () => {
     if (!orgId) return;
-
     if (!updateDescription.trim()) {
       alert("กรุณาระบุรายละเอียดในช่อง 'Admin Log' เพื่อกู้คืนข้อมูล");
       return;
     }
-
     const rawAdminId = localStorage.getItem('current_admin_id');
     const adminId = rawAdminId ? rawAdminId.replace(/"/g, '') : null;
-
     setIsSearching(true);
     try {
       const response = await fetch(`${API_URL_MANAGE}?id=${orgId}`, {
@@ -174,11 +160,10 @@ export default function ManageOrgPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           current_admin_id: adminId,
-          restore: true, // ส่ง flag เพื่อให้ API ทำการเคลียร์ deleted_at
+          restore: true,
           description: updateDescription
         }),
       });
-
       const result = await response.json();
       if (response.ok && result.success) {
         alert("กู้คืนหน่วยงานสำเร็จ");
@@ -226,30 +211,23 @@ export default function ManageOrgPage() {
   };
 
   const handleDownloadQR = async (url, orgName) => {
-  if (!url) return;
-  
-  try {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    const blobUrl = window.URL.createObjectURL(blob);
-    
-    const link = document.createElement('a');
-    link.href = blobUrl;
-    // ตั้งชื่อไฟล์ให้สื่อความหมาย
-    link.download = `QR_Report_${orgName || 'Organization'}.jpg`;
-    
-    document.body.appendChild(link);
-    link.click();
-    
-    // ทำความสะอาด Memory
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(blobUrl);
-  } catch (error) {
-    console.error("Download failed:", error);
-    // กรณี fetch ไม่สำเร็จ (เช่นติด CORS) ให้ใช้วิธีเปิด Tab ใหม่แทน
-    window.open(url, '_blank');
-  }
-};
+    if (!url) return;
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `QR_Report_${orgName || 'Organization'}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error("Download failed:", error);
+      window.open(url, '_blank');
+    }
+  };
 
   return (
     <div data-theme="light" className="min-h-screen !bg-[#F4F6F8] !text-slate-900 font-sans pb-20">
@@ -306,7 +284,7 @@ export default function ManageOrgPage() {
                           setIsOfficial(item.is_official); 
                           setIsCsvEnabled(item.allow_csv);
                           setQrReportUrl(item.qr_report_url);
-                          setUpdateDescription(""); // ล้าง Log เมื่อเปลี่ยนหน่วยงาน
+                          setUpdateDescription("");
                           setLogoFile(null);
                           if (item.admin_codes?.length > 0) {
                             setAdminCode(item.admin_codes[0].code || "ไม่มีรหัส");
@@ -442,45 +420,54 @@ export default function ManageOrgPage() {
                 </div>
               </div>
               
+              {/* --- ส่วน QR Code สำหรับหน่วยงาน --- */}
               <div className="!bg-white p-6 rounded-[2rem] shadow-[0_0_30px_rgba(0,0,0,0.03)] border-2 border-white">
                 <div className="flex items-center gap-3 mb-4">
                   <QrCode size={20} className="text-slate-400" />
-                  <p className="font-bold text-sm !text-slate-900">QR Code สำหรับแจ้งเหตุ</p>
+                  <p className="font-bold text-sm !text-slate-900">QR CODE สำหรับแจ้งเหตุ</p>
                 </div>
                 <div className="flex flex-nowrap items-center gap-4 sm:gap-6">
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 !bg-white border-2 border-slate-100 rounded-2xl p-2 flex items-center justify-center overflow-hidden">
-                    <img 
-                      src={qrReportUrl} 
-                      alt="QR" 
-                      className="w-full h-full object-contain" 
-                    />
+                  <div className="w-24 h-24 shrink-0 !bg-white border-2 border-slate-100 rounded-2xl p-2 flex items-center justify-center overflow-hidden">
+                    {qrReportUrl ? (
+                      <img src={qrReportUrl} alt="QR" className="w-full h-full object-contain" />
+                    ) : (
+                      <div className="flex flex-col items-center text-center">
+                         <AlertCircle size={20} className="text-red-500 mb-1" />
+                         <span className="text-[8px] font-bold text-red-500 uppercase">No QR Data</span>
+                      </div>
+                    )}
                   </div>
-           
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] sm:text-xs text-slate-500 font-bold mb-2 truncate">ลิงก์แจ้งเหตุประจำหน่วยงาน</p><br></br>
-                    {/* <button 
-                      className="btn btn-sm btn-outline rounded-full text-[9px] sm:text-[10px] font-bold !bg-white !text-slate-600 border-slate-200 hover:!border-black transition-colors whitespace-nowrap"
-                      onClick={() => handleDownloadQR(qrReportUrl, currentOrgData?.name)}
-                    >
-                      ดาวน์โหลดไฟล์ QR
-                    </button> */}
-                    <div className="flex gap-2">
-    {/* ปุ่มเปิดดูรูปขยาย */}
-    <button 
-      onClick={() => window.open(qrReportUrl, '_blank')}
-      className="btn btn-sm btn-outline rounded-full text-[9px] sm:text-[10px] font-bold !bg-white !text-slate-600 border-slate-200 hover:!border-black transition-colors"
-    >
-      ดูภาพขยาย
-    </button>
 
-    {/* ปุ่มดาวน์โหลด - เรียกใช้ฟังก์ชันที่สร้างใหม่ */}
-    <button 
-      onClick={() => handleDownloadQR(qrReportUrl, orgName)}
-      className="btn btn-sm btn-outline rounded-full text-[9px] sm:text-[10px] font-bold !bg-white !text-slate-600 border-slate-200 hover:!border-black transition-colors"
-    >
-      ดาวน์โหลดไฟล์ QR
-    </button>
-  </div>
+                  <div className="flex-1 min-w-0">
+                    {qrReportUrl ? (
+                      <>
+                        <p className="text-[10px] text-slate-500 font-bold mb-2 truncate">พร้อมสำหรับการใช้งานและดาวน์โหลด</p><br></br>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => setShowQrModal(true)}
+                            className="btn btn-sm h-10 px-5 !bg-[#0f172a] !text-white !rounded-full !border-none font-bold text-[11px] active:scale-95 flex items-center gap-2"
+                          >
+                            <Maximize2 size={15} strokeWidth={2.5} />
+                            ดูภาพขยาย
+                          </button>
+                          <button 
+                            onClick={() => handleDownloadQR(qrReportUrl, orgName)}
+                            className="btn btn-sm h-10 px-5 !bg-white !text-slate-900 !border-slate-100 !rounded-full font-bold text-[11px] border shadow-sm flex items-center gap-2"
+                          >
+                            <Download size={14} strokeWidth={2.5} className="text-slate-500" />
+                            ดาวน์โหลดไฟล์
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 px-3 py-1 bg-red-50 rounded-full w-fit">
+                           <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
+                           <span className="text-[11px] font-bold text-red-600">หน่วยงานนี้ไม่มี QR Code ในระบบ</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-bold ml-1 tracking-tight">กรุณาตรวจสอบข้อมูลในฐานข้อมูลระดับสูง</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -492,7 +479,7 @@ export default function ManageOrgPage() {
                 </div>
                 <textarea 
                   className="textarea textarea-bordered w-full rounded-2xl min-h-[80px] font-bold text-sm !bg-white !text-slate-900 border-slate-200 focus:!border-black outline-none shadow-sm" 
-                  placeholder="ระบุเหตุผล เช่น 'กู้คืนข้อมูลหน่วยงานเนื่องจาก...' หรือ 'เปิดสิทธิ์ CSV'"
+                  placeholder="ระบุเหตุผล..."
                   value={updateDescription}
                   onChange={(e) => setUpdateDescription(e.target.value)}
                 ></textarea>
@@ -550,6 +537,44 @@ export default function ManageOrgPage() {
               <button onClick={() => setShowDeleteModal(false)} className="btn flex-1 rounded-xl font-bold !bg-slate-100 border-none !text-slate-600 hover:!bg-slate-200">ยกเลิก</button>
               <button onClick={() => handleDelete()} className="btn flex-1 rounded-xl !bg-red-600 !text-white hover:!bg-red-700 border-none font-bold shadow-lg">ยืนยันการลบ</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- Pop-up ดู QR Code (กากบาทแดงพื้นขาว ไม่ Hover) --- */}
+      {showQrModal && (
+        <div 
+          className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300"
+          onClick={() => setShowQrModal(false)}
+        >
+          <div 
+            className="relative !bg-white p-8 rounded-[2.5rem] max-w-sm w-full shadow-2xl animate-in zoom-in duration-500"
+            onClick={(e) => e.stopPropagation()} 
+          >
+            {/* ปุ่มกากบาท: พื้นหลังแดง ตัวกากบาทขาว (ไม่เปลี่ยนตาม Hover) */}
+            <button 
+              onClick={() => setShowQrModal(false)}
+              className="absolute top-6 right-6 w-9 h-9 !bg-[#ef4444] !text-white rounded-full flex items-center justify-center shadow-md active:scale-90"
+            >
+              <X size={22} strokeWidth={3} />
+            </button>
+
+            <div className="text-center mb-6">
+              <h3 className="font-bold text-slate-900 text-lg tracking-tight">QR CODE สำหรับแจ้งเหตุ</h3>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-60">{orgName}</p>
+            </div>
+
+            <div className="bg-white border border-slate-100 rounded-[2rem] p-4 shadow-inner mb-6 transition-transform duration-500">
+              <img src={qrReportUrl} className="w-full h-auto object-contain rounded-xl" alt="QR Large" />
+            </div>
+
+            <button 
+              onClick={() => handleDownloadQR(qrReportUrl, orgName)}
+              className="btn w-full h-14 !bg-[#0f172a] !text-white !rounded-xl font-bold border-none shadow-lg hover:!bg-black transition-all flex items-center justify-center gap-2 tracking-wide uppercase text-xs"
+            >
+              <Download size={18} strokeWidth={3} />
+              บันทึกรูปภาพ
+            </button>
           </div>
         </div>
       )}
