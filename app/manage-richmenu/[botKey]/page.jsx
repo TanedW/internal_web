@@ -1550,12 +1550,32 @@ export default function RichMenuDashboard() {
 
                           <div className="flex flex-col gap-1 pt-1">
                             {isCurrent ? (
-                              <button
-                                disabled
-                                className="btn-menu-disabled text-[11px] py-1"
-                              >
-                                <Check size={12} /> ใช้งานอยู่
-                              </button>
+                              <>
+                                <button
+                                  disabled
+                                  className="btn-menu-disabled text-[11px] py-1"
+                                >
+                                  <Code size={12} /> ใช้งานอยู่
+                                </button>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() =>
+                                      handleViewJson(menu.richMenuId)
+                                    }
+                                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg border border-indigo-100 transition-colors"
+                                    title="ดูโครงสร้าง JSON"
+                                  >
+                                    <Code size={16} />
+                                  </button>
+
+                                  <button
+                                    onClick={() =>
+                                      handleDelete(menu.richMenuId)
+                                    }
+                                    className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg"
+                                  ></button>
+                                </div>
+                              </>
                             ) : (
                               <div className="grid grid-cols-2 gap-1.5">
                                 <button
