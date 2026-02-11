@@ -455,7 +455,7 @@ export default function ManageOrgPage() {
                             className="btn btn-sm h-10 px-5 !bg-white !text-slate-900 !border-slate-100 !rounded-full font-bold text-[11px] border shadow-sm flex items-center gap-2"
                           >
                             <Download size={14} strokeWidth={2.5} className="text-slate-500" />
-                            ดาวน์โหลดไฟล์
+                            ดาวน์โหลดรูปภาพ
                           </button>
                         </div>
                       </>
@@ -573,7 +573,7 @@ export default function ManageOrgPage() {
               className="btn w-full h-14 !bg-[#0f172a] !text-white !rounded-xl font-bold border-none shadow-lg hover:!bg-black transition-all flex items-center justify-center gap-2 tracking-wide uppercase text-xs"
             >
               <Download size={18} strokeWidth={3} />
-              บันทึกรูปภาพ
+              ดาวน์โหลดรูปภาพ
             </button>
           </div>
         </div>

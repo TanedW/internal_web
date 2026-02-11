@@ -106,6 +106,16 @@ export default function Sidebar({
     });
     return () => unsubscribe();
   }, []);
+  
+    useEffect(() => {
+  // เลือกปิดเฉพาะกรณีที่เป็น Mobile หรือถ้าต้องการให้ Desktop ปิดด้วยตามโจทย์
+  const handleNavigation = () => {
+    setIsDesktopSidebarOpen(false);
+    setIsMobileMenuOpen(false);
+  };
+
+  handleNavigation();
+}, [pathname]);
 
   const fetchAdminProfile = async () => {
     const adminId = localStorage.getItem("current_admin_id")?.replace(/^"|"$/g, "");
