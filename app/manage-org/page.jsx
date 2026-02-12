@@ -8,7 +8,7 @@ import {
   ChevronRight, MousePointerClick, Copy, 
   QrCode, Trash2, FileSpreadsheet, ShieldCheck,
   RefreshCcw, X, ImageOff, Download, Info,
-  Maximize2, Save
+  Maximize2, Save, Plus, PencilLine
 } from "lucide-react";
 
 const fileToBase64 = (file) => {
@@ -25,7 +25,7 @@ export default function ManageOrgPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchId, setSearchId] = useState("");
   const [cases, setCases] = useState([]); 
-  const [orgId, setOrgId] = useState("");      
+  const [orgId, setOrgId] = useState("");       
   const [orgName, setOrgName] = useState("");
   const [logoPreview, setLogoPreview] = useState(null);
   const [qrReportUrl, setQrReportUrl] = useState("");
@@ -34,15 +34,20 @@ export default function ManageOrgPage() {
   const [isCsvEnabled, setIsCsvEnabled] = useState(false);
   const [isOfficial, setIsOfficial] = useState(false);
   
-  // Modal States
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false); 
   const [deleteReason, setDeleteReason] = useState("");
   
-  // New: Update Modal State
+  const [qrList, setQrList] = useState([]); 
+  const [showQrEditor, setShowQrEditor] = useState(false);
+  const [selectedFrame, setSelectedFrame] = useState("none");
+  const [qrText, setQrText] = useState("สแกนเพื่อแจ้งเหตุ");
+  const [textSize, setTextSize] = useState(20);
+  const [textPos, setTextPos] = useState(380);
+
   const [updateModal, setUpdateModal] = useState({
     show: false,
-    type: "", // 'name', 'logo', 'csv', 'official'
+    type: "", 
     title: "",
     newValue: null,
     reason: ""
@@ -78,14 +83,11 @@ export default function ManageOrgPage() {
     } finally { setIsSearching(false); }
   };
 
-  // ฟังก์ชันหลักในการอัปเดตแยกส่วน
-  // ฟังก์ชันหลักในการอัปเดตแยกส่วน รวมถึงการ Restore
   const handleIndividualUpdate = async () => {
     if (!orgId || !updateModal.reason.trim()) {
       alert("กรุณาระบุเหตุผลการแก้ไข");
       return;
     }
-
     const rawAdminId = localStorage.getItem('current_admin_id');  
     const adminId = rawAdminId ? rawAdminId.replace(/"/g, '') : null;
     const currentOrgData = cases.find(item => item.org_id === orgId);
@@ -95,10 +97,9 @@ export default function ManageOrgPage() {
       let payload = {
         current_admin_id: adminId,
         description: updateModal.reason,
-        restore: false // ค่าเริ่มต้นเป็น false
+        restore: false
       };
 
-      // จัดการ Payload ตามประเภทการแก้ไข
       if (updateModal.type === 'name') {
         payload.name = updateModal.newValue;
         payload.old_name = currentOrgData.org_name;
@@ -109,7 +110,6 @@ export default function ManageOrgPage() {
         payload.official_group = updateModal.newValue;
         payload.old_official = currentOrgData.is_official;
       } else if (updateModal.type === 'restore') {
-        // ส่วนที่ปรับปรุง: ให้ทำงานเหมือนไฟล์ที่แนบมา
         payload.restore = true;
       } else if (updateModal.type === 'logo') {
         const base64Image = await fileToBase64(updateModal.newValue);
@@ -146,6 +146,7 @@ export default function ManageOrgPage() {
       setIsSearching(false);
     }
   };
+
   const handleDelete = async () => {
     if (!orgId || !deleteReason.trim()) {
       alert("กรุณาระบุสาเหตุการลบ");
@@ -201,8 +202,33 @@ export default function ManageOrgPage() {
     }
   };
 
+  const handleEditExistingQr = (qr) => {
+    setQrReportUrl(qr.url);
+    setQrText(qr.label || "สแกนเพื่อแจ้งเหตุ");
+    setShowQrEditor(true);
+  };
+
+  useEffect(() => {
+    if (qrReportUrl) {
+      setQrList([
+        { id: 1, url: qrReportUrl, label: "QR หลัก (หน้าหน่วยงาน)" },
+        { id: 2, url: qrReportUrl, label: "QR ประตูทางเข้า" },
+        { id: 3, url: qrReportUrl, label: "QR จุดคัดกรอง" }
+      ]);
+    } else {
+      setQrList([]);
+    }
+  }, [qrReportUrl]);
+
   return (
     <div data-theme="light" className="min-h-screen !bg-[#F4F6F8] !text-slate-900 font-sans pb-20">
+      <style>{`
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .qr-gallery-scrollbar::-webkit-scrollbar { height: 8px; }
+        .qr-gallery-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .qr-gallery-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+      `}</style>
       <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
       
       <Sidebar isDesktopSidebarOpen={isDesktopSidebarOpen} setIsDesktopSidebarOpen={setIsDesktopSidebarOpen} />
@@ -408,123 +434,203 @@ export default function ManageOrgPage() {
                 </div>
               </div>
               
-              <div className="!bg-white p-6 sm:p-8 rounded-[2.5rem] shadow-sm border-2 border-white">
-                <div className="flex items-center gap-3 mb-4">
-                  <QrCode size={20} className="text-slate-400" />
-                  <p className="font-bold text-sm !text-slate-900">QR CODE สำหรับแจ้งเหตุ</p>
+              {/* คลัง QR CODE */}
+              <div className="!bg-white p-6 sm:p-8 rounded-[2.5rem] shadow-sm border-2 border-white overflow-hidden">
+                <div className="flex items-center justify-between mb-8 px-1">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shadow-sm border border-indigo-100"><QrCode size={20} /></div>
+                    <div>
+                      <p className="font-bold text-sm !text-slate-900 uppercase tracking-tight">คลัง QR CODE ของหน่วยงาน</p>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">จุดรับแจ้งเหตุที่บันทึกไว้</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => { setQrText("สแกนเพื่อแจ้งเหตุ"); setShowQrEditor(true); }}
+                    className="btn btn-sm !bg-slate-900 hover:!bg-black !text-white rounded-full px-5 border-none font-bold text-[10px] h-10 shadow-lg transition-all active:scale-95"
+                  >
+                    <Plus size={14} className="mr-1" /> เพิ่ม QR ใหม่
+                  </button>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8">
-                  <div className="w-40 h-40 shrink-0 relative flex items-center justify-center">
-                    {qrReportUrl ? (
-                      <div className="w-full h-full bg-white border border-slate-100 rounded-[1.8rem] p-4 shadow-sm group cursor-pointer overflow-hidden" onClick={() => setShowQrModal(true)}>
-                        <img src={qrReportUrl} alt="QR" className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110" />
-                      </div>
-                    ) : (
-                      <div className="w-full h-full bg-slate-50 border-2 border-dashed border-slate-200 rounded-[1.8rem] flex flex-col items-center justify-center gap-2">
-                        <ImageOff size={28} className="text-slate-200" />
-                        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-tighter">No Image</span>
-                      </div>
-                    )}
-                  </div>
+                <div className="flex gap-6 overflow-x-auto pb-4 px-2 qr-gallery-scrollbar">
+                  {qrList.length > 0 ? (
+                    qrList.map((qr) => (
+                      <div key={qr.id} className="group relative min-w-[200px] bg-white rounded-[2.8rem] p-5 border-2 border-slate-50 flex flex-col items-center transition-all duration-500 hover:border-slate-100 hover:shadow-2xl">
+                        <div className="w-full aspect-square bg-slate-50 rounded-[2.2rem] p-4 mb-4 shadow-inner overflow-hidden flex items-center justify-center border border-slate-100/50 relative">
+                          <img src={qr.url} className="w-full h-full object-contain" alt="QR" />
+                        </div>
+                        
+                        <div className="flex items-center justify-center gap-2 mb-3">
+                          <button onClick={() => handleEditExistingQr(qr)} className="w-10 h-10 bg-white text-slate-600 rounded-full flex items-center justify-center hover:text-indigo-600 active:scale-90 transition-all shadow-sm border border-slate-200" title="แก้ไข QR"><PencilLine size={18} strokeWidth={2.5} /></button>
+                          <button onClick={() => handleDownloadQR(qr.url, `${orgName}_${qr.label}`)} className="w-10 h-10 bg-white text-slate-600 rounded-full flex items-center justify-center hover:text-slate-900 active:scale-90 transition-all shadow-sm border border-slate-200" title="ดาวน์โหลด"><Download size={18} strokeWidth={2.5} /></button>
+                          <button onClick={() => { setShowQrModal(true); setQrReportUrl(qr.url); }} className="w-10 h-10 bg-white text-slate-600 rounded-full flex items-center justify-center hover:text-slate-900 active:scale-90 transition-all shadow-sm border border-slate-200" title="ขยายรูป"><Maximize2 size={18} strokeWidth={2.5} /></button>
+                        </div>
 
-                  <div className="flex-1 w-full space-y-6 text-center sm:text-left">
-                    {qrReportUrl ? (
-                      <>
-                        <div className="space-y-1">
-                          <p className="text-sm font-bold text-slate-900 opacity-70">พร้อมสำหรับการใช้งานและดาวน์โหลด</p>
-                        </div>
-                        <div className="flex flex-col sm:flex-row gap-3">
-                          <button onClick={() => setShowQrModal(true)} className="btn btn-md sm:btn-sm h-12 sm:h-10 px-6 !bg-[#0f172a] !text-white !rounded-full !border-none font-bold text-[11px] active:scale-95 flex items-center justify-center gap-2 w-full sm:w-auto shadow-md">
-                            <Maximize2 size={16} strokeWidth={2.5} /> ดูภาพขยาย
-                          </button>
-                          <button onClick={() => handleDownloadQR(qrReportUrl, orgName)} className="btn btn-md sm:btn-sm h-12 sm:h-10 px-6 !bg-white !text-slate-900 !border-slate-300 !rounded-full font-bold text-[11px] border-2 flex items-center justify-center gap-2 w-full sm:w-auto shadow-sm hover:!bg-slate-50 transition-all">
-                            <Download size={16} strokeWidth={3} className="text-slate-600" /> ดาวน์โหลด QR CODE
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="inline-flex items-center gap-2.5 px-4 py-2 bg-red-50 rounded-full border border-red-100 shadow-sm mx-auto sm:mx-0">
-                           <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
-                           <span className="text-[11px] font-bold text-red-600 uppercase tracking-tight">หน่วยงานนี้ไม่มี QR Code ในระบบ</span>
-                        </div>
-                        <div className="flex items-start gap-2 max-w-sm mx-auto sm:mx-0">
-                           <Info size={14} className="text-slate-300 mt-0.5 shrink-0" />
-                           <p className="text-[10px] font-bold text-slate-400 leading-relaxed text-left">ยังไม่มีการสร้างลิงก์สำหรับหน่วยงานนี้ กรุณาตรวจสอบข้อมูลในฐานข้อมูล</p>
-                        </div>
+                        <p className="text-[11px] font-bold text-slate-800 truncate w-full text-center px-1 mb-1">{qr.label}</p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">ID: #{qr.id}</p>
                       </div>
-                    )}
-                  </div>
+                    ))
+                  ) : (
+                    <div className="w-full py-20 border-4 border-dashed border-slate-50 rounded-[3rem] flex flex-col items-center justify-center text-slate-300">
+                      <ImageOff size={56} className="mb-4 opacity-10" />
+                      <p className="text-xs font-bold uppercase tracking-[0.2em] opacity-40">ไม่มีรายการ QR CODE</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* ปุ่มลบด้านล่าง (คงไว้แต่ลบปุ่มยืนยันรวมออก) */}
               <div className="flex pt-2">
-  {cases.find(c => c.org_id === orgId)?.is_deleted ? (
-    // ปุ่ม Restore แบบใหม่: เปิด Modal แทน
-    <button 
-      onClick={() => setUpdateModal({ 
-        show: true, 
-        type: 'restore', 
-        title: 'กู้คืนหน่วยงาน', 
-        newValue: true, 
-        reason: "" 
-      })} 
-      className="btn flex-1 h-14 !rounded-2xl !bg-indigo-600 hover:!bg-indigo-700 !text-white !border-none font-bold shadow-lg transition-all"
-    >
-      <RefreshCcw size={18} className={isSearching ? "animate-spin" : ""} /> กู้คืนหน่วยงาน
-    </button>
-  ) : (
-    <button onClick={() => setShowDeleteModal(true)} className="btn flex-1 h-14 !rounded-2xl !bg-red-50 hover:!bg-red-100 !text-red-600 !border-red-100 font-bold transition-all">
-      <Trash2 size={18} /> ลบหน่วยงาน
-    </button>
-  )}
-</div>
+                {cases.find(c => c.org_id === orgId)?.is_deleted ? (
+                  <button 
+                    onClick={() => setUpdateModal({ 
+                      show: true, 
+                      type: 'restore', 
+                      title: 'กู้คืนหน่วยงาน', 
+                      newValue: true, 
+                      reason: "" 
+                    })} 
+                    className="btn flex-1 h-14 !rounded-2xl !bg-indigo-600 hover:!bg-indigo-700 !text-white !border-none font-bold shadow-lg transition-all"
+                  >
+                    <RefreshCcw size={18} className={isSearching ? "animate-spin" : ""} /> กู้คืนหน่วยงาน
+                  </button>
+                ) : (
+                  <button onClick={() => setShowDeleteModal(true)} className="btn flex-1 h-14 !rounded-2xl !bg-red-50 hover:!bg-red-100 !text-red-600 !border-red-100 font-bold transition-all">
+                    <Trash2 size={18} /> ลบหน่วยงาน
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Modal ยืนยันการแก้ไขรายส่วน (Universal Update Modal) */}
-      {updateModal.show && (
-  <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-    <div className="!bg-white w-full max-w-md rounded-[2.5rem] p-8 border-2 border-white shadow-2xl animate-in zoom-in duration-300">
-      <div className={`w-16 h-16 ${updateModal.type === 'restore' ? 'bg-indigo-50 text-indigo-500' : 'bg-blue-50 text-blue-500'} rounded-full flex items-center justify-center mx-auto mb-6`}>
-          <AlertCircle size={32} />
-      </div>
-      <h3 className="text-xl font-bold text-center mb-2 !text-slate-900">ยืนยัน{updateModal.title}?</h3>
-      <p className="text-slate-500 text-sm text-center mb-6 font-bold">
-          {updateModal.type === 'restore' ? "ข้อมูลจะกลับมาแสดงผลในระบบตามปกติ" : "กรุณาระบุรายละเอียดการแก้ไขเพื่อบันทึก Log"}
-      </p>
-      <textarea 
-          className="textarea textarea-bordered w-full rounded-2xl min-h-[100px] mb-6 font-bold text-sm !bg-white !text-slate-900 border-slate-200 focus:!border-black outline-none shadow-sm" 
-          placeholder="ระบุเหตุผลในการดำเนินการ..." 
-          value={updateModal.reason} 
-          onChange={(e) => setUpdateModal({...updateModal, reason: e.target.value})}
-      ></textarea>
-      <div className="flex gap-3">
-        <button 
-          onClick={() => setUpdateModal({ show: false, type: "", title: "", newValue: null, reason: "" })} 
-          className="btn flex-1 rounded-xl font-bold !bg-slate-100 border-none !text-slate-600 h-12"
-        >
-          ยกเลิก
-        </button>
-        <button 
-          onClick={handleIndividualUpdate} 
-          disabled={isSearching || !updateModal.reason.trim()}
-          className={`btn flex-1 rounded-xl !text-white border-none font-bold shadow-lg h-12 ${
-            updateModal.type === 'restore' ? '!bg-indigo-600 hover:!bg-indigo-700' : '!bg-black hover:!bg-slate-800'
-          }`}
-        >
-          {isSearching ? <Loader2 className="animate-spin" /> : "ยืนยัน"}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      {/* --- [QR EDITOR MODAL: ปรับตัวหนังสือชัดขึ้นตามภาพ] --- */}
+      {showQrEditor && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-5xl rounded-[3rem] overflow-hidden flex flex-col md:flex-row h-[85vh] max-h-[90vh] shadow-2xl border-4 border-white/20 relative">
+            <div className="flex-1 bg-slate-100 p-8 flex items-center justify-center relative overflow-hidden">
+              <div className="relative bg-white shadow-2xl p-0 rounded-2xl overflow-hidden flex flex-col items-center border border-white" 
+                   style={{ width: '380px', height: '520px' }}>
+                
+                {selectedFrame === 'bold' && <div className="absolute inset-0 z-10 border-[18px] border-slate-900 pointer-events-none"></div>}
+                {selectedFrame === 'indigo' && <div className="absolute inset-0 z-10 border-[18px] border-indigo-600 pointer-events-none"></div>}
+                {selectedFrame === 'gold' && <div className="absolute inset-0 z-10 border-[18px] border-amber-500 pointer-events-none"></div>}
 
-      {/* Modal ยืนยันการลบ */}
+                <div 
+                  style={{ 
+                    position: 'absolute', 
+                    top: `${textPos}px`, 
+                    fontSize: `${textSize}px`,
+                    zIndex: 20
+                  }}
+                  className="font-black text-center w-full px-8 leading-tight text-slate-900"
+                >
+                  <span className="bg-white/95 py-2 px-4 rounded-2xl shadow-xl border border-slate-100 inline-block">
+                    {qrText || "สแกนที่นี่"}
+                  </span>
+                </div>
+
+                <div className="w-full h-full flex items-center justify-center p-14 bg-white">
+                  <img src={qrReportUrl} className="w-full h-auto object-contain" alt="QR Preview" />
+                </div>
+
+                <div className="absolute bottom-6 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] z-20 opacity-50">
+                  {orgName} • OFFICIAL ACCESS
+                </div>
+              </div>
+            </div>
+
+            {/* Sidebar Controls - ปรับขนาดและสีตัวอักษรให้ชัดเจนขึ้น */}
+            <div className="w-full md:w-96 p-10 flex flex-col gap-8 overflow-y-auto scrollbar-hide border-l border-slate-100 !bg-white">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-bold text-3xl text-black">QR Creator</h3>
+                  <p className="text-sm text-slate-500 font-bold mt-1">ออกแบบใบแจ้งเหตุของคุณ</p>
+                </div>
+                <button onClick={() => setShowQrEditor(false)} className="p-2.5 bg-slate-100 rounded-full text-slate-900 hover:text-red-500 transition-all">
+                  <X size={24} strokeWidth={3} />
+                </button>
+              </div>
+
+              <div className="space-y-5">
+                <label className="text-sm font-black uppercase text-black flex items-center gap-2">
+                  <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div> 1. เลือกกรอบ (FRAME)
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {['none', 'bold', 'indigo', 'gold'].map(f => (
+                    <button key={f} onClick={() => setSelectedFrame(f)} 
+                      className={`h-14 rounded-2xl border-2 text-sm font-black uppercase transition-all flex items-center justify-center ${selectedFrame === f ? 'border-black bg-slate-900 text-white shadow-lg' : 'border-slate-100 text-slate-400 hover:border-slate-200 bg-slate-50'}`}>
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-5">
+                <label className="text-sm font-black uppercase text-black flex items-center gap-2">
+                   <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div> 2. ข้อความกำกับ (CAPTION)
+                </label>
+                <textarea 
+                  className="textarea textarea-bordered w-full rounded-2xl font-bold text-base h-32 !bg-slate-50 border-slate-200 text-black focus:ring-2 ring-black outline-none p-4 shadow-inner"
+                  placeholder="สแกนเพื่อ..."
+                  value={qrText}
+                  onChange={(e) => setQrText(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-8">
+                <label className="text-sm font-black uppercase text-black flex items-center gap-2">
+                   <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div> 3. การวางตำแหน่ง (LAYOUT)
+                </label>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs font-black text-black uppercase">
+                      <span>ตำแหน่งบน-ล่าง</span>
+                      <span className="bg-slate-100 px-2 py-0.5 rounded-md">{textPos}PX</span>
+                    </div>
+                    <input type="range" min="40" max="480" value={textPos} onChange={(e) => setTextPos(e.target.value)} className="range range-xs range-primary !bg-slate-100" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs font-black text-black uppercase">
+                      <span>ขนาดอักษร</span>
+                      <span className="bg-slate-100 px-2 py-0.5 rounded-md">{textSize}PX</span>
+                    </div>
+                    <input type="range" min="12" max="150" value={textSize} onChange={(e) => setTextSize(e.target.value)} className="range range-xs range-primary !bg-slate-100" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-auto pt-8 flex gap-3">
+                <button className="btn btn-ghost flex-1 h-14 rounded-2xl text-slate-400 hover:text-red-500 font-bold">
+                   <Trash2 size={20} />
+                </button>
+                <button className="btn !bg-indigo-600 hover:!bg-indigo-700 !text-white rounded-[1.5rem] h-14 border-none font-bold shadow-xl flex-[4] flex items-center justify-center gap-3 active:scale-95 transition-all text-base">
+                  <Save size={20} /> บันทึกและเพิ่มเข้าคลัง
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* อื่นๆ (Update, Delete, QR Modal) อยู่ครบถ้วนตามเดิม */}
+      {updateModal.show && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="!bg-white w-full max-w-md rounded-[2.5rem] p-8 border-2 border-white shadow-2xl animate-in zoom-in duration-300">
+            <div className={`w-16 h-16 ${updateModal.type === 'restore' ? 'bg-indigo-50 text-indigo-500' : 'bg-blue-50 text-blue-500'} rounded-full flex items-center justify-center mx-auto mb-6`}>
+                <AlertCircle size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-center mb-2 !text-slate-900">ยืนยัน{updateModal.title}?</h3>
+            <p className="text-slate-500 text-sm text-center mb-6 font-bold">{updateModal.type === 'restore' ? "ข้อมูลจะกลับมาแสดงผลในระบบตามปกติ" : "กรุณาระบุรายละเอียดการแก้ไขเพื่อบันทึก Log"}</p>
+            <textarea className="textarea textarea-bordered w-full rounded-2xl min-h-[100px] mb-6 font-bold text-sm !bg-white !text-slate-900 border-slate-200 focus:!border-black outline-none shadow-sm" placeholder="ระบุเหตุผล..." value={updateModal.reason} onChange={(e) => setUpdateModal({...updateModal, reason: e.target.value})}></textarea>
+            <div className="flex gap-3">
+              <button onClick={() => setUpdateModal({ show: false, type: "", title: "", newValue: null, reason: "" })} className="btn flex-1 rounded-xl font-bold !bg-slate-100 border-none !text-slate-600 h-12">ยกเลิก</button>
+              <button onClick={handleIndividualUpdate} disabled={isSearching || !updateModal.reason.trim()} className={`btn flex-1 rounded-xl !text-white border-none font-bold shadow-lg h-12 ${updateModal.type === 'restore' ? '!bg-indigo-600 hover:!bg-indigo-700' : '!bg-black hover:!bg-slate-800'}`}>{isSearching ? <Loader2 className="animate-spin" /> : "ยืนยัน"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showDeleteModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="!bg-white w-full max-w-md rounded-[2.5rem] p-8 border-2 border-white shadow-2xl animate-in zoom-in duration-300">
@@ -540,25 +646,18 @@ export default function ManageOrgPage() {
         </div>
       )}
 
-      {/* Pop-up ดู QR */}
       {showQrModal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setShowQrModal(false)}>
           <div className="relative !bg-white p-6 sm:p-8 rounded-[2.8rem] max-w-sm w-full shadow-2xl animate-in zoom-in duration-500 border-4 border-white/50" onClick={(e) => e.stopPropagation()} >
-            <button onClick={() => setShowQrModal(false)} className="absolute top-5 right-5 w-10 h-10 !bg-[#ef4444] !text-white rounded-full flex items-center justify-center shadow-lg active:scale-90">
-              <X size={24} strokeWidth={3} />
-            </button>
+            <button onClick={() => setShowQrModal(false)} className="absolute top-5 right-5 w-10 h-10 !bg-[#ef4444] !text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 z-20"><X size={24} strokeWidth={3} /></button>
             <div className="text-center mb-6 mt-4">
               <h3 className="font-bold text-slate-900 text-lg tracking-tight uppercase px-8">QR CODE สำหรับแจ้งเหตุ</h3>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 px-8 truncate opacity-60">{orgName}</p>
             </div>
             <div className="bg-slate-50 border border-slate-100 rounded-[2.2rem] p-5 shadow-inner mb-8">
-              <div className="bg-white rounded-[1.5rem] p-3 shadow-sm">
-                <img src={qrReportUrl} className="w-full h-auto object-contain" alt="QR Large" />
-              </div>
+              <div className="bg-white rounded-[1.5rem] p-3 shadow-sm"><img src={qrReportUrl} className="w-full h-auto object-contain" alt="QR Large" /></div>
             </div>
-            <button onClick={() => handleDownloadQR(qrReportUrl, orgName)} className="btn w-full h-14 !bg-[#0f172a] !text-white !rounded-2xl font-black border-none shadow-xl hover:!bg-black transition-all flex items-center justify-center gap-3 text-xs uppercase">
-              <Download size={20} strokeWidth={3} /> ดาวน์โหลด QR CODE
-            </button>
+            <button onClick={() => handleDownloadQR(qrReportUrl, orgName)} className="btn w-full h-14 !bg-[#0f172a] !text-white !rounded-2xl font-black border-none shadow-xl hover:!bg-black transition-all flex items-center justify-center gap-3 text-xs uppercase"><Download size={20} strokeWidth={3} /> ดาวน์โหลด QR CODE</button>
           </div>
         </div>
       )}
