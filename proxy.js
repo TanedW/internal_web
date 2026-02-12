@@ -9,7 +9,7 @@ const ROLE_PERMISSIONS = {
   '/search-org': ["admin", "editor", "editor_search_duplicate_org"],
 };
 
-export async function middleware(request) {
+export async function proxy(request) {
   const { pathname } = request.nextUrl;
   
   // 2. ดึง Token จาก Cookies (เนื่องจากเราเก็บแบบ HttpOnly Cookie)
