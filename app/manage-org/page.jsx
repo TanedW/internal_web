@@ -79,6 +79,7 @@ export default function ManageOrgPage() {
   };
 
   // ฟังก์ชันหลักในการอัปเดตแยกส่วน
+  // ฟังก์ชันหลักในการอัปเดตแยกส่วน รวมถึงการ Restore
   const handleIndividualUpdate = async () => {
     if (!orgId || !updateModal.reason.trim()) {
       alert("กรุณาระบุเหตุผลการแก้ไข");
@@ -94,7 +95,7 @@ export default function ManageOrgPage() {
       let payload = {
         current_admin_id: adminId,
         description: updateModal.reason,
-        restore: false
+        restore: false // ค่าเริ่มต้นเป็น false
       };
 
       // จัดการ Payload ตามประเภทการแก้ไข
@@ -107,6 +108,9 @@ export default function ManageOrgPage() {
       } else if (updateModal.type === 'official') {
         payload.official_group = updateModal.newValue;
         payload.old_official = currentOrgData.is_official;
+      } else if (updateModal.type === 'restore') {
+        // ส่วนที่ปรับปรุง: ให้ทำงานเหมือนไฟล์ที่แนบมา
+        payload.restore = true;
       } else if (updateModal.type === 'logo') {
         const base64Image = await fileToBase64(updateModal.newValue);
         const uploadRes = await fetch(uploadApiUrl, {
@@ -130,7 +134,7 @@ export default function ManageOrgPage() {
 
       const result = await response.json();
       if (response.ok && result.success) {
-        alert(`แก้ไข${updateModal.title}สำเร็จ`);
+        alert(updateModal.type === 'restore' ? "กู้คืนหน่วยงานสำเร็จ" : `แก้ไข${updateModal.title}สำเร็จ`);
         setUpdateModal({ show: false, type: "", title: "", newValue: null, reason: "" });
         await fetchOrgData(searchId); 
       } else {
@@ -142,7 +146,6 @@ export default function ManageOrgPage() {
       setIsSearching(false);
     }
   };
-
   const handleDelete = async () => {
     if (!orgId || !deleteReason.trim()) {
       alert("กรุณาระบุสาเหตุการลบ");
@@ -458,16 +461,26 @@ export default function ManageOrgPage() {
 
               {/* ปุ่มลบด้านล่าง (คงไว้แต่ลบปุ่มยืนยันรวมออก) */}
               <div className="flex pt-2">
-                {cases.find(c => c.org_id === orgId)?.is_deleted ? (
-                  <button onClick={() => setUpdateModal({ show: true, type: 'restore', title: 'กู้คืนหน่วยงาน', newValue: true, reason: "" })} className="btn flex-1 h-14 !rounded-2xl !bg-indigo-600 hover:!bg-indigo-700 !text-white !border-none font-bold shadow-lg transition-all">
-                    <RefreshCcw size={18} className={isSearching ? "animate-spin" : ""} /> กู้คืนหน่วยงาน
-                  </button>
-                ) : (
-                  <button onClick={() => setShowDeleteModal(true)} className="btn flex-1 h-14 !rounded-2xl !bg-red-50 hover:!bg-red-100 !text-red-600 !border-red-100 font-bold transition-all">
-                    <Trash2 size={18} /> ลบหน่วยงาน
-                  </button>
-                )}
-              </div>
+  {cases.find(c => c.org_id === orgId)?.is_deleted ? (
+    // ปุ่ม Restore แบบใหม่: เปิด Modal แทน
+    <button 
+      onClick={() => setUpdateModal({ 
+        show: true, 
+        type: 'restore', 
+        title: 'กู้คืนหน่วยงาน', 
+        newValue: true, 
+        reason: "" 
+      })} 
+      className="btn flex-1 h-14 !rounded-2xl !bg-indigo-600 hover:!bg-indigo-700 !text-white !border-none font-bold shadow-lg transition-all"
+    >
+      <RefreshCcw size={18} className={isSearching ? "animate-spin" : ""} /> กู้คืนหน่วยงาน
+    </button>
+  ) : (
+    <button onClick={() => setShowDeleteModal(true)} className="btn flex-1 h-14 !rounded-2xl !bg-red-50 hover:!bg-red-100 !text-red-600 !border-red-100 font-bold transition-all">
+      <Trash2 size={18} /> ลบหน่วยงาน
+    </button>
+  )}
+</div>
             </div>
           )}
         </div>
@@ -475,38 +488,41 @@ export default function ManageOrgPage() {
 
       {/* Modal ยืนยันการแก้ไขรายส่วน (Universal Update Modal) */}
       {updateModal.show && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="!bg-white w-full max-w-md rounded-[2.5rem] p-8 border-2 border-white shadow-2xl animate-in zoom-in duration-300">
-            <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-6"><AlertCircle size={32} /></div>
-            <h3 className="text-xl font-bold text-center mb-2 !text-slate-900">ยืนยันการแก้ไข{updateModal.title}?</h3>
-            <p className="text-slate-500 text-sm text-center mb-6 font-bold">กรุณาระบุรายละเอียดหรือเหตุผลในการแก้ไขเพื่อบันทึก Log</p>
-            <textarea 
-                className="textarea textarea-bordered w-full rounded-2xl min-h-[100px] mb-6 font-bold text-sm !bg-white !text-slate-900 border-slate-200 focus:!border-black outline-none shadow-sm" 
-                placeholder="รายละเอียดการแก้ไข..." 
-                value={updateModal.reason} 
-                onChange={(e) => setUpdateModal({...updateModal, reason: e.target.value})}
-            ></textarea>
-            <div className="flex gap-3">
-              <button 
-                onClick={() => {
-                    setUpdateModal({ show: false, type: "", title: "", newValue: null, reason: "" });
-                    // Reset UI value if needed (like toggles) by re-fetching or using state
-                }} 
-                className="btn flex-1 rounded-xl font-bold !bg-slate-100 border-none !text-slate-600 h-12"
-              >
-                ยกเลิก
-              </button>
-              <button 
-                onClick={handleIndividualUpdate} 
-                disabled={isSearching || !updateModal.reason.trim()}
-                className="btn flex-1 rounded-xl !bg-black !text-white hover:!bg-slate-800 border-none font-bold shadow-lg h-12"
-              >
-                {isSearching ? <Loader2 className="animate-spin" /> : "บันทึกข้อมูล"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+  <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+    <div className="!bg-white w-full max-w-md rounded-[2.5rem] p-8 border-2 border-white shadow-2xl animate-in zoom-in duration-300">
+      <div className={`w-16 h-16 ${updateModal.type === 'restore' ? 'bg-indigo-50 text-indigo-500' : 'bg-blue-50 text-blue-500'} rounded-full flex items-center justify-center mx-auto mb-6`}>
+          <AlertCircle size={32} />
+      </div>
+      <h3 className="text-xl font-bold text-center mb-2 !text-slate-900">ยืนยัน{updateModal.title}?</h3>
+      <p className="text-slate-500 text-sm text-center mb-6 font-bold">
+          {updateModal.type === 'restore' ? "ข้อมูลจะกลับมาแสดงผลในระบบตามปกติ" : "กรุณาระบุรายละเอียดการแก้ไขเพื่อบันทึก Log"}
+      </p>
+      <textarea 
+          className="textarea textarea-bordered w-full rounded-2xl min-h-[100px] mb-6 font-bold text-sm !bg-white !text-slate-900 border-slate-200 focus:!border-black outline-none shadow-sm" 
+          placeholder="ระบุเหตุผลในการดำเนินการ..." 
+          value={updateModal.reason} 
+          onChange={(e) => setUpdateModal({...updateModal, reason: e.target.value})}
+      ></textarea>
+      <div className="flex gap-3">
+        <button 
+          onClick={() => setUpdateModal({ show: false, type: "", title: "", newValue: null, reason: "" })} 
+          className="btn flex-1 rounded-xl font-bold !bg-slate-100 border-none !text-slate-600 h-12"
+        >
+          ยกเลิก
+        </button>
+        <button 
+          onClick={handleIndividualUpdate} 
+          disabled={isSearching || !updateModal.reason.trim()}
+          className={`btn flex-1 rounded-xl !text-white border-none font-bold shadow-lg h-12 ${
+            updateModal.type === 'restore' ? '!bg-indigo-600 hover:!bg-indigo-700' : '!bg-black hover:!bg-slate-800'
+          }`}
+        >
+          {isSearching ? <Loader2 className="animate-spin" /> : "ยืนยัน"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Modal ยืนยันการลบ */}
       {showDeleteModal && (
