@@ -65,15 +65,15 @@ export default function SearchOrgPage() {
         setIsDesktopSidebarOpen={setIsDesktopSidebarOpen}
       />
 
-      <main className={`flex-1 transition-all duration-300 ${isDesktopSidebarOpen ? "ml-72" : "ml-20"} p-8`}>
+      <main className={`flex-1 transition-all duration-300 pt-20 px-4 md:px-6 lg:p-8 ${isDesktopSidebarOpen ? "lg:ml-72" : "lg:ml-20"}`}>
         <div className="container-custom">
           <header className="header-section text-center mb-10">
-            <h1 className="text-3xl font-semibold text-blue-600 mb-2">ระบบตรวจสอบหน่วยงาน</h1>
+            <h1 className="text-2xl md:text-3xl font-semibold text-blue-600 mb-2">ระบบตรวจสอบหน่วยงาน</h1>
             <p className="text-slate-500">ค้นหาและเปรียบเทียบชื่อที่คล้ายคลึงกันในฐานข้อมูล</p>
           </header>
 
-          <div className="search-card bg-white p-8 rounded-2xl shadow-sm mb-8">
-            <form onSubmit={handleSearch} className="flex gap-3">
+          <div className="search-card bg-white p-6 md:p-8 rounded-2xl shadow-sm mb-8">
+            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
               <input
                 type="text"
                 className="flex-1 p-4 border-2 border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all"
@@ -85,7 +85,7 @@ export default function SearchOrgPage() {
               <button 
                 type="submit" 
                 disabled={isLoading}
-                className="px-8 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all disabled:bg-slate-300"
+                className="px-8 py-4 sm:py-0 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all disabled:bg-slate-300 flex justify-center items-center"
               >
                 {isLoading ? <Loader2 className="animate-spin" /> : "ตรวจสอบชื่อ"}
               </button>
@@ -115,7 +115,7 @@ export default function SearchOrgPage() {
                 const isDeleted = !!item.deleted_at;
 
                 return (
-                  <li key={item.id} className={`result-item bg-white p-5 rounded-xl border border-slate-200 flex justify-between items-start gap-5 transition-all hover:shadow-md ${isDeleted ? "is-deleted" : ""}`}>
+                  <li key={item.id} className={`result-item bg-white p-5 rounded-xl border border-slate-200 flex flex-col sm:flex-row justify-between items-start gap-4 transition-all hover:shadow-md ${isDeleted ? "is-deleted" : ""}`}>
                     <div className="org-info flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <span 
@@ -135,7 +135,7 @@ export default function SearchOrgPage() {
                       </div>
                       <span className="text-sm text-slate-400">ID: {item.id}</span>
                     </div>
-                    <div className="score-container text-right min-w-[130px]">
+                    <div className="score-container text-left sm:text-right w-full sm:w-auto sm:min-w-[130px] mt-3 sm:mt-0">
                       <span className="block text-[10px] text-slate-400 uppercase font-bold mb-1">คะแนนความคล้าย</span>
                       <span className={`score-badge px-3 py-1 rounded-full text-sm font-bold ${scoreInfo.class}`}>
                         {(parseFloat(item.similarity_score) * 100).toFixed(0)}% {scoreInfo.text}
