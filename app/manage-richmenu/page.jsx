@@ -58,7 +58,7 @@ function BotCard({ bot, currentMenuId, isActive }) {
             </div>
             <div className="w-full max-w-[280px] rounded-lg overflow-hidden border border-slate-200 bg-slate-50 shadow-sm relative">
                 {isActive ? (
-                    <img src={`/api/richmenu/image?botKey=${bot.key}&menuId=${currentMenuId}`} alt="Current Menu" className="max-w-full h-auto" />
+                    <img src={`/api/richmenu/image?botKey=${bot.key}&menuId=${currentMenuId}&v=${new Date().getTime()}`} alt="Current Menu" className="max-w-full h-auto" />
                 ) : (
                   <div className="flex flex-col items-center justify-center text-slate-400 gap-1 p-2 w-full h-full bg-slate-50 min-h-[80px]">
                      <AlertCircle size={16} />

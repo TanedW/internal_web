@@ -1665,7 +1665,7 @@ export default function RichMenuDashboard() {
                     const isCurrent = menu.richMenuId === currentMenuId;
                     const displayImageUrl =
                       menu.image_url ||
-                      `/api/richmenu/image?botKey=${botKey}&menuId=${menu.richMenuId}`;
+                      `/api/richmenu/image?botKey=${botKey}&menuId=${menu.richMenuId}&t=${new Date().getTime()}`;
 
                     return (
                       <div
@@ -1679,8 +1679,7 @@ export default function RichMenuDashboard() {
                             className="w-full h-full object-contain p-1"
                             loading="lazy"
                             onError={(e) => {
-                              e.target.src =
-                                "https://via.placeholder.com/2500x843?text=No+Image";
+                              e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2500' height='843'%3E%3Crect width='100%25' height='100%25' fill='%23cccccc'/%3E%3C/svg%3E";
                             }}
                           />
                           {isCurrent && (

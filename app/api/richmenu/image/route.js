@@ -9,8 +9,8 @@ import { getBotToken } from "@/lib/botConfig";
  */
 export async function GET(request, { params }) {
   try {
-    const { richMenuId } = params;
     const { searchParams } = new URL(request.url);
+    const richMenuId = searchParams.get("menuId");
     let botKey = searchParams.get("botKey");
 
     // ตรวจสอบ parameters
