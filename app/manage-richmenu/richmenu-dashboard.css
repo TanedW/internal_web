@@ -75,6 +75,7 @@
 
 /* CARDS */
 .php-card {
+  background: var(--php-bg-card);
   border-radius: var(--php-radius);
   box-shadow: var(--php-shadow);
   margin-bottom: 24px;
