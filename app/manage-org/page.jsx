@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import Sidebar from "../components/sidebar"; 
 import { 
   Building2, Upload, Image as ImageIcon, 
@@ -42,10 +42,30 @@ export default function ManageOrgPage() {
   
   const [qrList, setQrList] = useState([]); 
   const [showQrEditor, setShowQrEditor] = useState(false);
+
+  // --- QR Editor State ---
   const [selectedFrame, setSelectedFrame] = useState("none");
   const [qrText, setQrText] = useState("สแกนเพื่อแจ้งเหตุ");
   const [textSize, setTextSize] = useState(20);
   const [textPos, setTextPos] = useState(380);
+
+  // เก็บค่าดั้งเดิมไว้เพื่อเปรียบเทียบ (ล็อคค่าตอนเปิด Modal แก้ไข)
+  const [originalSettings, setOriginalSettings] = useState({
+    frame: "none",
+    text: "สแกนเพื่อแจ้งเหตุ",
+    size: 20,
+    pos: 380
+  });
+
+  // เช็คว่ามีการแก้ไขข้อมูลจากค่าเดิมหรือไม่
+  const isQrModified = useMemo(() => {
+    return (
+      selectedFrame !== originalSettings.frame ||
+      qrText !== originalSettings.text ||
+      textSize !== originalSettings.size ||
+      textPos !== originalSettings.pos
+    );
+  }, [selectedFrame, qrText, textSize, textPos, originalSettings]);
 
   const staffMockup = [
     { id: 1, name: "สมชาย สายตรวจ", role: "Super Admin", phone: "081-234-5678", email: "somchai@citydata.go.th", img: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=100" },
@@ -117,6 +137,9 @@ export default function ManageOrgPage() {
         payload.old_official = currentOrgData.is_official;
       } else if (updateModal.type === 'restore') {
         payload.restore = true;
+      } else if (updateModal.type === 'qr_edit') {
+        payload.qr_config = updateModal.newValue;
+        payload.old_qr_url = currentOrgData.qr_report_url;
       } else if (updateModal.type === 'logo') {
         const base64Image = await fileToBase64(updateModal.newValue);
         const uploadRes = await fetch(uploadApiUrl, {
@@ -142,6 +165,7 @@ export default function ManageOrgPage() {
       if (response.ok && result.success) {
         alert(updateModal.type === 'restore' ? "กู้คืนหน่วยงานสำเร็จ" : `แก้ไข${updateModal.title}สำเร็จ`);
         setUpdateModal({ show: false, type: "", title: "", newValue: null, reason: "" });
+        setShowQrEditor(false); 
         await fetchOrgData(searchId); 
       } else {
         alert("เกิดข้อผิดพลาด: " + (result.message || result.error));
@@ -207,7 +231,19 @@ export default function ManageOrgPage() {
 
   const handleEditExistingQr = (qr) => {
     setQrReportUrl(qr.url);
-    setQrText(qr.label || "สแกนเพื่อแจ้งเหตุ");
+    const labelText = qr.label || "สแกนเพื่อแจ้งเหตุ";
+    setQrText(labelText);
+    // เซ็ตค่าปัจจุบัน
+    setSelectedFrame("none");
+    setTextSize(20);
+    setTextPos(380);
+    // เซ็ตค่า Original เพื่อเปรียบเทียบ
+    setOriginalSettings({
+      frame: "none",
+      text: labelText,
+      size: 20,
+      pos: 380
+    });
     setShowQrEditor(true);
   };
 
@@ -418,10 +454,10 @@ export default function ManageOrgPage() {
                       <p className="text-sm text-slate-600 font-bold uppercase tracking-tight">อนุญาตให้ดาวน์โหลดรายงาน</p>
                     </div>
                   </div>
-                  {/* เปลี่ยน Toggle เป็นสีเขียวเข้มแบบในรูป */}
+                  {/* แก้ไข Toggle CSV ตรงนี้ */}
                   <input 
                     type="checkbox" 
-                    className="toggle !bg-[#00945e] border-[#00945e]" 
+                    className={`toggle ${isCsvEnabled ? '!bg-[#00945e] border-[#00945e]' : 'bg-slate-300 border-slate-300'}`} 
                     checked={isCsvEnabled} 
                     onChange={(e) => setUpdateModal({ show: true, type: 'csv', title: 'สิทธิ์ CSV', newValue: e.target.checked, reason: "" })} 
                   />
@@ -434,16 +470,16 @@ export default function ManageOrgPage() {
                       <p className="text-sm text-slate-600 font-bold uppercase tracking-tight">ยืนยันตัวตนทางการ</p>
                     </div>
                   </div>
+                  {/* แก้ไข Toggle Official ตรงนี้ */}
                   <input 
                     type="checkbox" 
-                    className="toggle toggle-info" 
+                    className={`toggle ${isOfficial ? 'toggle-info' : 'bg-slate-300 border-slate-300'}`} 
                     checked={isOfficial} 
                     onChange={(e) => setUpdateModal({ show: true, type: 'official', title: 'สถานะ Official', newValue: e.target.checked, reason: "" })} 
                   />
                 </div>
               </div>
 
-              {/* ส่วน Staff List ที่แก้ไขขอบบนและสีสถานะ */}
               <div className="!bg-white p-6 sm:p-8 rounded-[2.5rem] shadow-sm border-2 border-white">
                 <div className="flex items-center justify-between mb-6 px-1">
                   <div className="flex items-center gap-3">
@@ -456,7 +492,6 @@ export default function ManageOrgPage() {
                   <span className="text-sm font-bold bg-slate-200 px-4 py-1.5 rounded-full text-slate-800 uppercase tracking-widest">{staffMockup.length} คน</span>
                 </div>
                 
-                {/* เพิ่ม pt-10 เผื่อระยะเวลา Hover ยกตัวการ์ด */}
                 <div className="flex gap-6 overflow-x-auto pt-10 pb-6 px-1 snap-x scroll-smooth qr-gallery-scrollbar">
                   {staffMockup.map((staff) => (
                     <div 
@@ -467,7 +502,6 @@ export default function ManageOrgPage() {
                         <div className="w-24 h-24 rounded-full overflow-hidden border-[6px] border-white shadow-xl transition-all duration-500 group-hover:scale-105">
                           <img src={staff.img} className="w-full h-full object-cover" alt={staff.name} />
                         </div>
-                        {/* สถานะ Online สีเขียวแบบในรูปตัวอย่างที่ส่งมา */}
                         <div className="absolute bottom-1 right-1 w-6 h-6 bg-[#00945e] border-4 border-white rounded-full shadow-lg"></div>
                       </div>
 
@@ -698,7 +732,21 @@ export default function ManageOrgPage() {
               </div>
 
               <div className="mt-auto pt-6 flex gap-3">
-                <button className="btn !bg-[#00945e] hover:!bg-[#007a4d] !text-white rounded-2xl h-14 border-none shadow-xl flex-[2] flex items-center justify-center gap-3 active:scale-95 transition-all text-base font-bold uppercase tracking-widest font-bold">
+                <button 
+                   disabled={!isQrModified}
+                   onClick={() => setUpdateModal({
+                     show: true,
+                     type: 'qr_edit',
+                     title: 'การตั้งค่า QR Code',
+                     newValue: { frame: selectedFrame, text: qrText, size: textSize, pos: textPos },
+                     reason: ""
+                   })}
+                   className={`btn rounded-2xl h-14 border-none shadow-xl flex-[2] flex items-center justify-center gap-3 active:scale-95 transition-all text-base font-bold uppercase tracking-widest font-bold ${
+                     isQrModified 
+                     ? '!bg-[#00945e] !text-white hover:!bg-[#007a4d]' 
+                     : '!bg-slate-200 !text-slate-400 cursor-not-allowed'
+                   }`}
+                >
                   <Save size={20} strokeWidth={3} /> บันทึก
                 </button>
               </div>
@@ -709,7 +757,7 @@ export default function ManageOrgPage() {
 
       {/* UPDATE MODAL */}
       {updateModal.show && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="!bg-white w-full max-w-md rounded-[3rem] p-10 border-2 border-white shadow-2xl animate-in zoom-in duration-300 relative">
             <button 
               onClick={() => setUpdateModal({ show: false, type: "", title: "", newValue: null, reason: "" })} 
@@ -717,12 +765,17 @@ export default function ManageOrgPage() {
             >
               <X size={24} strokeWidth={3} />
             </button>
-            <div className={`w-20 h-20 ${updateModal.type === 'restore' ? 'bg-indigo-50 text-indigo-600' : 'bg-blue-50 text-blue-600'} rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner border border-slate-100`}>
+            <div className={`w-20 h-20 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner border border-blue-100`}>
                 <AlertCircle size={40} />
             </div>
             <h3 className="text-2xl font-bold text-center mb-2 !text-slate-900 tracking-tight font-bold">ยืนยัน{updateModal.title}?</h3>
-            <p className="text-slate-600 text-base text-center mb-8 font-bold leading-relaxed font-bold">{updateModal.type === 'restore' ? "ข้อมูลจะกลับมาแสดงผลในระบบตามปกติ" : "กรุณาระบุรายละเอียดการแก้ไขเพื่อบันทึก Log การเข้าถึงข้อมูล"}</p>
-            <textarea className="textarea textarea-bordered w-full rounded-3xl min-h-[120px] mb-8 font-bold text-base !bg-slate-50 !text-slate-900 border-slate-300 focus:!border-black outline-none shadow-inner p-5 transition-all font-bold" placeholder="ระบุเหตุผลในการแก้ไขครั้งนี้..." value={updateModal.reason} onChange={(e) => setUpdateModal({...updateModal, reason: e.target.value})}></textarea>
+            <p className="text-slate-600 text-base text-center mb-8 font-bold leading-relaxed font-bold">กรุณาระบุรายละเอียดการแก้ไขเพื่อบันทึก Log การเข้าถึงข้อมูล</p>
+            <textarea 
+               className="textarea textarea-bordered w-full rounded-3xl min-h-[120px] mb-8 font-bold text-base !bg-slate-50 !text-slate-900 border-slate-300 focus:!border-black outline-none shadow-inner p-5 transition-all font-bold" 
+               placeholder="ระบุเหตุผลในการแก้ไขครั้งนี้..." 
+               value={updateModal.reason} 
+               onChange={(e) => setUpdateModal({...updateModal, reason: e.target.value})}
+            ></textarea>
             <div className="flex gap-4">
               <button 
                 onClick={handleIndividualUpdate} 

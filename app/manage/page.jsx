@@ -10,7 +10,8 @@ import {
   Trash2, 
   X, 
   Mail,
-  Menu 
+  Menu,
+  Check 
 } from "lucide-react";
 
 // ✅ ดึง Sidebar มาจากไฟล์ภายนอก
@@ -21,7 +22,7 @@ export default function Manage() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // --- State ข้อมูล (คงไว้ตามเดิมเป๊ะ) ---
+  // --- State ข้อมูล ---
   const [allowedEmails, setAllowedEmails] = useState([]); 
   const [filteredEmails, setFilteredEmails] = useState([]); 
   const [searchTerm, setSearchTerm] = useState(""); 
@@ -31,11 +32,38 @@ export default function Manage() {
   const [roleModalData, setRoleModalData] = useState(null);
   const [selectedEmailForMobile, setSelectedEmailForMobile] = useState("");
   const [newEmail, setNewEmail] = useState("");
-  const [newRole, setNewRole] = useState(""); 
+  
+  // ✅ เปลี่ยนจาก String เป็น Array เพื่อรองรับการเลือกหลายอัน
+  const [newRoles, setNewRoles] = useState([]); 
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sidebarKey, setSidebarKey] = useState(0);
 
   const API_URL = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
+
+  // รายการ Role ให้เลือก
+  const ROLE_OPTIONS = [
+    { value: "Admin", label: "Admin" },
+    { value: "Editor", label: "Editor" },
+    { value: "editor_manage_email", label: "Admin Email" },
+    { value: "editor_manage_case", label: "Admin Case" },
+    { value: "editor_manage_menu", label: "Admin Menu" },
+    { value: "Member", label: "Member" },
+    { value: "Guest", label: "Guest" },
+  ];
+
+  // ✅ CSS แก้ไข Autofill และคงความโค้งมน (มินิมอล)
+  const autofillStyles = `
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover, 
+    input:-webkit-autofill:focus, 
+    input:-webkit-autofill:active {
+        -webkit-box-shadow: 0 0 0 30px #f8fafc inset !important;
+        -webkit-text-fill-color: #0f172a !important;
+        border-radius: 1rem !important;
+        transition: background-color 5000s ease-in-out 0s;
+    }
+  `;
 
   const getCurrentAdminId = () => {
     if (typeof window !== "undefined") {
@@ -100,13 +128,18 @@ export default function Manage() {
     setFilteredEmails(results);
   }, [searchTerm, allowedEmails]);
 
+  // ✅ ฟังก์ชันจัดการการเลือก Role
+  const toggleRole = (roleValue) => {
+    setNewRoles(prev => 
+      prev.includes(roleValue) 
+        ? prev.filter(r => r !== roleValue) 
+        : [...prev, roleValue]
+    );
+  };
+
   const handleAddEmail = async (e) => {
     e.preventDefault();
-    if (!newEmail.trim() || !newEmail.includes("@")) return;
-    if (!newRole) {
-        alert("กรุณาเลือกบทบาท (Role) สำหรับผู้ใช้งานนี้ก่อนดำเนินการครับ");
-        return;
-    }
+    if (!newEmail.trim() || !newEmail.includes("@") || newRoles.length === 0) return;
     const currentAdminId = getCurrentAdminId();
     setIsSubmitting(true);
     try {
@@ -115,13 +148,13 @@ export default function Manage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 email: newEmail,
-                role: newRole, 
+                roles: newRoles, 
                 current_admin_id: currentAdminId 
             }),
         });
         if (res.ok) {
             setNewEmail("");
-            setNewRole(""); 
+            setNewRoles([]); 
             fetchAdmins();
             setSidebarKey(prev => prev + 1);
             document.getElementById('add_admin_modal').close();
@@ -134,7 +167,7 @@ export default function Manage() {
   };
 
   const handleDeleteEmail = async (targetId) => {
-    if(!confirm("ยืนยันการระงับสิทธิ์ผู้ใช้งานนี้? (ข้อมูลจะยังคงอยู่ในระบบแต่ไม่สามารถเข้าระบบได้)")) return;
+    if(!confirm("ยืนยันการระงับสิทธิ์ผู้ใช้งานนี้?")) return;
     const currentAdminId = getCurrentAdminId();
     try {
         const res = await fetch(`${API_URL}?id=${targetId}`, {
@@ -156,8 +189,11 @@ export default function Manage() {
 
   if (loading) return <div className="min-h-screen flex justify-center items-center"><span className="loading loading-spinner text-primary"></span></div>;
 
+  const isFormValid = newEmail.trim().includes("@") && newRoles.length > 0;
+
   return (
     <div className="min-h-screen bg-[#F4F6F8] font-sans">
+      <style>{autofillStyles}</style>
       <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
       <script src="https://cdn.tailwindcss.com"></script>
 
@@ -224,7 +260,7 @@ export default function Manage() {
         }`}>
             {/* Add Member Card */}
             <div 
-               className={`hidden lg:flex group relative flex-col items-center justify-center border-2 border-dashed border-indigo-300 !bg-white hover:border-indigo-600 hover:bg-indigo-50 transition-all duration-300 cursor-pointer rounded-2xl shadow-md hover:shadow-xl hover:shadow-indigo-200/50 hover:-translate-y-2 h-full ${
+               className={`hidden lg:flex group relative flex-col items-center justify-center border-2 border-dashed border-indigo-300 !bg-white hover:border-indigo-600 hover:bg-indigo-50 transition-all duration-300 cursor-pointer rounded-3xl shadow-md hover:shadow-xl hover:shadow-indigo-200/50 hover:-translate-y-2 h-full ${
                  isDesktopSidebarOpen ? 'p-4' : 'p-6'
                }`}
                onClick={() => document.getElementById('add_admin_modal').showModal()}
@@ -244,7 +280,7 @@ export default function Manage() {
                 const userRoles = item.roles && item.roles.length > 0 ? item.roles : (item.role ? [item.role] : ['member']);
                 return (
                     <div key={item.admin_id} 
-                        className={`relative !bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col items-center text-center justify-center h-full hover:z-30 ${
+                        className={`relative !bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col items-center text-center justify-center h-full hover:z-30 ${
                             isDesktopSidebarOpen ? "p-4" : "p-6"
                         }`}
                     >
@@ -279,7 +315,6 @@ export default function Manage() {
                             </div>
                         </div>
                         
-                        {/* ✅ แก้ไข Role บน Mobile: บังคับแถวเดียว และสีปุ่ม +more ให้ซอฟต์ลง */}
                         <div className="lg:hidden mt-2 w-full px-2 flex flex-nowrap gap-2 justify-center items-center overflow-x-hidden">
                             {userRoles.length > 0 && (
                                 <span className="flex-shrink-0 !text-indigo-600 font-bold text-[9px] uppercase tracking-wider !bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 whitespace-nowrap">
@@ -300,7 +335,6 @@ export default function Manage() {
                             )}
                         </div>
 
-                        {/* ✅ แก้ไข Role บน Desktop: บังคับแถวเดียว ไม่ตัดคำ */}
                         <div className="hidden lg:flex flex-nowrap gap-2 justify-center items-center mt-2 w-full px-1">
                             {userRoles.length > 0 && (
                                 <span className={`flex-shrink-0 font-bold uppercase tracking-wider !bg-indigo-50 rounded-full border border-indigo-100 !text-indigo-600 whitespace-nowrap ${
@@ -334,66 +368,97 @@ export default function Manage() {
       
       {/* 1. Add Member Modal */}
       <dialog id="add_admin_modal" className="modal modal-bottom sm:modal-middle z-[999]">
-          <div className="modal-box !bg-white p-6 rounded-t-[2rem] sm:rounded-2xl shadow-2xl">
-              <div className="flex justify-between items-center mb-6">
-                  <h3 className="font-bold text-xl !text-slate-800">Add Member</h3>
-                  <button onClick={() => document.getElementById('add_admin_modal').close()} className="btn btn-sm btn-circle btn-ghost text-slate-400 bg-slate-100 hover:bg-slate-200">
-                      <X size={16} />
+          <div className="modal-box !bg-[#F8FAFC] p-7 rounded-t-[3rem] sm:rounded-[2.5rem] shadow-2xl relative border-none">
+              <div className="flex justify-between items-center mb-6 px-2">
+                  <h3 className="font-bold text-xl !text-slate-900">Add Member</h3>
+                  <button 
+                    onClick={() => document.getElementById('add_admin_modal').close()} 
+                    className="absolute top-6 right-6 w-10 h-10 !bg-[#ef4444] !text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all hover:scale-110 z-20 border-4 border-white"
+                  >
+                      <X size={20} strokeWidth={3} />
                   </button>
               </div>
-              <form onSubmit={handleAddEmail} className="flex flex-col gap-4">
-                  <div className="form-control">
-                      <label className="label !text-slate-700 font-bold">Email Address</label>
-                      <label className="input input-bordered h-12 flex items-center gap-2 !bg-slate-50 rounded-xl">
-                          <Mail size={18} className="opacity-50 !text-slate-400" />
-                          <input type="email" className="grow !text-slate-800" placeholder="mail@site.com" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} required />
+              <form onSubmit={handleAddEmail} className="flex flex-col gap-5">
+                  <div className="form-control px-2">
+                      <label className="label !text-slate-900 font-bold">Email Address</label>
+                      <label className="input input-bordered h-14 flex items-center gap-2 !bg-white rounded-2xl border-none shadow-sm focus-within:ring-2 ring-indigo-100 transition-all">
+                          <Mail size={18} className="!text-slate-400" />
+                          <input 
+                            type="email" 
+                            className="grow !text-slate-900 font-bold placeholder:text-slate-300" 
+                            placeholder="mail@site.com" 
+                            value={newEmail} 
+                            onChange={(e) => setNewEmail(e.target.value)} 
+                            required 
+                            autoComplete="off"
+                          />
                       </label>
                   </div>
-                  <div className="form-control">
-                      <label className="label !text-slate-700 font-bold">Assign Role</label>
-                      <select className="select select-bordered !bg-slate-50 !text-slate-800 rounded-xl" value={newRole} onChange={(e) => setNewRole(e.target.value)}>
-                          <option value="" disabled>-- กรุณาเลือกบทบาท --</option>
-                          <option value="editor_manage_user">Admin Email</option>
-                          <option value="editor_manage_case">Admin Case</option>
-                          <option value="editor_manage_menu">Admin Menu</option>
-                          <option value="editor_manage_org_info">Admin ORG</option>
-                      </select>
+
+                  {/* ✅ ส่วนเลือก Roles ปรับให้เหมือนรูป (มน ขาว คลีน) */}
+                  <div className="form-control px-2">
+                      <label className="label !text-slate-900 font-bold">Assign Roles</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                        {ROLE_OPTIONS.map((opt) => {
+                            const isSelected = newRoles.includes(opt.value);
+                            return (
+                                <div 
+                                    key={opt.value}
+                                    onClick={() => toggleRole(opt.value)}
+                                    className={`
+                                        flex items-center justify-between p-4 rounded-full transition-all duration-200 cursor-pointer
+                                        bg-white shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-md
+                                        ${isSelected ? "ring-2 ring-indigo-500" : "ring-0"}
+                                    `}
+                                >
+                                    <span className={`pl-2 text-[11px] font-black uppercase tracking-widest ${isSelected ? "text-indigo-900" : "text-[#475569]"}`}>
+                                        {opt.label}
+                                    </span>
+                                    
+                                    <div className={`
+                                        w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300
+                                        ${isSelected ? "bg-indigo-600 shadow-sm" : "bg-[#DBE2E9]"}
+                                    `}>
+                                        {isSelected && <Check size={14} strokeWidth={4} className="text-white" />}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                      </div>
                   </div>
-                  <button type="submit" className="btn btn-primary w-full mt-4 h-12 rounded-xl text-white font-bold" disabled={isSubmitting}>
-                          {isSubmitting ? <span className="loading loading-spinner"></span> : "Confirm"}
-                  </button>
+
+                  <div className="px-2">
+                    <button 
+                        type="submit" 
+                        className={`btn w-full mt-4 h-14 rounded-full text-white font-bold border-none transition-all shadow-lg ${
+                        isFormValid ? "!bg-[#00945e] hover:!bg-[#007a4d]" : "!bg-slate-300 !text-slate-500 cursor-not-allowed"
+                        }`} 
+                        disabled={isSubmitting || !isFormValid}
+                    >
+                            {/* ✅ ปรับตัวหนังสือ Confirm เป็นสีขาวสว่าง */}
+                            <span className={isFormValid ? "text-white" : ""}>
+                                {isSubmitting ? <span className="loading loading-spinner"></span> : "Confirm"}
+                            </span>
+                    </button>
+                  </div>
               </form>
           </div>
           <form method="dialog" className="modal-backdrop bg-slate-900/40 backdrop-blur-sm"><button>close</button></form>
       </dialog>
 
-      {/* 2. ✅ FIXED: Role Modal (แก้ปัญหาตามรูปแรกสุด) */}
+      {/* 2. Role Modal (คงเดิม) */}
       <dialog id="role_modal" className="modal modal-bottom sm:modal-middle z-[9999]">
-          <div className="modal-box !bg-white p-8 rounded-t-[2rem] sm:rounded-2xl text-center shadow-2xl border-none">
-              <h3 className="font-bold text-xl !text-slate-800 mb-6">All Roles</h3>
+          <div className="modal-box !bg-white p-10 rounded-t-[3rem] sm:rounded-[2.5rem] text-center shadow-2xl border-none">
+              <h3 className="font-bold text-xl !text-slate-900 mb-6">All Roles</h3>
               <div className="flex flex-wrap gap-3 justify-center">
                   {roleModalData && roleModalData.map((role, idx) => (
-                      <span key={idx} className="!text-indigo-600 font-bold text-xs uppercase tracking-wider !bg-indigo-50 px-4 py-2.5 rounded-xl border border-indigo-100 shadow-sm whitespace-nowrap">
+                      <span key={idx} className="!text-indigo-600 font-bold text-xs uppercase tracking-wider !bg-indigo-50 px-4 py-2.5 rounded-2xl border border-indigo-100 shadow-sm whitespace-nowrap">
                           {role.replace(/_/g, ' ')}
                       </span>
                   ))}
               </div>
           </div>
           <form method="dialog" className="modal-backdrop bg-slate-900/60 backdrop-blur-sm"><button>close</button></form>
-      </dialog>
-
-      {/* 3. Mobile Email Modal */}
-      <dialog id="email_mobile_modal" className="modal modal-bottom sm:modal-middle z-[99999]">
-          <div className="modal-box !bg-white p-6 rounded-t-[2rem] sm:rounded-2xl text-center shadow-2xl">
-              <h3 className="font-bold !text-slate-400 mb-2 uppercase tracking-widest text-xs">Email Address</h3>
-              <p className="!text-slate-800 font-bold text-xl break-all">{selectedEmailForMobile}</p>
-              <div className="modal-action justify-center mt-6">
-                  <form method="dialog">
-                      <button className="btn btn-primary rounded-xl px-10 text-white font-bold h-12 shadow-lg shadow-indigo-100">ปิด</button>
-                  </form>
-              </div>
-          </div>
-          <form method="dialog" className="modal-backdrop bg-slate-900/40 backdrop-blur-sm"><button>close</button></form>
       </dialog>
     </div>
   );
