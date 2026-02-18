@@ -285,8 +285,8 @@ export default function ManageOrgPage() {
           <header className="flex items-center gap-4 mb-8">
             <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center text-white shadow-lg shrink-0"><Building2 size={24} /></div>
             <div>
-              <h1 className="text-xl font-extrabold text-slate-900 leading-none mb-1 tracking-tight">จัดการหน่วยงานระดับสูง</h1>
-              <p className="text-slate-600 font-bold text-sm">ตั้งค่าสิทธิ์ รหัสเข้าใช้งาน และสถานะหน่วยงาน</p>
+              <h1 className="text-xl font-extrabold text-slate-900 leading-none mb-1 tracking-tight">จัดการหน่วยงาน</h1>
+
             </div>
           </header>
             

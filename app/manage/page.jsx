@@ -52,8 +52,8 @@ export default function Manage() {
     { value: "Guest", label: "Guest" },
   ];
 
-  // ✅ CSS แก้ไข Autofill และคงความโค้งมน (มินิมอล)
-  const autofillStyles = `
+  // ✅ CSS แก้ไข Autofill และ ซ่อน Scrollbar ใน Modal
+  const customStyles = `
     input:-webkit-autofill,
     input:-webkit-autofill:hover, 
     input:-webkit-autofill:focus, 
@@ -62,6 +62,15 @@ export default function Manage() {
         -webkit-text-fill-color: #0f172a !important;
         border-radius: 1rem !important;
         transition: background-color 5000s ease-in-out 0s;
+    }
+    /* ซ่อน Scrollbar สำหรับ Chrome, Safari และ Opera */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    /* ซ่อน Scrollbar สำหรับ IE, Edge และ Firefox */
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
     }
   `;
 
@@ -193,7 +202,7 @@ export default function Manage() {
 
   return (
     <div className="min-h-screen bg-[#F4F6F8] font-sans">
-      <style>{autofillStyles}</style>
+      <style>{customStyles}</style>
       <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
       <script src="https://cdn.tailwindcss.com"></script>
 
@@ -207,11 +216,11 @@ export default function Manage() {
           isDesktopSidebarOpen ? "lg:pl-80" : "lg:pl-8"
       }`}>
         
-        {/* Header Desktop */}
+        {/* Header Desktop - ปรับเป็นภาษาไทย */}
         <div className="hidden lg:flex justify-between items-center mb-8">
             <div>
-                <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">Team Directory</h1>
-                <p className="text-slate-400 mt-1 font-medium">Manage your team members and permissions</p>
+                <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">รายชื่อสมาชิกในทีม</h1>
+                <p className="text-slate-400 mt-1 font-medium">จัดการสมาชิกในทีมและกำหนดสิทธิ์การใช้งาน</p>
             </div>
             <div className="relative w-72 group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -219,7 +228,7 @@ export default function Manage() {
                   </div>
                   <input 
                     type="text" 
-                    placeholder="Search members..." 
+                    placeholder="ค้นหาสมาชิก..." 
                     className="input !bg-white !text-slate-900 w-full h-12 !pl-12 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100 rounded-2xl shadow-sm border border-slate-100 placeholder:text-slate-300"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -227,9 +236,9 @@ export default function Manage() {
             </div>
         </div>
 
-        {/* Header Mobile */}
+        {/* Header Mobile - ปรับเป็นภาษาไทย */}
         <div className="lg:hidden mb-6">
-            <h1 className="text-2xl font-bold text-slate-900">Contacts</h1>
+            <h1 className="text-2xl font-bold text-slate-900">รายชื่อผู้ติดต่อ</h1>
             <div className="mt-4 flex gap-3 items-center">
                  <div className="relative flex-1 group">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -238,7 +247,7 @@ export default function Manage() {
                       <input 
                         type="text"
                         className="input w-full !pl-12 !bg-white !text-slate-900 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 border-slate-200"
-                        placeholder="Search..."
+                        placeholder="ค้นหา..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                       />
@@ -247,7 +256,7 @@ export default function Manage() {
                     onClick={() => document.getElementById('add_admin_modal').showModal()}
                     className="btn btn-primary text-white min-h-[3rem] h-12 px-4 rounded-xl shadow-md shadow-indigo-200 whitespace-nowrap"
                   >
-                      + New
+                      + เพิ่มใหม่
                   </button>
             </div>
         </div>
@@ -258,7 +267,7 @@ export default function Manage() {
                 ? "md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" 
                 : "md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" 
         }`}>
-            {/* Add Member Card */}
+            {/* Add Member Card - ปรับเป็นภาษาไทย */}
             <div 
                className={`hidden lg:flex group relative flex-col items-center justify-center border-2 border-dashed border-indigo-300 !bg-white hover:border-indigo-600 hover:bg-indigo-50 transition-all duration-300 cursor-pointer rounded-3xl shadow-md hover:shadow-xl hover:shadow-indigo-200/50 hover:-translate-y-2 h-full ${
                  isDesktopSidebarOpen ? 'p-4' : 'p-6'
@@ -272,8 +281,8 @@ export default function Manage() {
                 </div>
                 <h3 className={`text-indigo-900 font-bold group-hover:text-indigo-700 transition-colors ${
                     isDesktopSidebarOpen ? 'text-base' : 'text-lg'
-                }`}>Add Member</h3>
-                <p className="text-indigo-500/80 text-xs mt-1 text-center font-medium">Click to invite new admin</p>
+                }`}>เพิ่มสมาชิก</h3>
+                <p className="text-indigo-500/80 text-xs mt-1 text-center font-medium">คลิกเพื่อเชิญผู้ดูแลระบบใหม่</p>
             </div>
 
             {filteredEmails.map((item) => {
@@ -288,7 +297,7 @@ export default function Manage() {
                              <button 
                                onClick={() => handleDeleteEmail(item.admin_id)}
                                className="absolute top-2 right-2 hover:bg-red-50 rounded-full p-2 transition-colors z-10"
-                               title="Remove user"
+                               title="ลบผู้ใช้งาน"
                                style={{ color: '#ef4444' }} 
                              >
                                <Trash2 size={20} />
@@ -330,7 +339,7 @@ export default function Manage() {
                                     }}
                                     className="flex-shrink-0 btn btn-xs h-7 min-h-0 !bg-slate-100 border border-slate-200 !text-slate-600 hover:bg-slate-200 rounded-full px-2.5 text-[9px] font-bold tracking-wide uppercase shadow-sm"
                                 >
-                                    +{userRoles.length - 1} more
+                                    +{userRoles.length - 1} เพิ่มเติม
                                 </button>
                             )}
                         </div>
@@ -353,7 +362,7 @@ export default function Manage() {
                                             ? "text-[9px] px-2 py-0.5" 
                                             : "text-[10px] px-2.5 py-1"
                                     }`}>
-                                        +{userRoles.length - 1} more
+                                        +{userRoles.length - 1} เพิ่มเติม
                                     </span>
                                 </div>
                             )}
@@ -366,11 +375,11 @@ export default function Manage() {
 
       {/* --- MODALS --- */}
       
-      {/* 1. Add Member Modal */}
+      {/* 1. Add Member Modal - ปรับเป็นภาษาไทยและซ่อนแถบเลื่อน */}
       <dialog id="add_admin_modal" className="modal modal-bottom sm:modal-middle z-[999]">
-          <div className="modal-box !bg-[#F8FAFC] p-7 rounded-t-[3rem] sm:rounded-[2.5rem] shadow-2xl relative border-none">
+          <div className="modal-box !bg-[#F4F6F8] p-7 rounded-t-[3rem] sm:rounded-[2.5rem] shadow-2xl relative border-none overflow-y-auto no-scrollbar max-h-[90vh]">
               <div className="flex justify-between items-center mb-6 px-2">
-                  <h3 className="font-bold text-xl !text-slate-900">Add Member</h3>
+                  <h3 className="font-bold text-xl !text-slate-900">เพิ่มสมาชิก</h3>
                   <button 
                     onClick={() => document.getElementById('add_admin_modal').close()} 
                     className="absolute top-6 right-6 w-10 h-10 !bg-[#ef4444] !text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all hover:scale-110 z-20 border-4 border-white"
@@ -380,8 +389,8 @@ export default function Manage() {
               </div>
               <form onSubmit={handleAddEmail} className="flex flex-col gap-5">
                   <div className="form-control px-2">
-                      <label className="label !text-slate-900 font-bold">Email Address</label>
-                      <label className="input input-bordered h-14 flex items-center gap-2 !bg-white rounded-2xl border-none shadow-sm focus-within:ring-2 ring-indigo-100 transition-all">
+                      <label className="label !text-slate-900 font-bold">ที่อยู่อีเมล</label>
+                      <label className="input input-bordered h-14 flex items-center gap-2 !bg-white rounded-2xl border-none shadow-[0_4px_15px_rgba(0,0,0,0.03)] focus-within:ring-2 ring-indigo-100 transition-all">
                           <Mail size={18} className="!text-slate-400" />
                           <input 
                             type="email" 
@@ -395,10 +404,10 @@ export default function Manage() {
                       </label>
                   </div>
 
-                  {/* ✅ ส่วนเลือก Roles ปรับให้เหมือนรูป (มน ขาว คลีน) */}
+                  {/* ✅ ส่วนเลือก Role สไตล์ Card เป๊ะตามรูป */}
                   <div className="form-control px-2">
-                      <label className="label !text-slate-900 font-bold">Assign Roles</label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                      <label className="label !text-slate-900 font-bold">กำหนดบทบาท</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
                         {ROLE_OPTIONS.map((opt) => {
                             const isSelected = newRoles.includes(opt.value);
                             return (
@@ -406,20 +415,20 @@ export default function Manage() {
                                     key={opt.value}
                                     onClick={() => toggleRole(opt.value)}
                                     className={`
-                                        flex items-center justify-between p-4 rounded-full transition-all duration-200 cursor-pointer
-                                        bg-white shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-md
-                                        ${isSelected ? "ring-2 ring-indigo-500" : "ring-0"}
+                                        flex items-center justify-between p-5 rounded-[2rem] transition-all duration-300 cursor-pointer
+                                        bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]
+                                        ${isSelected ? "ring-2 ring-indigo-500 scale-[1.02]" : "ring-0"}
                                     `}
                                 >
-                                    <span className={`pl-2 text-[11px] font-black uppercase tracking-widest ${isSelected ? "text-indigo-900" : "text-[#475569]"}`}>
+                                    <span className={`pl-2 text-[12px] font-black uppercase tracking-widest ${isSelected ? "text-indigo-900" : "text-[#475569]"}`}>
                                         {opt.label}
                                     </span>
                                     
                                     <div className={`
-                                        w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300
-                                        ${isSelected ? "bg-indigo-600 shadow-sm" : "bg-[#DBE2E9]"}
+                                        w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300
+                                        ${isSelected ? "bg-indigo-600 shadow-lg" : "bg-[#DBE2E9]"}
                                     `}>
-                                        {isSelected && <Check size={14} strokeWidth={4} className="text-white" />}
+                                        {isSelected && <Check size={16} strokeWidth={4} className="text-white" />}
                                     </div>
                                 </div>
                             );
@@ -427,17 +436,16 @@ export default function Manage() {
                       </div>
                   </div>
 
-                  <div className="px-2">
+                  <div className="px-2 pb-2">
                     <button 
                         type="submit" 
-                        className={`btn w-full mt-4 h-14 rounded-full text-white font-bold border-none transition-all shadow-lg ${
+                        className={`btn w-full mt-6 h-14 rounded-2xl text-white font-bold border-none transition-all shadow-xl active:scale-95 ${
                         isFormValid ? "!bg-[#00945e] hover:!bg-[#007a4d]" : "!bg-slate-300 !text-slate-500 cursor-not-allowed"
                         }`} 
                         disabled={isSubmitting || !isFormValid}
                     >
-                            {/* ✅ ปรับตัวหนังสือ Confirm เป็นสีขาวสว่าง */}
-                            <span className={isFormValid ? "text-white" : ""}>
-                                {isSubmitting ? <span className="loading loading-spinner"></span> : "Confirm"}
+                            <span className="text-white text-lg tracking-wide">
+                                {isSubmitting ? <span className="loading loading-spinner"></span> : "ยืนยัน"}
                             </span>
                     </button>
                   </div>
@@ -446,10 +454,10 @@ export default function Manage() {
           <form method="dialog" className="modal-backdrop bg-slate-900/40 backdrop-blur-sm"><button>close</button></form>
       </dialog>
 
-      {/* 2. Role Modal (คงเดิม) */}
+      {/* 2. Role Modal - ปรับเป็นภาษาไทย */}
       <dialog id="role_modal" className="modal modal-bottom sm:modal-middle z-[9999]">
-          <div className="modal-box !bg-white p-10 rounded-t-[3rem] sm:rounded-[2.5rem] text-center shadow-2xl border-none">
-              <h3 className="font-bold text-xl !text-slate-900 mb-6">All Roles</h3>
+          <div className="modal-box !bg-white p-10 rounded-t-[3rem] sm:rounded-[2.5rem] text-center shadow-2xl border-none no-scrollbar">
+              <h3 className="font-bold text-xl !text-slate-900 mb-6">บทบาททั้งหมด</h3>
               <div className="flex flex-wrap gap-3 justify-center">
                   {roleModalData && roleModalData.map((role, idx) => (
                       <span key={idx} className="!text-indigo-600 font-bold text-xs uppercase tracking-wider !bg-indigo-50 px-4 py-2.5 rounded-2xl border border-indigo-100 shadow-sm whitespace-nowrap">
