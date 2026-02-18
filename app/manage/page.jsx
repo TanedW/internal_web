@@ -253,11 +253,11 @@ export default function Manage() {
                       />
                  </div>
                  <button 
-                    onClick={() => document.getElementById('add_admin_modal').showModal()}
-                    className="btn btn-primary text-white min-h-[3rem] h-12 px-4 rounded-xl shadow-md shadow-indigo-200 whitespace-nowrap"
-                  >
-                      + เพิ่มใหม่
-                  </button>
+                onClick={() => document.getElementById('add_admin_modal').showModal()}
+                className="btn btn-primary !text-white min-h-[3rem] h-12 px-4 rounded-xl shadow-md shadow-indigo-200 whitespace-nowrap"
+                >
+                + เพิ่มใหม่
+                </button>
             </div>
         </div>
 
