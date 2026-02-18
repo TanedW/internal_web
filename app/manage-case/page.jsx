@@ -437,7 +437,7 @@ export default function ManageCase() {
                 <div className="flex flex-col items-center text-center space-y-5 relative z-10 px-4">
                     <div className="space-y-2 px-2">
                         <p className="text-slate-500 dark:text-slate-500 text-sm lg:text-base max-w-md mx-auto leading-relaxed">
-                            กรอกรหัส Case ID เพื่อค้นหาและแก้ไขรูปภาพ<br className="hidden sm:block"/> วิดีโอ หรือไฟล์เสียง (สำหรับ Admin)
+                            กรอกรหัส Ticket ID เพื่อค้นหาและแก้ไขรูปภาพ<br className="hidden sm:block"/> วิดีโอ หรือไฟล์เสียง (สำหรับ Admin)
                         </p>
                     </div>
 
@@ -460,7 +460,7 @@ export default function ManageCase() {
                                         if(inputError) setInputError(false);
                                     }}
                                     className={`flex-1 bg-transparent border-none outline-none font-bold placeholder:text-slate-300 placeholder:font-medium h-12 lg:h-14 w-full text-lg ${inputError ? 'text-red-600' : 'text-slate-800'}`}
-                                    placeholder="ระบุ Case ID..."
+                                    placeholder="ระบุ Ticket ID..."
                                     disabled={isSearching}
                                 />
                                 {searchId && !isSearching && (
