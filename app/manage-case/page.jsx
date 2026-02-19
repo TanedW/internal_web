@@ -61,6 +61,8 @@ const MIME_TYPE_MAP = {
   'txt': 'text/plain', 
 };
 
+const STORAGE_BASE_URL = "https://storage.googleapis.com/traffy_public_bucket/";
+
 const fileToBase64 = (file) => {
   return new Promise((resolve, reject) => {
     const extension = file.name.split('.').pop().toLowerCase();
@@ -87,42 +89,63 @@ const getMediaTypeFromFile = (file) => {
     return 'unknown';
 };
 
+const getFileStyle = (ext) => {
+    if (ext === 'pdf') return { bg: 'bg-red-100', text: 'text-red-500', iconBg: 'bg-white' };
+    if (['doc', 'docx'].includes(ext)) return { bg: 'bg-blue-100', text: 'text-blue-500', iconBg: 'bg-white' };
+    if (['csv', 'xls', 'xlsx'].includes(ext)) return { bg: 'bg-emerald-100', text: 'text-emerald-500', iconBg: 'bg-white' };
+    return { bg: 'bg-slate-100', text: 'text-slate-500', iconBg: 'bg-white' };
+};
+
 const FilePreviewRender = ({ file }) => {
+    const [previewUrl, setPreviewUrl] = useState("");
     const type = getMediaTypeFromFile(file);
     
-    const fileUrl = file instanceof File 
-        ? URL.createObjectURL(file) 
-        : (file.url || file.photo || file);
+    useEffect(() => {
+        let url = "";
+        
+        if (file instanceof File) {
+            // สร้าง URL สำหรับไฟล์ที่เลือกจากเครื่อง
+            url = URL.createObjectURL(file);
+            setPreviewUrl(url);
+        } else {
+            // จัดการ Path จาก Database
+            const rawPath = file.url || file.photo || file;
+            if (typeof rawPath === 'string') {
+                // ถ้าเป็น URL เต็มอยู่แล้ว หรือเป็น blob ไม่ต้องต่อ Base
+                url = (rawPath.startsWith('blob:') || rawPath.startsWith('http'))
+                    ? rawPath
+                    : STORAGE_BASE_URL + rawPath;
+                setPreviewUrl(url);
+            }
+        }
+
+        // Cleanup function: ล้าง URL ออกจากหน่วยความจำเมื่อ Component ถูกทำลาย
+        return () => {
+            if (url.startsWith('blob:')) {
+                URL.revokeObjectURL(url);
+            }
+        };
+    }, [file]);
 
     const fileName = file.name || (typeof file === 'string' ? file : 'Unknown File');
     const extension = fileName.split('.').pop().toLowerCase();
-
-    // กำหนดสีตามเงื่อนไขที่คุณระบุ
-const getFileStyle = (ext) => {
-        // ปรับระดับสีให้สดขึ้นตามรูปตัวอย่าง (100 -> 200/500)
-        if (ext === 'pdf') return { bg: 'bg-red-100', text: 'text-red-500', iconBg: 'bg-white' };
-        if (['doc', 'docx'].includes(ext)) return { bg: 'bg-blue-100', text: 'text-blue-500', iconBg: 'bg-white' };
-        if (['csv', 'xls', 'xlsx'].includes(ext)) return { bg: 'bg-emerald-100', text: 'text-emerald-500', iconBg: 'bg-white' };
-        return { bg: 'bg-slate-100', text: 'text-slate-500', iconBg: 'bg-white' };
-    };  
-
     const style = getFileStyle(extension);
+
+    if (!previewUrl) return null;
 
     switch (type) {
         case 'image':
-            return <img src={fileUrl} className="w-full max-h-[50vh] object-contain mx-auto" alt="Preview" />;
+            return <img src={previewUrl} className="w-full max-h-[50vh] object-contain mx-auto" alt="Preview" />;
         case 'video':
-            return <video src={fileUrl} className="w-full max-h-[50vh] object-contain mx-auto" controls autoPlay muted playsInline />;
+            return <video src={previewUrl} className="w-full max-h-[50vh] object-contain mx-auto" controls autoPlay muted playsInline />;
         case 'audio':
             return (
                 <div className="w-full min-h-[150px] flex flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100 text-orange-600 p-6">
                     <Music size={48} className="mb-3" />
-                    <audio src={fileUrl} controls className="w-full" />
+                    <audio src={previewUrl} controls className="w-full" />
                 </div>
             );
-        case 'file':
         default:
-            // กรณีเป็นไฟล์เอกสาร หรือไฟล์ที่ไม่รองรับการเล่น/แสดงผลตรงๆ
             return (
                 <div className={`w-full h-full flex flex-col items-center justify-center ${style.bg} transition-all duration-300`}>
                     <div className="bg-white p-4 rounded-2xl shadow-sm mb-2">
@@ -223,7 +246,7 @@ export default function ManageCase() {
     return () => unsubscribe();
   }, [router, API_URL_ADMIN]);
 
-  const handleSearch = async (e) => {
+const handleSearch = async (e) => {
     e?.preventDefault(); 
     if (!searchId.trim()) {
         setInputError(true);
@@ -261,13 +284,22 @@ export default function ManageCase() {
                 apiData.timeline.forEach((item, index) => {
                     if(item.photo) {
                         const fileUrl = item.photo.toLowerCase();
-                        let mType = 'image';
-                        if (item.viewed === 1 || fileUrl.match(/\.(mp4|mov|webm|avi|mkv)$/)) {
+                        
+                        // ✅ ปรับ Logic การตรวจสอบประเภทไฟล์ใหม่ทั้งหมด
+                        let mType = 'image'; // Default เป็น image สำหรับ viewed = 0
+                        
+                        const isVideo = /\.(mp4|mov|webm|avi|mkv)$/i.test(fileUrl);
+                        const isAudio = /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(fileUrl);
+                        const isFile = /\.(zip|7z|rar|pdf|doc|docx|rtf|csv|xls|xlsx|ppt|pptx|txt)$/i.test(fileUrl);
+
+                        if (item.viewed === 1 || isVideo) {
                             mType = 'video';
-                        } else if (item.viewed === 3  || fileUrl.match(/\.(mp3|wav|ogg|m4a|aac|flac)$/)) {
+                        } else if (item.viewed === 3 || isAudio) {
                             mType = 'audio';
-                        } else if (item.viewed === 2  || fileUrl.match(/\.(zip|7z|rar|pdf|doc|docx|rtf|csv|xls|ppt|pptx|txt|)$/)) {
+                        } else if (item.viewed === 2 || isFile) {
                             mType = 'file';
+                        } else {
+                            mType = 'image';
                         }
 
                         allImagesCombined.push({
@@ -363,18 +395,20 @@ export default function ManageCase() {
         const result = await response.json();
 
         if (response.ok && result.photo_link) {
-             localStorage.setItem('photo_link', result.photo_link);
-             
-             const adminId = localStorage.getItem("current_admin_id") || "unknown_admin";
+        // ✅ นำ Logic จาก ManageOrgPage มาใช้ตรงนี้
+        // ตัด Domain ออกเพื่อให้เหลือเฉพาะ Path เช่น attachment/case_123/file.jpg
+        const relativePath = result.photo_link.replace(STORAGE_BASE_URL, "");
 
-             const dbPayload = {
-                current_admin_id: adminId.toString().replace(/['"]+/g, ''), 
-                photo_id: selectedImageToReplace.id.toString().replace(/['"]+/g, ''), 
-                file_url: result.photo_link,           
-                description: reason,
-                viewed: newViewedValue,
-                old_url: selectedImageToReplace.url
-             };
+        const adminId = localStorage.getItem("current_admin_id") || "unknown_admin";
+
+        const dbPayload = {
+            current_admin_id: adminId.toString().replace(/['"]+/g, ''), 
+            photo_id: selectedImageToReplace.id.toString().replace(/['"]+/g, ''), 
+            file_url: relativePath, // 👈 ส่งตัวแปรที่ตัด Domain แล้วเข้าไปแทน
+            description: reason,
+            viewed: newViewedValue,
+            old_url: selectedImageToReplace.url
+        };
 
              const caseIdParam = currentCase.dbId || currentCase.id;
 
@@ -793,3 +827,5 @@ export default function ManageCase() {
     </div>
   );
 }
+
+
