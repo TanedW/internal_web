@@ -158,8 +158,10 @@ export default function RichMenuDashboard() {
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
 
   // --- ✅ New State: Audit Log Modal ---
-  // --- ✅ New State: Audit Log Modal ---
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditFilter, setAuditFilter] = useState("all");
 
   // --- ✅ New State: JSON Viewer Modal ---
   const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
@@ -317,8 +319,19 @@ export default function RichMenuDashboard() {
     });
   };
 
-  const openAuditLog = () => {
+  const openAuditLog = async () => {
     setIsLogModalOpen(true);
+    setAuditLoading(true);
+    try {
+      const res = await fetch(`/api/richmenu?action=audit_logs&botKey=${encodeURIComponent(botKey)}`);
+      const data = await res.json();
+      setAuditLogs(Array.isArray(data.logs) ? data.logs : []);
+    } catch (err) {
+      console.error("Failed to fetch audit logs:", err);
+      setAuditLogs([]);
+    } finally {
+      setAuditLoading(false);
+    }
   };
 
   const handleImageUpload = async (e) => {
@@ -442,20 +455,17 @@ export default function RichMenuDashboard() {
 
   async function fetchData() {
     try {
-      const response = await fetch(`/api/richmenu/bots`);
-      const botData = await response.json();
-      if (!botData || botData.error) {
+      if (!botKey) {
         router.push("/manage-richmenu");
         return;
       }
-      setBot(botData);
 
-      const currentRes = await fetch(`/api/richmenu/current?botKey=${botKey}`);
+      const currentRes = await fetch(`/api/richmenu?action=current&botKey=${botKey}`);
       const currentData = await currentRes.json();
       const activeId = currentData.currentMenuId || null;
       setCurrentMenuId(activeId);
 
-      const listRes = await fetch(`/api/richmenu/list?botKey=${botKey}`);
+      const listRes = await fetch(`/api/richmenu?action=list&botKey=${botKey}`);
       const listData = await listRes.json();
 
       if (listData.richmenus && Array.isArray(listData.richmenus)) {
@@ -623,7 +633,7 @@ export default function RichMenuDashboard() {
         templateSize: `${selectedTemplate.width}x${selectedTemplate.height}`,
       });
 
-      const response = await fetch("/api/richmenu/upload", {
+      const response = await fetch("/api/richmenu?action=upload", {
         method: "POST",
         body: formData,
       });
@@ -662,7 +672,7 @@ export default function RichMenuDashboard() {
           });
 
           const switchResponse = await fetch(
-            `/api/richmenu/switch?${queryParams.toString()}`,
+            `/api/richmenu?action=switch&${queryParams.toString()}`,
             {
               method: "GET",
             },
@@ -754,7 +764,7 @@ export default function RichMenuDashboard() {
       });
 
       const response = await fetch(
-        `/api/richmenu/switch?${queryParams.toString()}`,
+        `/api/richmenu?action=switch&${queryParams.toString()}`,
         {
           method: "GET",
         },
@@ -789,7 +799,7 @@ export default function RichMenuDashboard() {
   const handleViewJson = async (menuId) => {
     try {
       const res = await fetch(
-        `/api/richmenu/details?botKey=${botKey}&menuId=${menuId}`,
+        `/api/richmenu?action=details&botKey=${botKey}&menuId=${menuId}`,
       );
       const data = await res.json();
 
@@ -831,7 +841,7 @@ export default function RichMenuDashboard() {
 
       console.log("Deleting menu:", { botKey, menuId }); // Debug
 
-      const response = await fetch("/api/richmenu/delete", {
+      const response = await fetch("/api/richmenu?action=delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ botKey, menuId }),
@@ -1472,79 +1482,137 @@ export default function RichMenuDashboard() {
               >
                 <div
                   className="php-modal-content"
+                  style={{ maxWidth: "680px", width: "95vw" }}
                   onClick={(e) => e.stopPropagation()}
                 >
+                  {/* Header */}
                   <div className="php-modal-header">
-                    <h3>
-                      <Settings size={20} className="text-amber-500" />{" "}
-                      ประวัติการใช้งาน (Audit Log)
+                    <h3 className="flex items-center gap-2">
+                      <History size={18} className="text-amber-500" />
+                      ประวัติการใช้งาน — <span className="font-mono text-amber-600 text-sm">{botKey}</span>
                     </h3>
-                    <button
-                      onClick={() => setIsLogModalOpen(false)}
-                      className="php-modal-close"
-                    >
+                    <button onClick={() => setIsLogModalOpen(false)} className="php-modal-close">
                       <X size={20} />
                     </button>
                   </div>
-                  <div className="php-modal-body">
-                    {/* Mock Data */}
+
+                  {/* Filter Tabs */}
+                  <div className="flex gap-1.5 px-4 pt-3 pb-2 border-b border-slate-100 flex-wrap">
                     {[
-                      {
-                        user: "Admin 1",
-                        action: "เปลี่ยน Rich Menu Active",
-                        detail: "Promotion_Feb -> Main_Menu",
-                        time: "10 นาทีที่แล้ว",
-                      },
-                      {
-                        user: "Admin 2",
-                        action: "อัปโหลดเมนูใหม่",
-                        detail: "Promotion_March_2024",
-                        time: "2 ชั่วโมงที่แล้ว",
-                      },
-                      {
-                        user: "System",
-                        action: "ลบเมนูเก่า",
-                        detail: "Test_Menu_v1",
-                        time: "เมื่อวาน, 14:30",
-                      },
-                      {
-                        user: "Admin 1",
-                        action: "เข้าสู่ระบบ",
-                        detail: "Login via Firebase",
-                        time: "เมื่อวาน, 09:00",
-                      },
-                    ].map((log, index) => (
-                      <div key={index} className="php-log-item">
-                        <div className="php-log-icon">
-                          <User size={18} />
-                        </div>
-                        <div className="php-log-info">
-                          <div className="php-log-top">
-                            <span className="php-log-user">{log.user}</span>
-                            <span className="php-log-time">{log.time}</span>
-                          </div>
-                          <div className="php-log-action">{log.action}</div>
-                          <div className="php-log-detail">{log.detail}</div>
-                        </div>
-                      </div>
+                      { key: "all", label: "ทั้งหมด" },
+                      { key: "add_bot", label: "เพิ่มบอท" },
+                      { key: "create_menu", label: "สร้างเมนู" },
+                      { key: "switch_menu", label: "เปลี่ยนเมนู" },
+                      { key: "delete_menu", label: "ลบเมนู" },
+                      { key: "delete_bot", label: "ลบบอท" },
+                    ].map((f) => (
+                      <button
+                        key={f.key}
+                        onClick={() => setAuditFilter(f.key)}
+                        className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all border ${
+                          auditFilter === f.key
+                            ? "bg-amber-500 text-white border-amber-500"
+                            : "bg-white text-slate-500 border-slate-200 hover:border-amber-300"
+                        }`}
+                      >
+                        {f.label}
+                        {f.key !== "all" && auditLogs.filter(l => l.action === f.key).length > 0 && (
+                          <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[9px] ${auditFilter === f.key ? "bg-white/30 text-white" : "bg-slate-100 text-slate-500"}`}>
+                            {auditLogs.filter(l => l.action === f.key).length}
+                          </span>
+                        )}
+                        {f.key === "all" && (
+                          <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[9px] ${auditFilter === f.key ? "bg-white/30 text-white" : "bg-slate-100 text-slate-500"}`}>
+                            {auditLogs.length}
+                          </span>
+                        )}
+                      </button>
                     ))}
-                    <div
-                      style={{
-                        padding: "30px",
-                        textAlign: "center",
-                        color: "#94a3b8",
-                        fontSize: "12px",
-                        fontStyle: "italic",
-                      }}
-                    >
-                      (ข้อมูลจำลอง - ระบบ Audit Log ยังไม่เปิดใช้งานจริง)
-                    </div>
                   </div>
+
+                  {/* Body */}
+                  <div className="php-modal-body" style={{ maxHeight: "480px", overflowY: "auto" }}>
+                    {auditLoading ? (
+                      <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
+                        <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                        <span className="text-sm">กำลังโหลดประวัติ...</span>
+                      </div>
+                    ) : (() => {
+                      const filtered = auditFilter === "all"
+                        ? auditLogs
+                        : auditLogs.filter(l => l.action === auditFilter);
+
+                      if (filtered.length === 0) {
+                        return (
+                          <div className="flex flex-col items-center justify-center py-16 gap-2 text-slate-400">
+                            <History size={36} className="text-slate-200" />
+                            <p className="text-sm font-medium">ยังไม่มีประวัติในหมวดนี้</p>
+                          </div>
+                        );
+                      }
+
+                      const actionConfig = {
+                        add_bot:     { label: "เพิ่มบอท",    color: "bg-blue-100 text-blue-700",   icon: "🤖" },
+                        create_menu: { label: "สร้างเมนู",   color: "bg-green-100 text-green-700",  icon: "➕" },
+                        switch_menu: { label: "เปลี่ยนเมนู", color: "bg-amber-100 text-amber-700",  icon: "🔄" },
+                        delete_menu: { label: "ลบเมนู",      color: "bg-rose-100 text-rose-700",    icon: "🗑️" },
+                        delete_bot:  { label: "ลบบอท",       color: "bg-red-100 text-red-700",      icon: "❌" },
+                      };
+
+                      return filtered.map((log, i) => {
+                        const cfg = actionConfig[log.action] || { label: log.action, color: "bg-slate-100 text-slate-600", icon: "📋" };
+                        const createdAt = new Date(log.created_at);
+                        const dateStr = createdAt.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
+                        const timeStr = createdAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+
+                        return (
+                          <div key={log.id || i} className="php-log-item" style={{ alignItems: "flex-start", gap: "12px", padding: "14px 16px", borderBottom: "1px solid #f1f5f9" }}>
+                            {/* Icon */}
+                            <div style={{ fontSize: "22px", lineHeight: 1, marginTop: "2px", flexShrink: 0 }}>{cfg.icon}</div>
+
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2 flex-wrap">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.color}`}>
+                                    {cfg.label}
+                                  </span>
+                                  {log.menu_name && (
+                                    <span className="text-[11px] font-semibold text-slate-700 truncate max-w-[180px]">
+                                      {log.menu_name}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-slate-400 shrink-0">{dateStr} {timeStr}</span>
+                              </div>
+
+                              {log.detail && (
+                                <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">{log.detail}</p>
+                              )}
+
+                              {/* switch_menu: แสดง from → to */}
+                              {log.action === "switch_menu" && log.menu_id_from && (
+                                <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
+                                  <span className="truncate max-w-[100px] bg-slate-100 px-1.5 py-0.5 rounded">{log.menu_id_from?.substring(0,14)}…</span>
+                                  <span>→</span>
+                                  <span className="truncate max-w-[100px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded">{log.menu_id_to?.substring(0,14)}…</span>
+                                </div>
+                              )}
+
+                              {/* admin info */}
+                              <div className="flex items-center gap-1 mt-1.5">
+                                <User size={11} className="text-slate-300" />
+                                <span className="text-[10px] text-slate-400 font-mono truncate">{log.admin_name || log.admin_id}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+
                   <div className="php-modal-footer">
-                    <button
-                      onClick={() => setIsLogModalOpen(false)}
-                      className="php-btn-close-modal"
-                    >
+                    <button onClick={() => setIsLogModalOpen(false)} className="php-btn-close-modal">
                       ปิดหน้าต่าง
                     </button>
                   </div>
@@ -1665,7 +1733,7 @@ export default function RichMenuDashboard() {
                     const isCurrent = menu.richMenuId === currentMenuId;
                     const displayImageUrl =
                       menu.image_url ||
-                      `/api/richmenu/image?botKey=${botKey}&menuId=${menu.richMenuId}&t=${new Date().getTime()}`;
+                      `/api/richmenu?action=image&botKey=${botKey}&menuId=${menu.richMenuId}`;
 
                     return (
                       <div
@@ -1679,7 +1747,8 @@ export default function RichMenuDashboard() {
                             className="w-full h-full object-contain p-1"
                             loading="lazy"
                             onError={(e) => {
-                              e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2500' height='843'%3E%3Crect width='100%25' height='100%25' fill='%23cccccc'/%3E%3C/svg%3E";
+                              e.target.src =
+                                "https://via.placeholder.com/2500x843?text=No+Image";
                             }}
                           />
                           {isCurrent && (
