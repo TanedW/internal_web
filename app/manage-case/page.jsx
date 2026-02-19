@@ -147,14 +147,14 @@ const FilePreviewRender = ({ file }) => {
             );
         default:
             return (
-                <div className={`w-full h-full flex flex-col items-center justify-center ${style.bg} transition-all duration-300`}>
-                    <div className="bg-white p-4 rounded-2xl shadow-sm mb-2">
-                        <UploadCloud size={48} className={style.text} strokeWidth={1.5} />
-                    </div>
-                    <span className={`text-sm font-black uppercase tracking-widest ${style.text}`}>
-                        .{extension}
-                    </span>
-                </div>
+               <div className={`w-full h-full flex flex-col items-center justify-center ${style.bg} transition-all duration-300 min-h-[inherit]`}>
+            <div className="bg-white p-4 rounded-2xl shadow-sm mb-2">
+                <UploadCloud size={48} className={style.text} strokeWidth={1.5} />
+            </div>
+            <span className={`text-sm font-black uppercase tracking-widest ${style.text}`}>
+                .{extension}
+            </span>
+        </div>
             );
     }
 };
@@ -703,6 +703,7 @@ const handleSearch = async (e) => {
                                         </div>
                                     )}
                                     <label className={`group relative flex flex-col items-center justify-center w-full min-h-[18rem] lg:min-h-[22rem] h-auto p-4 lg:p-6 rounded-3xl border-3 border-dashed transition-all duration-300 cursor-pointer overflow-hidden ${newImageFile ? 'border-green-400 bg-white' : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-100/50'}`}>
+                                    
                                     <input 
                                         type="file" 
                                         className="hidden" 
