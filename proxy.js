@@ -26,10 +26,17 @@ export async function proxy(request) {
 
     try {
       /**
-       * 4. เรียก API GetUserRoles เพื่อเอา Role ล่าสุด
+       * 4. เรียก API ภายนอกเพื่อเอา Role ล่าสุด โดยใช้ URL จาก Environment Variable
        * ต้องส่ง Cookie ทั้งหมดที่มีใน Browser ต่อไปให้ API ด้วยเพื่อให้ API อ่าน access_token ได้
        */
-      const roleResponse = await fetch(`${request.nextUrl.origin}/api/GetUserRoles`, {
+      const externalApiUrl = process.env.NEXT_PUBLIC_GET_USER_ROLES_API_URL;
+      
+      if (!externalApiUrl) {
+        console.error("Middleware Error: NEXT_PUBLIC_GET_USER_ROLES_API_URL is not defined");
+        return NextResponse.redirect(new URL('/', request.url));
+      }
+
+      const roleResponse = await fetch(externalApiUrl, {
         method: 'GET',
         headers: {
           'Cookie': request.headers.get('cookie') || '', // ส่ง Cookie ต่อไป

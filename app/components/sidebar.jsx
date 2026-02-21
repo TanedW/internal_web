@@ -72,9 +72,9 @@ export default function Sidebar({
     const email = localStorage.getItem("user_email");
     const adminId = localStorage.getItem("current_admin_id")?.replace(/^"|"$/g, "");
     
-    // 1. Prefetch Roles เสมอ
-    if (email) {
-      prefetchData(`/api/GetUserRoles?email=${email}`);
+    // 1. Prefetch Roles เสมอ โดยใช้ URL จาก Environment Variable
+    if (email && process.env.NEXT_PUBLIC_GET_USER_ROLES_API_URL) {
+      prefetchData(`${process.env.NEXT_PUBLIC_GET_USER_ROLES_API_URL}?email=${email}`);
     }
 
     // 2. ถ้าชี้ที่เมนูจัดการ ORG ให้แอบโหลด AdminList รอเลย (เพราะหน้านี้โหลดนาน)
