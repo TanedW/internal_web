@@ -145,11 +145,13 @@ const CreateModal = ({ isOpen, onClose, onCreate }) => {
         return;
     }
 
+    const Validate_Push_Api_Url = process.env.NEXT_PUBLIC_VALIDATE_PUSH_API_URL
+
     // 2. Debounce & Check API
     const timer = setTimeout(async () => {
         setIsValidating(true);
         try {
-            const res = await fetch("/api/validate-push", {
+            const res = await fetch(Validate_Push_Api_Url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: json, 
