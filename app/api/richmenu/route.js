@@ -419,7 +419,7 @@ export async function POST(req) {
   }
 
   // --------------------------------------------------
-  // action=delete_bot → ลบบอทออกจาก line_bots
+  // action=delete_bot → Soft Delete บอท (is_deleted = true)
   // --------------------------------------------------
   if (action === "delete_bot") {
     try {
@@ -432,9 +432,8 @@ export async function POST(req) {
         );
       }
 
-      // ลบ rich menus ที่เกี่ยวข้องก่อน (foreign key)
       const botRes = await pool.query(
-        "SELECT id FROM line_bots WHERE bot_key = $1",
+        "SELECT id FROM line_bots WHERE bot_key = $1 AND is_deleted = false",
         [bot_key],
       );
 
@@ -445,13 +444,11 @@ export async function POST(req) {
         );
       }
 
-      const botId = botRes.rows[0].id;
-
-      // ลบ rich menus ที่ผูกกับบอทนี้
-      await pool.query("DELETE FROM bot_rich_menus WHERE bot_id = $1", [botId]);
-
-      // ลบบอท
-      await pool.query("DELETE FROM line_bots WHERE id = $1", [botId]);
+      // Soft delete — mark is_deleted = true เท่านั้น ไม่ลบข้อมูลจริง
+      await pool.query(
+        "UPDATE line_bots SET is_deleted = true, updated_at = CURRENT_TIMESTAMP WHERE bot_key = $1",
+        [bot_key],
+      );
 
       return NextResponse.json({ success: true, message: "ลบบอทสำเร็จ" });
     } catch (error) {
@@ -1405,12 +1402,12 @@ export async function GET(req) {
   }
 
   // --------------------------------------------------
-  // action=list_bots → ดึงบอททั้งหมดในระบบ (ทุก user เห็นเหมือนกัน)
+  // action=list_bots → ดึงบอททั้งหมดที่ยังไม่ถูกลบ (is_deleted = false)
   // --------------------------------------------------
   if (action === "list_bots") {
     try {
       const result = await pool.query(
-        "SELECT * FROM line_bots ORDER BY created_at DESC",
+        "SELECT * FROM line_bots WHERE is_deleted = false ORDER BY created_at DESC",
       );
 
       const bots = result.rows.map((row) => ({
