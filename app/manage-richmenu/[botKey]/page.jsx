@@ -28,8 +28,6 @@ import {
   Image as ImageIcon,
   Check,
   MousePointer2,
-  Moon,
-  Sun,
 } from "lucide-react";
 import "../richmenu-dashboard.css";
 
@@ -167,41 +165,18 @@ export default function RichMenuDashboard() {
   const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
   const [selectedJsonData, setSelectedJsonData] = useState(null);
 
-  // --- ✅ New State: Dark Mode ---
-  const [darkMode, setDarkMode] = useState(false);
-
-  // --- ✅ Dark Mode: ตรวจจับ Browser Preference เมื่อโหลดครั้งแรก ---
-  useEffect(() => {
-    // ตรวจสอบว่าเคยเซฟค่าไว้ใน localStorage หรือไม่
-    const savedMode = localStorage.getItem("darkMode");
-
-    if (savedMode !== null) {
-      // ถ้าเคยเซฟไว้ ให้ใช้ค่าที่เซฟ
-      setDarkMode(savedMode === "true");
-    } else {
-      // ถ้าไม่เคยเซฟ ให้ตรวจจาก browser preference
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)",
-      ).matches;
-      setDarkMode(prefersDark);
-    }
-  }, []);
-
-  // --- ✅ Dark Mode: บันทึกค่าเมื่อมีการเปลี่ยนแปลง ---
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark-mode");
-      localStorage.setItem("darkMode", "true");
-    } else {
-      document.documentElement.classList.remove("dark-mode");
-      localStorage.setItem("darkMode", "false");
-    }
-  }, [darkMode]);
-
-  // --- ✅ Dark Mode: ฟังก์ชัน Toggle ---
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
+  // --- ✅ Flow Builder State ---
+  const [flowSteps, setFlowSteps] = useState([]); // [{id, stateName, nextStateName, eventType, msgType, postbackData, actions:[]}]
+  const [expandedFlowStep, setExpandedFlowStep] = useState(null);
+  const [addingFlowAction, setAddingFlowAction] = useState(null); // stepId ที่กำลังเพิ่ม action
+  const [newFlowAction, setNewFlowAction] = useState({ order: 1, type: "text", payload: "" });
+  const [showNewFlowStep, setShowNewFlowStep] = useState(false);
+  const [selectedFlowStepId, setSelectedFlowStepId] = useState(null);
+  const [newFlowStep, setNewFlowStep] = useState({ stateName: "", nextStateName: "", eventType: "postback", msgType: "text", postbackData: "" });
+  const [apiDisplayText, setApiDisplayText] = useState("");
+  // compat: keep these so mappedAreas / upload still works
+  const [apiStates, setApiStates] = useState([]);
+  const [apiActionList, setApiActionList] = useState([]);
 
   // --- ✅ Refs for Scroll Targets ---
   const uploadSectionRef = useRef(null);
@@ -231,16 +206,19 @@ export default function RichMenuDashboard() {
   };
 
   const resetUploadForm = () => {
+    setUploading(false); // ✅ reset ปุ่มบันทึกให้กดได้ใหม่
     setMenuName("");
     setSelectedFile(null);
     setFileDisplay("");
     setUploadedImage(null);
     setActions({});
     setChatBarText("เมนูหลัก");
+    setFlowSteps([]);
+    setSelectedFlowStepId(null);
+    setExpandedFlowStep(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-    // Scroll to history section to see the result
     historySectionRef.current?.scrollIntoView({
       behavior: "smooth",
       block: "start",
@@ -428,10 +406,27 @@ export default function RichMenuDashboard() {
         ...(action.type === "text" && {
           text: action.text || "ข้อความ", // ✅ ถูก! ใช้ action.text
         }),
-        ...(action.type === "api" && {
-          data: action.data || "action=default",
-        }),
-        ...(action.label && { label: action.label }),
+        ...(action.type === "api" && (() => {
+          // หา flowStep ที่ถูกเลือก (selectedFlowStepId) เพื่อดึง stateName
+          const selStep = flowSteps.find(s => s.id === selectedFlowStepId);
+          const postbackData = action.data || selStep?.postbackData || "action=default";
+          const stateName = selStep?.stateName || "standby";
+          const eventType = selStep?.eventType || "postback";
+          // format เหมือนพี่เขา
+          const dataObj = {
+            "para": "go-to",
+            "selected-value": {
+              "stateName": stateName,
+              "eventType": eventType,
+              "postbackData": postbackData,
+            }
+          };
+          return {
+            data: JSON.stringify(dataObj),
+            displayText: action.displayText || action.label || "เมนู",
+          };
+        })()),
+        label: action.label || action.displayText || action.data || "เมนู",
       },
     };
   });
@@ -658,6 +653,26 @@ export default function RichMenuDashboard() {
 
       if (!newMenuId) {
         throw new Error("ไม่ได้รับ richMenuId จาก API");
+      }
+
+      // ✅ บันทึก flow (state + action_list) ลง DB ถ้ามี flowSteps
+      console.log("[save_flow] flowSteps ที่จะส่ง:", JSON.stringify(flowSteps, null, 2));
+      if (flowSteps && flowSteps.length > 0) {
+        try {
+          const saveFlowRes = await fetch("/api/richmenu?action=save_flow", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              botKey: decodeURIComponent(botKey),
+              botName: bot?.bot_name || botKey,
+              flowSteps,
+            }),
+          });
+          const saveFlowData = await saveFlowRes.json();
+          console.log("[save_flow]", saveFlowData.message || saveFlowData.error);
+        } catch (flowErr) {
+          console.warn("[save_flow] error:", flowErr.message);
+        }
       }
 
       // 2. ถ้ากดยืนยันว่าจะใช้ทันที และเราได้ ID ใหม่มาแล้ว
@@ -890,26 +905,6 @@ export default function RichMenuDashboard() {
       />
       <script src="https://cdn.tailwindcss.com"></script>
 
-      <button
-        onClick={toggleDarkMode}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center hover:scale-110"
-        style={{
-          background: darkMode
-            ? "linear-gradient(135deg, #1e293b 0%, #334155 100%)"
-            : "linear-gradient(135deg, #06C755 0%, #05b04b 100%)",
-          border: darkMode
-            ? "2px solid #475569"
-            : "2px solid rgba(255, 255, 255, 0.3)",
-        }}
-        title={darkMode ? "สลับเป็น Light Mode" : "สลับเป็น Dark Mode"}
-      >
-        {darkMode ? (
-          <Sun size={24} className="text-amber-300" />
-        ) : (
-          <Moon size={24} className="text-white" />
-        )}
-      </button>
-
       {/* ✅ เรียกใช้คอมโพเนนต์ Sidebar ที่แยกออกมา */}
       <Sidebar
         isDesktopSidebarOpen={isDesktopSidebarOpen}
@@ -1105,14 +1100,16 @@ export default function RichMenuDashboard() {
                             </div>
                           </div>
                         </div>
-                        <div className="action-settings-card animate-in fade-in slide-in-from-top-4">
-                          {/* ส่วนหัว */}
-                          <div className="action-settings-header">
-                            <h3 className="font-bold text-slate-700 flex items-center gap-2 text-sm">
+                        {/* ==================== ACTION SETTINGS CARD (New UI) ==================== */}
+                        <div className="bg-white rounded-[12px] animate-in fade-in slide-in-from-top-4" style={{boxShadow: "0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px #E8ECEF"}}>
+
+                          {/* Header */}
+                          <div className="p-4 border-b border-slate-300 flex justify-between items-center bg-white">
+                            <h3 className="font-semibold text-[#2C3E50] flex items-center gap-2 text-sm">
                               <Settings size={16} className="text-[#06C755]" />
-                              ตั้งค่า Action สำหรับช่อง:{" "}
-                              <span className="text-green-600 uppercase">
-                                {selectedAreaId}
+                              จัดการ Action:{" "}
+                              <span className="text-[#06C755] font-bold uppercase tracking-tight">
+                                Area {selectedAreaId}
                               </span>
                             </h3>
                             <button
@@ -1123,108 +1120,431 @@ export default function RichMenuDashboard() {
                                   return n;
                                 })
                               }
-                              className="text-[10px] text-red-500 hover:underline font-medium"
+                              className="text-[10px] text-[#E74C3C] hover:underline font-medium"
                             >
-                              ล้างค่าช่องนี้
+                              ล้างค่า
                             </button>
                           </div>
 
-                          {/* ส่วนเนื้อหา */}
-                          <div className="action-settings-body space-y-5">
-                            {/* Selector Buttons */}
-                            <div className="grid grid-cols-3 gap-3">
-                              <button
-                                onClick={() => updateAction("type", "link")}
-                                className={`flex flex-col items-center gap-2 p-3 rounded-lg border text-xs font-bold transition-all ${currentAction.type === "link" ? "bg-green-50 border-green-500 text-green-700" : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"}`}
-                              >
-                                <LinkIcon size={18} /> Link
-                              </button>
-                              <button
-                                onClick={() => updateAction("type", "text")}
-                                className={`flex flex-col items-center gap-2 p-3 rounded-lg border text-xs font-bold transition-all ${currentAction.type === "text" ? "bg-green-50 border-green-500 text-green-700" : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"}`}
-                              >
-                                <Type size={18} /> Text
-                              </button>
-                              <button
-                                onClick={() => updateAction("type", "api")}
-                                className={`flex flex-col items-center gap-2 p-3 rounded-lg border text-xs font-bold transition-all ${currentAction.type === "api" ? "bg-green-50 border-green-500 text-green-700" : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"}`}
-                              >
-                                <Zap size={18} /> API
-                              </button>
+                          <div className="p-5 space-y-5">
+                            {/* Action Type Selector */}
+                            <div>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">ประเภท Action</p>
+                              <div className="flex rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                                <button
+                                  onClick={() => updateAction("type", "link")}
+                                  className={`flex-1 flex flex-col items-center gap-1.5 py-3 text-xs font-bold transition-all border-r border-slate-200
+                                    ${currentAction.type === "link"
+                                      ? "bg-[#F0FFF4] text-[#06C755] shadow-inner"
+                                      : "bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600"}`}
+                                >
+                                  <LinkIcon size={16} />
+                                  <span>Link</span>
+                                  {currentAction.type === "link" && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#06C755]" />
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() => updateAction("type", "text")}
+                                  className={`flex-1 flex flex-col items-center gap-1.5 py-3 text-xs font-bold transition-all border-r border-slate-200
+                                    ${currentAction.type === "text"
+                                      ? "bg-[#F0FFF4] text-[#06C755] shadow-inner"
+                                      : "bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600"}`}
+                                >
+                                  <Type size={16} />
+                                  <span>Text</span>
+                                  {currentAction.type === "text" && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#06C755]" />
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() => updateAction("type", "api")}
+                                  className={`flex-1 flex flex-col items-center gap-1.5 py-3 text-xs font-bold transition-all
+                                    ${currentAction.type === "api"
+                                      ? "bg-[#F0FFF4] text-[#06C755] shadow-inner"
+                                      : "bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600"}`}
+                                >
+                                  <Zap size={16} />
+                                  <span>API</span>
+                                  {currentAction.type === "api" && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#06C755]" />
+                                  )}
+                                </button>
+                              </div>
                             </div>
 
-                            {/* Input Fields */}
-                            <div className="pt-2">
-                              {currentAction.type === "link" && (
-                                <div className="space-y-2">
-                                  <label className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                                    <Globe size={12} /> เว็บไซต์ปลายทาง (URL)
-                                  </label>
-                                  <input
-                                    type="url"
-                                    value={currentAction.url || ""}
-                                    onChange={(e) =>
-                                      updateAction("url", e.target.value)
-                                    }
-                                    placeholder="https://example.com"
-                                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-green-500 outline-none transition-all"
-                                  />
-                                </div>
-                              )}
+                            {/* ===== LINK MODE ===== */}
+                            {currentAction.type === "link" && (
+                              <div className="space-y-2">
+                                <label className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                                  <Globe size={12} /> เว็บไซต์ปลายทาง (URL)
+                                </label>
+                                <input
+                                  type="url"
+                                  value={currentAction.url || ""}
+                                  onChange={(e) => updateAction("url", e.target.value)}
+                                  placeholder="https://example.com"
+                                  className="w-full px-3 py-2.5 bg-[#f8fafc] border border-slate-300 rounded-xl text-sm focus:bg-white focus:border-[#06C755] outline-none transition-all font-medium"
+                                />
+                              </div>
+                            )}
 
-                              {currentAction.type === "text" && (
-                                <div className="space-y-2">
-                                  <label className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                                    <Type size={12} /> ข้อความที่จะส่ง
-                                  </label>
-                                  <textarea
-                                    rows={2}
-                                    value={currentAction.text || ""}
-                                    onChange={(e) =>
-                                      updateAction("text", e.target.value)
-                                    }
-                                    placeholder="พิมพ์ข้อความที่ต้องการ..."
-                                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-green-500 outline-none transition-all resize-none"
-                                  />
-                                </div>
-                              )}
+                            {/* ===== TEXT MODE ===== */}
+                            {currentAction.type === "text" && (
+                              <div className="space-y-2">
+                                <label className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                                  <Type size={12} /> ข้อความที่จะส่ง
+                                </label>
+                                <textarea
+                                  rows={2}
+                                  value={currentAction.text || ""}
+                                  onChange={(e) => updateAction("text", e.target.value)}
+                                  placeholder="พิมพ์ข้อความที่ต้องการ..."
+                                  className="w-full px-3 py-2.5 bg-[#f8fafc] border border-slate-300 rounded-xl text-sm focus:bg-white focus:border-[#06C755] outline-none transition-all resize-none font-medium"
+                                />
+                              </div>
+                            )}
 
-                              {currentAction.type === "api" && (
-                                <div className="space-y-4">
-                                  <div className="space-y-2">
+                            {/* ===== API MODE — FLOW BUILDER ===== */}
+                            {currentAction.type === "api" && (() => {
+                              // ---- helpers ----
+                              const FLOW_COLORS = [
+                                { bg: "#EFF6FF", border: "#3B82F6", dot: "#3B82F6", tag: "#DBEAFE", tagText: "#1D4ED8" },
+                                { bg: "#F0FDF4", border: "#22C55E", dot: "#22C55E", tag: "#DCFCE7", tagText: "#15803D" },
+                                { bg: "#FFF7ED", border: "#F97316", dot: "#F97316", tag: "#FFEDD5", tagText: "#C2410C" },
+                                { bg: "#FDF4FF", border: "#A855F7", dot: "#A855F7", tag: "#F3E8FF", tagText: "#7E22CE" },
+                                { bg: "#FFF1F2", border: "#F43F5E", dot: "#F43F5E", tag: "#FFE4E6", tagText: "#BE123C" },
+                              ];
+                              const getFlowColor = (i) => FLOW_COLORS[i % FLOW_COLORS.length];
+
+                              function addFlowStep() {
+                                if (!newFlowStep.stateName.trim()) return;
+                                const id = Date.now();
+                                const updated = [...flowSteps, { ...newFlowStep, id, actions: [] }];
+                                setFlowSteps(updated);
+                                setExpandedFlowStep(id);
+                                setNewFlowStep({ stateName: "", nextStateName: "", eventType: "postback", msgType: "text", postbackData: "" });
+                                setShowNewFlowStep(false);
+                                if (!selectedFlowStepId) {
+                                  setSelectedFlowStepId(id);
+                                  const sel = updated.find(s => s.id === id);
+                                  updateAction("data", sel?.postbackData || sel?.stateName || "");
+                                  setApiStates(updated);
+                                }
+                              }
+
+                              function removeFlowStep(id) {
+                                const updated = flowSteps.filter(s => s.id !== id);
+                                setFlowSteps(updated);
+                                setApiStates(updated);
+                                if (selectedFlowStepId === id) {
+                                  setSelectedFlowStepId(null);
+                                  updateAction("data", "");
+                                }
+                              }
+
+                              function addFlowActionToStep(stepId) {
+                                if (!newFlowAction.payload.trim()) return;
+                                const updated = flowSteps.map(s => {
+                                  if (s.id !== stepId) return s;
+                                  return { ...s, actions: [...s.actions, { id: Date.now(), ...newFlowAction }] };
+                                });
+                                setFlowSteps(updated);
+                                setApiStates(updated);
+                                setApiActionList(updated.flatMap(s => s.actions.map(a => ({ actionID: a.id, order: a.order, actionType: a.type, payload: a.payload, action: s.id }))));
+                                setAddingFlowAction(null);
+                                setNewFlowAction({ order: 1, type: "text", payload: "" });
+                              }
+
+                              function removeFlowAction(stepId, actionId) {
+                                const updated = flowSteps.map(s => {
+                                  if (s.id !== stepId) return s;
+                                  return { ...s, actions: s.actions.filter(a => a.id !== actionId) };
+                                });
+                                setFlowSteps(updated);
+                                setApiStates(updated);
+                                setApiActionList(updated.flatMap(s => s.actions.map(a => ({ actionID: a.id, order: a.order, actionType: a.type, payload: a.payload, action: s.id }))));
+                              }
+
+                              function selectFlowStep(id) {
+                                setSelectedFlowStepId(id);
+                                const sel = flowSteps.find(s => s.id === id);
+                                updateAction("data", sel?.postbackData || sel?.stateName || "");
+                              }
+
+                              const actionTypeLabel = { text: "💬 TEXT", flex: "🃏 FLEX", calling: "⚙️ CALLING" };
+
+                              return (
+                                <div className="space-y-3">
+
+                                  {/* Display Text */}
+                                  <div className="space-y-1">
                                     <label className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                                      <Code size={12} /> Postback Data
-                                    </label>
-                                    <input
-                                      type="text"
-                                      value={currentAction.data || ""}
-                                      onChange={(e) =>
-                                        updateAction("data", e.target.value)
-                                      }
-                                      placeholder="action=buy&id=123"
-                                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-mono focus:bg-white focus:border-green-500 outline-none"
-                                    />
-                                  </div>
-                                  <div className="space-y-2">
-                                    <label className="text-[11px] font-bold text-slate-500 uppercase">
-                                      ข้อความแสดงผล (Display Text)
+                                      <Type size={12} className="text-[#06C755]" /> Display Text (ข้อความในแชท)
                                     </label>
                                     <input
                                       type="text"
                                       value={currentAction.displayText || ""}
-                                      onChange={(e) =>
-                                        updateAction(
-                                          "displayText",
-                                          e.target.value,
-                                        )
-                                      }
-                                      placeholder="กำลังทำรายการ..."
-                                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-green-500 outline-none"
+                                      onChange={(e) => updateAction("displayText", e.target.value)}
+                                      placeholder="ข้อความที่แสดงเมื่อ User กดปุ่ม..."
+                                      className="w-full px-3 py-2.5 bg-[#f8fafc] border border-slate-300 rounded-xl text-sm focus:bg-white focus:border-[#06C755] outline-none font-medium"
                                     />
+                                    <p className="text-[9px] text-slate-400 italic ml-1">* หากเว้นว่าง ระบบจะแสดงค่า Default ตาม Action Type</p>
                                   </div>
+
+                                  <div style={{ height: 1, background: "#E2E8F0" }} />
+
+                                  {/* Flow Header */}
+                                  <div className="flex items-center justify-between">
+                                    <label className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                                      <Zap size={12} /> Flow การสนทนา
+                                    </label>
+                                    <button
+                                      onClick={() => setShowNewFlowStep(!showNewFlowStep)}
+                                      className="text-[10px] font-bold flex items-center gap-0.5"
+                                      style={{ color: showNewFlowStep ? "#EF4444" : "#06C755", background: "none", border: "none", cursor: "pointer" }}
+                                    >
+                                      <PlusCircle size={10} /> {showNewFlowStep ? "ยกเลิก" : "เพิ่ม State"}
+                                    </button>
+                                  </div>
+
+                                  {/* New Step Form */}
+                                  {showNewFlowStep && (
+                                    <div className="p-3 bg-[#f8fafc] border border-dashed border-slate-300 rounded-xl space-y-2">
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div className="space-y-1">
+                                          <span className="text-[9px] text-slate-400 font-bold uppercase">Current State</span>
+                                          <input value={newFlowStep.stateName}
+                                            onChange={e => setNewFlowStep(p => ({ ...p, stateName: e.target.value }))}
+                                            placeholder="เช่น standby"
+                                            className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:border-[#06C755]" />
+                                        </div>
+                                        <div className="space-y-1">
+                                          <span className="text-[9px] text-[#06C755] font-bold uppercase">Next State →</span>
+                                          <input value={newFlowStep.nextStateName}
+                                            onChange={e => setNewFlowStep(p => ({ ...p, nextStateName: e.target.value }))}
+                                            placeholder="เช่น blind-person"
+                                            className="w-full px-2 py-1.5 bg-white border border-green-200 rounded-lg text-xs outline-none focus:border-[#06C755]" />
+                                        </div>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div className="space-y-1">
+                                          <span className="text-[9px] text-slate-400 font-bold uppercase">Event Type</span>
+                                          <select value={newFlowStep.eventType}
+                                            onChange={e => setNewFlowStep(p => ({ ...p, eventType: e.target.value }))}
+                                            className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none">
+                                            <option value="postback">postback</option>
+                                            <option value="message">message</option>
+                                          </select>
+                                        </div>
+                                        <div className="space-y-1">
+                                          <span className="text-[9px] text-slate-400 font-bold uppercase">Msg Type</span>
+                                          <select value={newFlowStep.msgType}
+                                            onChange={e => setNewFlowStep(p => ({ ...p, msgType: e.target.value }))}
+                                            className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none">
+                                            <option value="text">text</option>
+                                            <option value="image">image</option>
+                                            <option value="video">video</option>
+                                            <option value="audio">audio</option>
+                                          </select>
+                                        </div>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <span className="text-[9px] text-slate-400 font-bold uppercase">Postback Data</span>
+                                        <input value={newFlowStep.postbackData}
+                                          onChange={e => setNewFlowStep(p => ({ ...p, postbackData: e.target.value }))}
+                                          placeholder="เช่น blind-person"
+                                          className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:border-[#06C755]" />
+                                      </div>
+                                      <button onClick={addFlowStep}
+                                        className="w-full py-2 bg-[#06C755] text-white text-xs font-bold rounded-lg hover:bg-[#05a546]">
+                                        ✓ สร้าง State
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {/* Empty state */}
+                                  {flowSteps.length === 0 && !showNewFlowStep && (
+                                    <div className="text-center py-4 text-[11px] text-slate-300">
+                                      ยังไม่มี State — กด <b className="text-[#06C755]">+ เพิ่ม State</b> เพื่อเริ่มต้น
+                                    </div>
+                                  )}
+
+                                  {/* Steps */}
+                                  <div className="space-y-2">
+                                    {flowSteps.map((step, idx) => {
+                                      const color = getFlowColor(idx);
+                                      const isExpanded = expandedFlowStep === step.id;
+                                      const isSelected = selectedFlowStepId === step.id;
+                                      const isAddingHere = addingFlowAction === step.id;
+
+                                      return (
+                                        <div key={step.id} style={{
+                                          border: `1.5px solid ${isSelected ? color.dot : color.border}`,
+                                          borderRadius: 12, overflow: "hidden",
+                                          boxShadow: isSelected ? `0 0 0 3px ${color.dot}25` : "none"
+                                        }}>
+                                          {/* Step header */}
+                                          <div
+                                            style={{ background: color.bg, padding: "8px 10px", display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}
+                                            onClick={() => setExpandedFlowStep(isExpanded ? null : step.id)}
+                                          >
+                                            <div style={{
+                                              width: 20, height: 20, borderRadius: "50%", background: color.dot,
+                                              color: "white", fontSize: 9, fontWeight: 800,
+                                              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
+                                            }}>{idx + 1}</div>
+
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                              <div style={{ fontSize: 10, fontWeight: 700, color: "#1E293B", display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
+                                                <span style={{ display: "inline-block", padding: "1px 5px", borderRadius: 4, fontSize: 9, fontWeight: 700, background: color.tag, color: color.tagText }}>{step.stateName}</span>
+                                                <span style={{ color: "#94A3B8", fontSize: 8 }}>→</span>
+                                                <span style={{ display: "inline-block", padding: "1px 5px", borderRadius: 4, fontSize: 9, fontWeight: 700, background: "#F1F5F9", color: "#475569" }}>{step.nextStateName || "—"}</span>
+                                              </div>
+                                              <div style={{ fontSize: 8, color: "#94A3B8", marginTop: 1 }}>
+                                                {step.eventType} · {step.msgType} · {step.actions.length} action{step.actions.length !== 1 ? "s" : ""}
+                                              </div>
+                                            </div>
+
+                                            <button
+                                              onClick={e => { e.stopPropagation(); selectFlowStep(step.id); }}
+                                              style={{
+                                                padding: "3px 8px", borderRadius: 5, fontSize: 8, fontWeight: 700,
+                                                background: isSelected ? color.dot : "white",
+                                                color: isSelected ? "white" : color.dot,
+                                                border: `1.5px solid ${color.dot}`,
+                                                cursor: "pointer", flexShrink: 0
+                                              }}
+                                            >{isSelected ? "✓ ใช้" : "เลือก"}</button>
+
+                                            <button onClick={e => { e.stopPropagation(); removeFlowStep(step.id); }}
+                                              style={{ background: "none", border: "none", cursor: "pointer", color: "#CBD5E1", fontSize: 12, padding: 2, flexShrink: 0 }}>✕</button>
+
+                                            <span style={{ color: "#94A3B8", fontSize: 9, flexShrink: 0, transform: isExpanded ? "rotate(180deg)" : "none", display: "inline-block", transition: "transform 0.15s" }}>▼</span>
+                                          </div>
+
+                                          {/* Expanded body */}
+                                          {isExpanded && (
+                                            <div style={{ padding: "10px", background: "white", borderTop: `1px solid ${color.border}20` }}>
+                                              {/* postback data */}
+                                              {step.postbackData && (
+                                                <div style={{
+                                                  display: "inline-flex", alignItems: "center", gap: 3,
+                                                  padding: "2px 6px", background: "#0F172A", borderRadius: 5,
+                                                  fontSize: 8, fontFamily: "monospace", color: "#94A3B8", marginBottom: 8
+                                                }}>
+                                                  <span style={{ color: "#64748B" }}>data:</span>
+                                                  <span style={{ color: "#38BDF8" }}>{step.postbackData}</span>
+                                                </div>
+                                              )}
+
+                                              {/* Action list */}
+                                              <div className="space-y-1.5">
+                                                {step.actions.length === 0 && (
+                                                  <div style={{ fontSize: 9, color: "#CBD5E1", textAlign: "center", padding: "6px 0" }}>
+                                                    ยังไม่มีคำสั่ง
+                                                  </div>
+                                                )}
+                                                {[...step.actions].sort((a, b) => a.order - b.order).map(action => (
+                                                  <div key={action.id} style={{
+                                                    display: "flex", alignItems: "flex-start", gap: 6,
+                                                    padding: "6px 8px", background: "#F8FAFC",
+                                                    border: "1px solid #E2E8F0", borderRadius: 7
+                                                  }}>
+                                                    <span style={{
+                                                      fontSize: 8, fontWeight: 700, color: "#94A3B8",
+                                                      background: "#E2E8F0", borderRadius: 3, padding: "1px 4px", flexShrink: 0
+                                                    }}>#{action.order}</span>
+                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                      <div style={{ fontSize: 8, fontWeight: 700, color: color.dot, marginBottom: 1 }}>
+                                                        {actionTypeLabel[action.type] || action.type}
+                                                      </div>
+                                                      <div style={{
+                                                        fontSize: 9, color: "#475569", wordBreak: "break-all",
+                                                        fontFamily: action.type === "flex" ? "monospace" : "inherit",
+                                                        maxHeight: 48, overflow: "hidden"
+                                                      }}>{action.payload}</div>
+                                                    </div>
+                                                    <button onClick={() => removeFlowAction(step.id, action.id)}
+                                                      style={{ background: "none", border: "none", cursor: "pointer", color: "#CBD5E1", fontSize: 11, flexShrink: 0 }}>✕</button>
+                                                  </div>
+                                                ))}
+                                              </div>
+
+                                              {/* Add action */}
+                                              {isAddingHere ? (
+                                                <div style={{ marginTop: 8, padding: 10, background: "#F8FAFC", border: "1px dashed #CBD5E1", borderRadius: 8 }} className="space-y-2">
+                                                  <div className="grid grid-cols-4 gap-2">
+                                                    <div className="col-span-1 space-y-1">
+                                                      <span className="text-[9px] text-slate-400 font-bold uppercase">Order</span>
+                                                      <input type="number" value={newFlowAction.order}
+                                                        onChange={e => setNewFlowAction(p => ({ ...p, order: Number(e.target.value) }))}
+                                                        className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:border-[#06C755]" />
+                                                    </div>
+                                                    <div className="col-span-3 space-y-1">
+                                                      <span className="text-[9px] text-slate-400 font-bold uppercase">Action Type</span>
+                                                      <select value={newFlowAction.type}
+                                                        onChange={e => setNewFlowAction(p => ({ ...p, type: e.target.value }))}
+                                                        className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none">
+                                                        <option value="text">💬 TEXT (ข้อความ)</option>
+                                                        <option value="flex">🃏 FLEX (การ์ด)</option>
+                                                        <option value="calling">⚙️ CALLING (ระบบ)</option>
+                                                      </select>
+                                                    </div>
+                                                  </div>
+                                                  <div className="space-y-1">
+                                                    <span className="text-[9px] text-slate-400 font-bold uppercase flex justify-between">
+                                                      Payload / Message
+                                                      <span className="px-1 py-0.5 bg-slate-200 text-slate-600 rounded text-[7px]">JSON SUPPORTED</span>
+                                                    </span>
+                                                    <textarea value={newFlowAction.payload}
+                                                      onChange={e => setNewFlowAction(p => ({ ...p, payload: e.target.value }))}
+                                                      placeholder="พิมพ์ข้อความ หรือ JSON ของ Flex Message..."
+                                                      className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-[10px] font-mono outline-none min-h-[60px] resize-none focus:border-[#06C755]" />
+                                                  </div>
+                                                  <div className="flex gap-1.5">
+                                                    <button onClick={() => addFlowActionToStep(step.id)}
+                                                      className="flex-1 py-1.5 bg-[#06C755] text-white text-xs font-bold rounded-lg hover:bg-[#05a546]">
+                                                      ✓ บันทึก Action
+                                                    </button>
+                                                    <button onClick={() => setAddingFlowAction(null)}
+                                                      className="px-3 py-1.5 bg-slate-100 text-slate-500 text-xs font-bold rounded-lg">
+                                                      ยกเลิก
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              ) : (
+                                                <button
+                                                  onClick={() => { setAddingFlowAction(step.id); setNewFlowAction({ order: step.actions.length + 1, type: "text", payload: "" }); }}
+                                                  style={{ marginTop: 8, width: "100%", padding: "6px 0", background: "none", border: `1.5px dashed ${color.border}`, borderRadius: 7, color: color.dot, fontSize: 9, fontWeight: 700, cursor: "pointer" }}
+                                                >
+                                                  + เพิ่มคำสั่ง
+                                                </button>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+
+                                  {/* Flow preview */}
+                                  {flowSteps.length > 1 && (
+                                    <div style={{ padding: "8px 10px", background: "#0F172A", borderRadius: 8, fontSize: 8, fontFamily: "monospace", color: "#64748B" }}>
+                                      <div style={{ color: "#475569", fontWeight: 700, marginBottom: 4, fontSize: 7, textTransform: "uppercase", letterSpacing: "0.1em" }}>Flow Preview</div>
+                                      {flowSteps.map((s, i) => (
+                                        <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: i < flowSteps.length - 1 ? 3 : 0 }}>
+                                          <span style={{ color: "#38BDF8" }}>{s.stateName}</span>
+                                          {s.nextStateName && <><span style={{ color: "#475569" }}>→</span><span style={{ color: "#86EFAC" }}>{s.nextStateName}</span></>}
+                                          <span style={{ color: "#475569" }}>({s.actions.length} actions)</span>
+                                          {selectedFlowStepId === s.id && <span style={{ color: "#FCD34D" }}>← active</span>}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                            </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -1476,134 +1796,168 @@ export default function RichMenuDashboard() {
 
             {/* ✅ NEW: Audit Log Modal (เพิ่มใหม่) */}
             {isLogModalOpen && (
-              <div
-                className="php-modal-overlay"
-                onClick={() => setIsLogModalOpen(false)}
-              >
+              <div className="php-modal-overlay" onClick={() => setIsLogModalOpen(false)}>
                 <div
-                  className="php-modal-content"
-                  style={{ maxWidth: "680px", width: "95vw" }}
                   onClick={(e) => e.stopPropagation()}
+                  style={{
+                    background: "#F8FAFC",
+                    borderRadius: 20,
+                    maxWidth: 780,
+                    width: "95vw",
+                    maxHeight: "92vh",
+                    display: "flex",
+                    flexDirection: "column",
+                    overflow: "hidden",
+                    boxShadow: "0 32px 80px rgba(0,0,0,0.18)",
+                    fontFamily: "inherit",
+                  }}
                 >
-                  {/* Header */}
-                  <div className="php-modal-header">
-                    <h3 className="flex items-center gap-2">
-                      <History size={18} className="text-amber-500" />
-                      ประวัติการใช้งาน — <span className="font-mono text-amber-600 text-sm">{botKey}</span>
-                    </h3>
-                    <button onClick={() => setIsLogModalOpen(false)} className="php-modal-close">
-                      <X size={20} />
-                    </button>
+                  {/* ── Header ── */}
+                  <div style={{
+                    background: "linear-gradient(135deg, #06C755 0%, #05a546 100%)",
+                    padding: "14px 16px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexShrink: 0,
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ background: "rgba(255,255,255,0.2)", borderRadius: 10, padding: "7px 8px", display: "flex" }}>
+                        <History size={18} color="#fff" />
+                      </div>
+                      <div>
+                        <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>ประวัติการใช้งาน</div>
+                        <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 10, fontFamily: "monospace", marginTop: 1, maxWidth: "55vw", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{botKey}</div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setIsLogModalOpen(false)}
+                      style={{ background: "rgba(255,255,255,0.2)", border: "none", cursor: "pointer", color: "#fff", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+                    ><X size={16} /></button>
                   </div>
 
-                  {/* Filter Tabs */}
-                  <div className="flex gap-1.5 px-4 pt-3 pb-2 border-b border-slate-100 flex-wrap">
+                  {/* ── Stats Bar (horizontal scroll on mobile) ── */}
+                  <div style={{ background: "#fff", padding: "10px 12px", display: "flex", gap: 6, borderBottom: "1px solid #E8ECEF", flexShrink: 0, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
                     {[
-                      { key: "all", label: "ทั้งหมด" },
-                      { key: "add_bot", label: "เพิ่มบอท" },
-                      { key: "create_menu", label: "สร้างเมนู" },
-                      { key: "switch_menu", label: "เปลี่ยนเมนู" },
-                      { key: "delete_menu", label: "ลบเมนู" },
-                      { key: "delete_bot", label: "ลบบอท" },
-                    ].map((f) => (
-                      <button
-                        key={f.key}
-                        onClick={() => setAuditFilter(f.key)}
-                        className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all border ${
-                          auditFilter === f.key
-                            ? "bg-amber-500 text-white border-amber-500"
-                            : "bg-white text-slate-500 border-slate-200 hover:border-amber-300"
-                        }`}
-                      >
-                        {f.label}
-                        {f.key !== "all" && auditLogs.filter(l => l.action === f.key).length > 0 && (
-                          <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[9px] ${auditFilter === f.key ? "bg-white/30 text-white" : "bg-slate-100 text-slate-500"}`}>
-                            {auditLogs.filter(l => l.action === f.key).length}
-                          </span>
-                        )}
-                        {f.key === "all" && (
-                          <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[9px] ${auditFilter === f.key ? "bg-white/30 text-white" : "bg-slate-100 text-slate-500"}`}>
-                            {auditLogs.length}
-                          </span>
-                        )}
-                      </button>
-                    ))}
+                      { key: "all",         label: "ทั้งหมด",     color: "#06C755", bg: "#F0FFF4", count: auditLogs.length },
+                      { key: "create_menu", label: "สร้างเมนู",   color: "#3B82F6", bg: "#EFF6FF", count: auditLogs.filter(l => l.action === "create_menu").length },
+                      { key: "switch_menu", label: "เปลี่ยนเมนู", color: "#F59E0B", bg: "#FFFBEB", count: auditLogs.filter(l => l.action === "switch_menu").length },
+                      { key: "delete_menu", label: "ลบเมนู",      color: "#EF4444", bg: "#FEF2F2", count: auditLogs.filter(l => l.action === "delete_menu").length },
+                      { key: "add_bot",     label: "เพิ่มบอท",    color: "#8B5CF6", bg: "#F5F3FF", count: auditLogs.filter(l => l.action === "add_bot").length },
+                      { key: "delete_bot",  label: "ลบบอท",       color: "#DC2626", bg: "#FFF1F2", count: auditLogs.filter(l => l.action === "delete_bot").length },
+                    ].map((f) => {
+                      const active = auditFilter === f.key;
+                      return (
+                        <button
+                          key={f.key}
+                          onClick={() => setAuditFilter(f.key)}
+                          style={{
+                            display: "flex", flexDirection: "column", alignItems: "center",
+                            padding: "6px 12px", borderRadius: 10, cursor: "pointer",
+                            border: active ? `2px solid ${f.color}` : "2px solid transparent",
+                            background: active ? f.bg : "#F8FAFC",
+                            transition: "all 0.15s", flexShrink: 0, minWidth: 62,
+                          }}
+                        >
+                          <span style={{ fontSize: 16, fontWeight: 800, color: active ? f.color : "#94A3B8", lineHeight: 1 }}>{f.count}</span>
+                          <span style={{ fontSize: 9, fontWeight: 600, color: active ? f.color : "#94A3B8", marginTop: 2, whiteSpace: "nowrap" }}>{f.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
 
-                  {/* Body */}
-                  <div className="php-modal-body" style={{ maxHeight: "480px", overflowY: "auto" }}>
+                  {/* ── Log Rows (card layout — mobile friendly) ── */}
+                  <div style={{ overflowY: "auto", flex: 1, background: "#fff", WebkitOverflowScrolling: "touch" }}>
                     {auditLoading ? (
-                      <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
-                        <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
-                        <span className="text-sm">กำลังโหลดประวัติ...</span>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: 12 }}>
+                        <div style={{ width: 32, height: 32, border: "3px solid #06C755", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                        <span style={{ fontSize: 13, color: "#94A3B8" }}>กำลังโหลดประวัติ...</span>
                       </div>
                     ) : (() => {
-                      const filtered = auditFilter === "all"
-                        ? auditLogs
-                        : auditLogs.filter(l => l.action === auditFilter);
+                      const filtered = auditFilter === "all" ? auditLogs : auditLogs.filter(l => l.action === auditFilter);
 
                       if (filtered.length === 0) {
                         return (
-                          <div className="flex flex-col items-center justify-center py-16 gap-2 text-slate-400">
-                            <History size={36} className="text-slate-200" />
-                            <p className="text-sm font-medium">ยังไม่มีประวัติในหมวดนี้</p>
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: 10 }}>
+                            <div style={{ background: "#F1F5F9", borderRadius: 16, padding: 20 }}>
+                              <History size={36} color="#CBD5E1" />
+                            </div>
+                            <span style={{ fontSize: 13, color: "#94A3B8", fontWeight: 600 }}>ยังไม่มีประวัติในหมวดนี้</span>
                           </div>
                         );
                       }
 
                       const actionConfig = {
-                        add_bot:     { label: "เพิ่มบอท",    color: "bg-blue-100 text-blue-700",   icon: "🤖" },
-                        create_menu: { label: "สร้างเมนู",   color: "bg-green-100 text-green-700",  icon: "➕" },
-                        switch_menu: { label: "เปลี่ยนเมนู", color: "bg-amber-100 text-amber-700",  icon: "🔄" },
-                        delete_menu: { label: "ลบเมนู",      color: "bg-rose-100 text-rose-700",    icon: "🗑️" },
-                        delete_bot:  { label: "ลบบอท",       color: "bg-red-100 text-red-700",      icon: "❌" },
+                        add_bot:     { label: "เพิ่มบอท",    color: "#8B5CF6", bg: "#F5F3FF", dot: "#8B5CF6" },
+                        create_menu: { label: "สร้างเมนู",   color: "#3B82F6", bg: "#EFF6FF", dot: "#3B82F6" },
+                        switch_menu: { label: "เปลี่ยนเมนู", color: "#F59E0B", bg: "#FFFBEB", dot: "#F59E0B" },
+                        delete_menu: { label: "ลบเมนู",      color: "#EF4444", bg: "#FEF2F2", dot: "#EF4444" },
+                        delete_bot:  { label: "ลบบอท",       color: "#DC2626", bg: "#FFF1F2", dot: "#DC2626" },
                       };
 
                       return filtered.map((log, i) => {
-                        const cfg = actionConfig[log.action] || { label: log.action, color: "bg-slate-100 text-slate-600", icon: "📋" };
+                        const cfg = actionConfig[log.action] || { label: log.action, color: "#64748B", bg: "#F8FAFC", dot: "#94A3B8" };
                         const createdAt = new Date(log.created_at);
                         const dateStr = createdAt.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
-                        const timeStr = createdAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+                        const timeStr = createdAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
                         return (
-                          <div key={log.id || i} className="php-log-item" style={{ alignItems: "flex-start", gap: "12px", padding: "14px 16px", borderBottom: "1px solid #f1f5f9" }}>
-                            {/* Icon */}
-                            <div style={{ fontSize: "22px", lineHeight: 1, marginTop: "2px", flexShrink: 0 }}>{cfg.icon}</div>
-
-                            {/* Content */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-2 flex-wrap">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.color}`}>
-                                    {cfg.label}
-                                  </span>
-                                  {log.menu_name && (
-                                    <span className="text-[11px] font-semibold text-slate-700 truncate max-w-[180px]">
-                                      {log.menu_name}
-                                    </span>
-                                  )}
-                                </div>
-                                <span className="text-[10px] text-slate-400 shrink-0">{dateStr} {timeStr}</span>
+                          <div
+                            key={log.id || i}
+                            style={{
+                              padding: "12px 16px",
+                              borderBottom: "1px solid #F1F5F9",
+                              borderLeft: `3px solid ${cfg.dot}`,
+                              background: "#fff",
+                              transition: "background 0.1s",
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
+                            onMouseLeave={e => e.currentTarget.style.background = "#fff"}
+                          >
+                            {/* Row 1: Badge + Timestamp */}
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                              <span style={{
+                                display: "inline-flex", alignItems: "center", gap: 5,
+                                padding: "3px 10px", borderRadius: 20,
+                                background: cfg.bg, color: cfg.color,
+                                fontSize: 10, fontWeight: 700,
+                              }}>
+                                <span style={{ width: 5, height: 5, borderRadius: "50%", background: cfg.dot }} />
+                                {cfg.label}
+                              </span>
+                              <div style={{ textAlign: "right" }}>
+                                <div style={{ color: "#475569", fontSize: 11, fontWeight: 600 }}>{dateStr}</div>
+                                <div style={{ color: "#94A3B8", fontSize: 10, fontFamily: "monospace" }}>{timeStr}</div>
                               </div>
+                            </div>
 
-                              {log.detail && (
-                                <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">{log.detail}</p>
-                              )}
+                            {/* Row 2: Detail */}
+                            {log.menu_name && (
+                              <div style={{ color: "#2C3E50", fontSize: 12, fontWeight: 600, marginBottom: 2 }}>{log.menu_name}</div>
+                            )}
+                            {log.detail && (
+                              <div style={{ color: "#64748B", fontSize: 11, lineHeight: 1.5, marginBottom: 4 }}>{log.detail}</div>
+                            )}
+                            {log.action === "switch_menu" && log.menu_id_from && (
+                              <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6, fontSize: 10, fontFamily: "monospace", flexWrap: "wrap" }}>
+                                <span style={{ color: "#94A3B8", background: "#F1F5F9", padding: "1px 6px", borderRadius: 4 }}>{log.menu_id_from?.substring(0, 12)}…</span>
+                                <span style={{ color: "#CBD5E1" }}>→</span>
+                                <span style={{ color: "#06C755", background: "#F0FFF4", padding: "1px 6px", borderRadius: 4 }}>{log.menu_id_to?.substring(0, 12)}…</span>
+                              </div>
+                            )}
 
-                              {/* switch_menu: แสดง from → to */}
-                              {log.action === "switch_menu" && log.menu_id_from && (
-                                <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
-                                  <span className="truncate max-w-[100px] bg-slate-100 px-1.5 py-0.5 rounded">{log.menu_id_from?.substring(0,14)}…</span>
-                                  <span>→</span>
-                                  <span className="truncate max-w-[100px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded">{log.menu_id_to?.substring(0,14)}…</span>
+                            {/* Row 3: Admin */}
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                              {log.admin_avatar ? (
+                                <img src={log.admin_avatar} alt="" style={{ width: 20, height: 20, borderRadius: "50%", objectFit: "cover", border: "1.5px solid #E2E8F0", flexShrink: 0 }} onError={(e) => { e.target.style.display = "none"; }} />
+                              ) : (
+                                <div style={{ width: 20, height: 20, borderRadius: "50%", background: "linear-gradient(135deg, #06C755, #05a546)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                  <User size={10} color="#fff" />
                                 </div>
                               )}
-
-                              {/* admin info */}
-                              <div className="flex items-center gap-1 mt-1.5">
-                                <User size={11} className="text-slate-300" />
-                                <span className="text-[10px] text-slate-400 font-mono truncate">{log.admin_name || log.admin_id}</span>
-                              </div>
+                              <span style={{ color: "#64748B", fontSize: 10, fontWeight: 600 }}>
+                                {log.admin_name || log.admin_id || "—"}
+                              </span>
                             </div>
                           </div>
                         );
@@ -1611,9 +1965,16 @@ export default function RichMenuDashboard() {
                     })()}
                   </div>
 
-                  <div className="php-modal-footer">
-                    <button onClick={() => setIsLogModalOpen(false)} className="php-btn-close-modal">
-                      ปิดหน้าต่าง
+                  {/* ── Footer ── */}
+                  <div style={{ background: "#F8FAFC", padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid #E8ECEF", flexShrink: 0 }}>
+                    <span style={{ color: "#94A3B8", fontSize: 11 }}>
+                      {auditFilter === "all" ? auditLogs.length : auditLogs.filter(l => l.action === auditFilter).length} รายการ
+                    </span>
+                    <button
+                      onClick={() => setIsLogModalOpen(false)}
+                      style={{ background: "#06C755", border: "none", borderRadius: 10, padding: "8px 24px", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                    >
+                      ปิด
                     </button>
                   </div>
                 </div>
@@ -1747,8 +2108,8 @@ export default function RichMenuDashboard() {
                             className="w-full h-full object-contain p-1"
                             loading="lazy"
                             onError={(e) => {
-                              e.target.src =
-                                "https://via.placeholder.com/2500x843?text=No+Image";
+                              e.target.onerror = null;
+                              e.target.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2500' height='843' viewBox='0 0 2500 843'%3E%3Crect width='2500' height='843' fill='%23F1F5F9'/%3E%3Crect x='1' y='1' width='2498' height='841' fill='none' stroke='%23E2E8F0' stroke-width='2'/%3E%3Ctext x='1250' y='400' font-family='sans-serif' font-size='60' fill='%2394A3B8' text-anchor='middle'%3ENo Image%3C/text%3E%3Ctext x='1250' y='480' font-family='sans-serif' font-size='36' fill='%23CBD5E1' text-anchor='middle'%3E2500 x 843%3C/text%3E%3C/svg%3E`;
                             }}
                           />
                           {isCurrent && (

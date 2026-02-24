@@ -246,7 +246,7 @@
   width: 100%;
   padding: 10px 14px;
   background-color: #f8fafc; /* พื้นหลังเทาอ่อนมาก (slate-50) */
-  border: 1px solid #e2e8f0;   /* ขอบเทา (slate-200) */
+  border: 1px solid #94a3b8;   /* ขอบเทา (slate-400) - เข้มขึ้นให้มองเห็นชัด */
   border-radius: 8px;
   font-size: 14px;
   color: #334155;             /* ตัวอักษรเทาเข้ม (slate-700) */
