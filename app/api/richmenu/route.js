@@ -37,7 +37,7 @@ async function getTokenFromDB(botKey) {
   // รองรับทั้ง bot_key = "1","2" (id) และ "@xxx"
   const result = await pool.query(
     "SELECT channel_token FROM line_bots WHERE bot_key = $1 OR id::text = $1 LIMIT 1",
-    [String(botKey)]
+    [String(botKey)],
   );
   if (result.rows[0]?.channel_token) {
     console.log(`  🔑 พบ token ด้วย bot_key/id: "${botKey}"`);
@@ -53,9 +53,160 @@ async function getTokenFromDB(botKey) {
 async function getLineBotByKey(botKey) {
   const result = await pool.query(
     "SELECT id, bot_key, channel_token, bot_name FROM line_bots WHERE bot_key = $1",
-    [botKey]
+    [botKey],
   );
   return result.rows[0] || null;
+}
+
+// ========================================
+// HELPER: แปลง payload → LINE flex message object
+// รองรับ bubble, carousel
+// ========================================
+function buildFlexMessage(rawPayload) {
+  let contents;
+  try {
+    contents = typeof rawPayload === "string" ? JSON.parse(rawPayload) : rawPayload;
+  } catch {
+    return null;
+  }
+  const type = contents?.type;
+  if (type === "carousel" || type === "bubble") {
+    return {
+      type: "flex",
+      altText: type === "carousel" ? "เมนู" : "ข้อความ",
+      contents,
+    };
+  }
+  // ไม่มี type → wrap เป็น bubble อัตโนมัติ
+  if (contents && typeof contents === "object") {
+    return { type: "flex", altText: "ข้อความ", contents: { type: "bubble", ...contents } };
+  }
+  return null;
+}
+
+// ========================================
+// HELPER: สร้าง quickReply object จาก payload JSON
+// payload format:
+// {
+//   "text": "เลือกเมนูที่ต้องการ",
+//   "items": [
+//     { "label": "ข่าวสารแจ้งเตือน", "text": "ข่าวสารแจ้งเตือน" },
+//     { "label": "สำรวจขึ้นทะเบียน", "text": "สำรวจขึ้นทะเบียน" }
+//   ]
+// }
+// ========================================
+function buildQuickReplyMessage(rawPayload) {
+  let cfg;
+  try {
+    cfg = typeof rawPayload === "string" ? JSON.parse(rawPayload) : rawPayload;
+  } catch {
+    return null;
+  }
+  if (!cfg?.items?.length) return null;
+
+  return {
+    type: "text",
+    text: cfg.text || "เลือกเมนูที่ต้องการ",
+    quickReply: {
+      items: cfg.items.slice(0, 13).map((item) => ({
+        type: "action",
+        action: item.action ?? {
+          type: "message",
+          label: item.label,
+          text: item.text ?? item.label,
+        },
+      })),
+    },
+  };
+}
+
+// ========================================
+// HELPER: process actions array → { replyMessages, sideEffects }
+// ใช้ร่วมกันทั้ง postback และ message handler
+// ========================================
+async function processActions(actionRows, { token, userId }) {
+  const replyMessages = [];
+
+  for (const a of actionRows) {
+    const type = a.actionType;
+    console.log(`  ▶ action type: ${type}`);
+
+    // ── calling ──
+    if (type === "calling") {
+      try {
+        const cfg = JSON.parse(a.payload || "{}");
+        const r = await fetch(cfg.url, {
+          method: cfg.method || "POST",
+          headers: { "Content-Type": "application/json", ...(cfg.headers || {}) },
+          ...(cfg.body ? { body: JSON.stringify(cfg.body) } : {}),
+        });
+        console.log(`  ⚙️  calling → ${cfg.url} (${r.status})`);
+      } catch (e) { console.warn(`  ⚠️  calling error: ${e.message}`); }
+      continue;
+    }
+
+    // ── switch ──
+    if (type === "switch") {
+      try {
+        const cfg = JSON.parse(a.payload || "{}");
+        if (cfg.richMenuId && token) {
+          const r = await fetch(
+            `https://api.line.me/v2/bot/user/${userId}/richmenu/${cfg.richMenuId}`,
+            { method: "POST", headers: { Authorization: `Bearer ${token}` } },
+          );
+          console.log(`  🔀 switch menu → ${cfg.richMenuId} (${r.status})`);
+        }
+      } catch (e) { console.warn(`  ⚠️  switch error: ${e.message}`); }
+      continue;
+    }
+
+    // ── rich-menu-unlink ──
+    if (type === "rich-menu-unlink") {
+      try {
+        if (token) {
+          const r = await fetch(
+            `https://api.line.me/v2/bot/user/${userId}/richmenu`,
+            { method: "DELETE", headers: { Authorization: `Bearer ${token}` } },
+          );
+          console.log(`  🙈 rich-menu-unlink (${r.status})`);
+        }
+      } catch (e) { console.warn(`  ⚠️  unlink error: ${e.message}`); }
+      continue;
+    }
+
+    // ── quick-reply ──
+    if (type === "quick-reply") {
+      const msg = buildQuickReplyMessage(a.payload);
+      if (msg) {
+        console.log(`  💬 quick-reply → ${msg.quickReply.items.length} items`);
+        replyMessages.push(msg);
+      } else {
+        console.warn(`  ⚠️  quick-reply payload ไม่ถูกต้อง`);
+      }
+      continue;
+    }
+
+    // ── flex / bubble / carousel ──
+    if (type === "flex" || type === "bubble") {
+      const src = a.flexPayload || a.payload;
+      const msg = buildFlexMessage(src);
+      if (msg) {
+        let parsedType = "unknown";
+        try { parsedType = JSON.parse(src)?.type; } catch {}
+        console.log(`  🃏 flex → contents.type: ${parsedType}`);
+        replyMessages.push(msg);
+      } else {
+        console.warn(`  ⚠️  buildFlexMessage ล้มเหลว → fallback text`);
+        replyMessages.push({ type: "text", text: a.payload || "ข้อความ" });
+      }
+      continue;
+    }
+
+    // ── text ──
+    replyMessages.push({ type: "text", text: a.payload || "ข้อความ" });
+  }
+
+  return replyMessages;
 }
 
 // ========================================
@@ -69,7 +220,7 @@ async function getLineBotByKey(botKey) {
 export async function POST(req) {
   const { searchParams } = new URL(req.url);
   const action = searchParams.get("action");
-  
+
   // DEBUG: log ทุก request เพื่อหาต้นตอ error
   console.log("[API] POST action:", action);
   console.log("[API] DATA_BASE_URL exists:", !!process.env.DATA_BASE_URL);
@@ -84,25 +235,32 @@ export async function POST(req) {
   if (action === "add_bot") {
     try {
       const body = await req.json();
-      const { bot_name, bot_key, channel_token, picture_url, creator_id, bot_user_id } = body;
+      const {
+        bot_name,
+        bot_key,
+        channel_token,
+        picture_url,
+        creator_id,
+        bot_user_id,
+      } = body;
 
       if (!bot_key || !channel_token || !creator_id) {
         return NextResponse.json(
           { message: "ข้อมูลไม่ครบ (bot_key, channel_token, creator_id)" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       // STEP 1: ตรวจสอบว่า bot_key นี้มีใน bot_config จริง (double-check)
       const configCheck = await pool.query(
         "SELECT id FROM bot_config WHERE channel_access_token = $1 LIMIT 1",
-        [channel_token]
+        [channel_token],
       );
 
       if (configCheck.rows.length === 0) {
         return NextResponse.json(
           { message: "ไม่พบ Token นี้ในระบบ bot_config กรุณาติดต่อผู้ดูแล" },
-          { status: 403 }
+          { status: 403 },
         );
       }
 
@@ -120,7 +278,14 @@ export async function POST(req) {
            bot_user_id   = EXCLUDED.bot_user_id,
            updated_at    = CURRENT_TIMESTAMP
          RETURNING id`,
-        [bot_name || "บอทใหม่", bot_key, channel_token, picture_url || null, creator_id, bot_user_id || null]
+        [
+          bot_name || "บอทใหม่",
+          bot_key,
+          channel_token,
+          picture_url || null,
+          creator_id,
+          bot_user_id || null,
+        ],
       );
 
       const lineBotId = upsertResult.rows[0].id;
@@ -141,7 +306,7 @@ export async function POST(req) {
           if (resolvedBotUserId) {
             await pool.query(
               "UPDATE line_bots SET bot_user_id = $1 WHERE id = $2",
-              [resolvedBotUserId, lineBotId]
+              [resolvedBotUserId, lineBotId],
             );
           }
         } catch (e) {
@@ -162,24 +327,31 @@ export async function POST(req) {
           `INSERT INTO bot_rich_menus (bot_id, rich_menu_id, menu_name, creator_id)
            VALUES ($1, $2, $3, $4)
            ON CONFLICT (rich_menu_id) DO NOTHING`,
-          [lineBotId, menu.richMenuId, menu.name || "Imported Menu", creator_id]
+          [
+            lineBotId,
+            menu.richMenuId,
+            menu.name || "Imported Menu",
+            creator_id,
+          ],
         );
         syncCount++;
       }
 
       console.log(`[add_bot] synced ${syncCount} rich menus`);
 
-      return NextResponse.json({
-        success: true,
-        message: `เพิ่มบอทสำเร็จ และ sync เมนู ${syncCount} รายการ`,
-        data: { id: lineBotId, bot_name, synced: syncCount },
-      }, { status: 201 });
-
+      return NextResponse.json(
+        {
+          success: true,
+          message: `เพิ่มบอทสำเร็จ และ sync เมนู ${syncCount} รายการ`,
+          data: { id: lineBotId, bot_name, synced: syncCount },
+        },
+        { status: 201 },
+      );
     } catch (error) {
       console.error("add_bot error:", error);
       return NextResponse.json(
         { message: "เกิดข้อผิดพลาดที่ฐานข้อมูล: " + error.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
   }
@@ -192,19 +364,22 @@ export async function POST(req) {
       const { token } = await req.json();
 
       if (!token) {
-        return NextResponse.json({ message: "กรุณาใส่ Token" }, { status: 400 });
+        return NextResponse.json(
+          { message: "กรุณาใส่ Token" },
+          { status: 400 },
+        );
       }
 
       // 1. เช็คใน bot_config ว่ามี channel_access_token ตรงกันไหม
       const configRes = await pool.query(
         "SELECT * FROM bot_config WHERE channel_access_token = $1 LIMIT 1",
-        [token]
+        [token],
       );
 
       if (configRes.rows.length === 0) {
         return NextResponse.json(
           { message: "ไม่พบ Token นี้ในระบบ กรุณาติดต่อผู้ดูแล" },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -221,25 +396,24 @@ export async function POST(req) {
       if (!lineRes.ok) {
         return NextResponse.json(
           { message: lineData.message || "Token ไม่ถูกต้องหรือหมดอายุ" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       // 3. ส่งข้อมูลรวมกลับไป
       return NextResponse.json({
         name: lineData.displayName || botConfig.nickname,
-        key: botConfig.bot_id,             // @xxx จาก bot_config → ใช้เป็น bot_key ใน line_bots
+        key: botConfig.bot_id, // @xxx จาก bot_config → ใช้เป็น bot_key ใน line_bots
         pictureUrl: lineData.pictureUrl,
         botConfigId: botConfig.id,
         channel_access_token: token,
         botUserId: lineData.userId || null, // ✅ userId ของบอท เช่น Uc13042f6...
       });
-
     } catch (error) {
       console.error("verify_token error:", error);
       return NextResponse.json(
         { message: "เกิดข้อผิดพลาดในการเชื่อมต่อ: " + error.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
   }
@@ -252,17 +426,23 @@ export async function POST(req) {
       const { bot_key } = await req.json();
 
       if (!bot_key) {
-        return NextResponse.json({ message: "bot_key is required" }, { status: 400 });
+        return NextResponse.json(
+          { message: "bot_key is required" },
+          { status: 400 },
+        );
       }
 
       // ลบ rich menus ที่เกี่ยวข้องก่อน (foreign key)
       const botRes = await pool.query(
         "SELECT id FROM line_bots WHERE bot_key = $1",
-        [bot_key]
+        [bot_key],
       );
 
       if (botRes.rows.length === 0) {
-        return NextResponse.json({ message: "ไม่พบบอทในระบบ" }, { status: 404 });
+        return NextResponse.json(
+          { message: "ไม่พบบอทในระบบ" },
+          { status: 404 },
+        );
       }
 
       const botId = botRes.rows[0].id;
@@ -278,7 +458,7 @@ export async function POST(req) {
       console.error("delete_bot error:", error);
       return NextResponse.json(
         { message: "เกิดข้อผิดพลาด: " + error.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
   }
@@ -292,13 +472,13 @@ export async function POST(req) {
 
       const botRes = await pool.query(
         "SELECT id, channel_token FROM line_bots WHERE bot_key = $1",
-        [botKey]
+        [botKey],
       );
 
       if (botRes.rows.length === 0) {
         return NextResponse.json(
           { error: "ไม่พบข้อมูลบอทในระบบ" },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -310,7 +490,8 @@ export async function POST(req) {
       });
 
       const data = await lineRes.json();
-      if (!lineRes.ok) throw new Error(data.message || "ดึงข้อมูลจาก LINE ล้มเหลว");
+      if (!lineRes.ok)
+        throw new Error(data.message || "ดึงข้อมูลจาก LINE ล้มเหลว");
 
       const menus = data.richmenus || [];
       let savedCount = 0;
@@ -320,7 +501,7 @@ export async function POST(req) {
           `INSERT INTO bot_rich_menus (bot_id, rich_menu_id, menu_name, creator_id)
            VALUES ($1, $2, $3, $4)
            ON CONFLICT (rich_menu_id) DO NOTHING`,
-          [botId, menu.richMenuId, menu.name, creatorId]
+          [botId, menu.richMenuId, menu.name, creatorId],
         );
         savedCount++;
       }
@@ -360,7 +541,7 @@ export async function POST(req) {
             error: "Bot key is required",
             details: "botKey parameter is missing from the request",
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -385,16 +566,22 @@ export async function POST(req) {
             error: "Bot token not found",
             details: `Invalid botKey "${botKey}" or token not configured`,
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       if (!menuImage) {
-        return Response.json({ error: "Menu image is required" }, { status: 400 });
+        return Response.json(
+          { error: "Menu image is required" },
+          { status: 400 },
+        );
       }
 
       if (!areas || areas.length === 0) {
-        return Response.json({ error: "Menu areas are required" }, { status: 400 });
+        return Response.json(
+          { error: "Menu areas are required" },
+          { status: 400 },
+        );
       }
 
       const richMenuData = {
@@ -405,7 +592,10 @@ export async function POST(req) {
         areas,
       };
 
-      console.log("Creating Rich Menu with data:", JSON.stringify(richMenuData, null, 2));
+      console.log(
+        "Creating Rich Menu with data:",
+        JSON.stringify(richMenuData, null, 2),
+      );
 
       // STEP 1: สร้างโครงสร้าง Rich Menu
       console.log("🚀 STEP 1: Creating Rich Menu structure...");
@@ -413,7 +603,7 @@ export async function POST(req) {
         "https://api.line.me/v2/bot/richmenu",
         "POST",
         richMenuData,
-        token
+        token,
       );
 
       console.log("Step 1 Response:", JSON.stringify(step1, null, 2));
@@ -427,7 +617,7 @@ export async function POST(req) {
             statusCode: step1.code,
             fullResponse: step1,
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -444,7 +634,7 @@ export async function POST(req) {
         "POST",
         imageBuffer,
         token,
-        true
+        true,
       );
 
       console.log("Step 2 Response:", JSON.stringify(step2, null, 2));
@@ -455,16 +645,17 @@ export async function POST(req) {
           `https://api.line.me/v2/bot/richmenu/${richMenuId}`,
           "DELETE",
           null,
-          token
+          token,
         );
         return Response.json(
           {
             error: "Failed to upload image",
-            details: step2.response?.message || step2.raw || "Image upload failed",
+            details:
+              step2.response?.message || step2.raw || "Image upload failed",
             statusCode: step2.code,
             fullResponse: step2,
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -475,7 +666,7 @@ export async function POST(req) {
       try {
         const botResult = await pool.query(
           "SELECT id FROM line_bots WHERE bot_key = $1",
-          [botKey]
+          [botKey],
         );
 
         if (botResult.rows.length === 0) {
@@ -484,9 +675,12 @@ export async function POST(req) {
             `https://api.line.me/v2/bot/richmenu/${richMenuId}`,
             "DELETE",
             null,
-            token
+            token,
           );
-          return Response.json({ error: "Bot not found in database" }, { status: 400 });
+          return Response.json(
+            { error: "Bot not found in database" },
+            { status: 400 },
+          );
         }
 
         const botId = botResult.rows[0].id;
@@ -498,21 +692,31 @@ export async function POST(req) {
            (bot_id, rich_menu_id, menu_name, image_url, is_active, creator_id) 
            VALUES ($1, $2, $3, $4, $5, $6)
            RETURNING id`,
-          [botId, richMenuId, menuName || `Menu_${Date.now()}`, imageUrl, false, creatorId]
+          [
+            botId,
+            richMenuId,
+            menuName || `Menu_${Date.now()}`,
+            imageUrl,
+            false,
+            creatorId,
+          ],
         );
 
-        console.log("✅ STEP 3 SUCCESS - Saved to database with ID:", insertResult.rows[0].id);
+        console.log(
+          "✅ STEP 3 SUCCESS - Saved to database with ID:",
+          insertResult.rows[0].id,
+        );
       } catch (dbError) {
         console.error("❌ Database error:", dbError);
         await callLineAPI(
           `https://api.line.me/v2/bot/richmenu/${richMenuId}`,
           "DELETE",
           null,
-          token
+          token,
         );
         return Response.json(
           { error: "Failed to save to database", details: dbError.message },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
@@ -529,9 +733,10 @@ export async function POST(req) {
         {
           error: "Internal server error",
           details: error.message,
-          stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+          stack:
+            process.env.NODE_ENV === "development" ? error.stack : undefined,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
   }
@@ -548,16 +753,20 @@ export async function POST(req) {
       if (!rawBotKey || !menuId) {
         return Response.json(
           { error: "botKey and menuId are required" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       const decodedBotKey = decodeURIComponent(rawBotKey);
-      console.log("Delete request:", { originalBotKey: rawBotKey, decodedBotKey, menuId });
+      console.log("Delete request:", {
+        originalBotKey: rawBotKey,
+        decodedBotKey,
+        menuId,
+      });
 
       const botResult = await sharedPool.query(
         "SELECT channel_token FROM line_bots WHERE bot_key = $1",
-        [decodedBotKey]
+        [decodedBotKey],
       );
 
       if (botResult.rows.length === 0) {
@@ -571,7 +780,7 @@ export async function POST(req) {
         `https://api.line.me/v2/bot/richmenu/${menuId}`,
         "DELETE",
         null,
-        token
+        token,
       );
 
       console.log("LINE API delete result:", result);
@@ -579,26 +788,29 @@ export async function POST(req) {
       if (result.code === 200) {
         await sharedPool.query(
           "DELETE FROM bot_rich_menus WHERE rich_menu_id = $1",
-          [menuId]
+          [menuId],
         );
-        return Response.json({ success: true, message: "Menu deleted successfully" });
+        return Response.json({
+          success: true,
+          message: "Menu deleted successfully",
+        });
       }
 
       return Response.json(
         { error: result.response?.message || "Failed to delete menu" },
-        { status: result.code || 400 }
+        { status: result.code || 400 },
       );
     } catch (error) {
       console.error("Error:", error);
       return Response.json(
         { error: "Internal server error", details: error.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
   }
 
   // --------------------------------------------------
-  // action=save_flow → บันทึก Flow (state + action_list) ลง DB
+  // action=save_flow → บันทึก Flow (state + action-list) ลง DB
   // เรียกหลัง upload rich menu สำเร็จ
   // --------------------------------------------------
   if (action === "save_flow") {
@@ -607,23 +819,34 @@ export async function POST(req) {
       const { botKey, botName, flowSteps } = body;
 
       if (!botKey || !flowSteps || flowSteps.length === 0) {
-        return NextResponse.json({ error: "botKey and flowSteps are required" }, { status: 400 });
+        return NextResponse.json(
+          { error: "botKey and flowSteps are required" },
+          { status: 400 },
+        );
       }
 
       // ดึง bot_user_id จาก line_bots เพื่อใช้เป็น botID ใน state table
       const botRow = await pool.query(
         "SELECT bot_user_id, bot_name FROM line_bots WHERE bot_key = $1 OR id::text = $1 LIMIT 1",
-        [String(botKey)]
+        [String(botKey)],
       );
       const botUserId = botRow.rows[0]?.bot_user_id;
       const resolvedBotName = botName || botRow.rows[0]?.bot_name || botKey;
 
       if (!botUserId) {
         console.warn("[save_flow] ไม่พบ bot_user_id สำหรับ botKey:", botKey);
-        return NextResponse.json({ error: "ไม่พบ bot_user_id กรุณาเพิ่มบอทใหม่อีกครั้ง" }, { status: 400 });
+        return NextResponse.json(
+          { error: "ไม่พบ bot_user_id กรุณาเพิ่มบอทใหม่อีกครั้ง" },
+          { status: 400 },
+        );
       }
 
-      console.log("[save_flow] saving", flowSteps.length, "states | botUserId:", botUserId);
+      console.log(
+        "[save_flow] saving",
+        flowSteps.length,
+        "states | botUserId:",
+        botUserId,
+      );
 
       let savedCount = 0;
       for (const step of flowSteps) {
@@ -632,10 +855,11 @@ export async function POST(req) {
         // ลองหา state เดิมก่อน
         const existingState = await pool.query(
           `SELECT "stateID" FROM state WHERE "postbackData" = $1 AND "botID" = $2 LIMIT 1`,
-          [postbackData, botUserId]
+          [postbackData, botUserId],
         );
 
-        let stateID = existingState.rows[0]?.stateid ?? existingState.rows[0]?.stateID;
+        let stateID =
+          existingState.rows[0]?.stateid ?? existingState.rows[0]?.stateID;
 
         if (stateID) {
           // อัปเดต state เดิม
@@ -651,12 +875,17 @@ export async function POST(req) {
               step.eventType || "postback",
               step.msgType || "text",
               stateID,
-            ]
+            ],
           );
-          console.log(`[save_flow] UPDATE state "${step.stateName}" (ID:${stateID})`);
+          console.log(
+            `[save_flow] UPDATE state "${step.stateName}" (ID:${stateID})`,
+          );
         } else {
           // INSERT state ใหม่ — ใช้ epoch ms เป็น stateID (ไม่ต้องพึ่ง sequence)
-          const newStateID = Date.now();
+          const maxIdRow = await pool.query(
+            `SELECT COALESCE(MAX("stateID"), 0) + 1 AS next_id FROM state`,
+          );
+          const newStateID = Number(maxIdRow.rows[0].next_id);
           await pool.query(
             `INSERT INTO state
                ("stateID", "stateName", "nextStateName", "botID", "botName",
@@ -671,10 +900,12 @@ export async function POST(req) {
               step.eventType || "postback",
               step.msgType || "text",
               postbackData,
-            ]
+            ],
           );
           stateID = newStateID;
-          console.log(`[save_flow] INSERT state "${step.stateName}" (ID:${stateID})`);
+          console.log(
+            `[save_flow] INSERT state "${step.stateName}" (ID:${stateID})`,
+          );
         }
 
         if (!stateID) {
@@ -682,13 +913,15 @@ export async function POST(req) {
           continue;
         }
 
-        // ลบ action_list เก่าของ state นี้แล้ว INSERT ใหม่
-        await pool.query(`DELETE FROM action_list WHERE action = $1`, [stateID]);
+        // ลบ action-list เก่าของ state นี้แล้ว INSERT ใหม่
+        await pool.query(`DELETE FROM action-list WHERE action = $1`, [
+          stateID,
+        ]);
         console.log(`[save_flow] DELETE old actions for stateID=${stateID}`);
 
         for (const act of step.actions || []) {
           await pool.query(
-            `INSERT INTO action_list
+            `INSERT INTO action-list
                ("actionID", "order", "actionType", payload, action)
              VALUES ($1,$2,$3,$4,$5)`,
             [
@@ -697,19 +930,20 @@ export async function POST(req) {
               act.type || "text",
               act.payload || "",
               stateID,
-            ]
+            ],
           );
         }
 
         savedCount++;
-        console.log(`[save_flow] ✅ "${step.stateName}" (ID:${stateID}) — ${step.actions?.length || 0} actions saved`);
+        console.log(
+          `[save_flow] ✅ "${step.stateName}" (ID:${stateID}) — ${step.actions?.length || 0} actions saved`,
+        );
       }
 
       return NextResponse.json({
         success: true,
         message: `บันทึก ${savedCount} states สำเร็จ`,
       });
-
     } catch (error) {
       console.error("save_flow error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
@@ -735,9 +969,9 @@ export async function POST(req) {
       const token = botKey ? await getTokenFromDB(botKey) : null;
       console.log(`  🔑 token: ${token ? "✅ พบ" : "❌ ไม่พบ"}`);
       for (const event of events) {
-        const userId  = event.source?.userId  || "unknown";
+        const userId = event.source?.userId || "unknown";
         const groupId = event.source?.groupId || null;
-        const roomId  = event.source?.roomId  || null;
+        const roomId = event.source?.roomId || null;
         const sourceId = groupId || roomId || userId;
         const ts = event.timestamp
           ? new Date(event.timestamp).toLocaleString("th-TH")
@@ -745,21 +979,30 @@ export async function POST(req) {
 
         // ─── POSTBACK (กดปุ่ม Rich Menu แบบ API) ───
         if (event.type === "postback") {
-          const data        = event.postback?.data || "";
-          const displayText = event.postback?.displayText || "(ไม่มี displayText)";
-          const replyToken  = event.replyToken;
+          const data = event.postback?.data || "";
+          const displayText =
+            event.postback?.displayText || "(ไม่มี displayText)";
+          const replyToken = event.replyToken;
 
           let parsedData = data;
-          try { parsedData = JSON.stringify(JSON.parse(data), null, 2); } catch {}
+          try {
+            parsedData = JSON.stringify(JSON.parse(data), null, 2);
+          } catch {}
 
-          console.log("\n┌─ 🖱️  POSTBACK — คนกดปุ่มเมนู ────────────────────────");
+          console.log(
+            "\n┌─ 🖱️  POSTBACK — คนกดปุ่มเมนู ────────────────────────",
+          );
           console.log(`│  🕐 เวลา        : ${ts}`);
           console.log(`│  👤 userId      : ${userId}`);
           if (groupId) console.log(`│  👥 groupId     : ${groupId}`);
           console.log(`│  💬 displayText : ${displayText}`);
           console.log(`│  📋 data        :`);
-          parsedData.split("\n").forEach(line => console.log(`│     ${line}`));
-          console.log("└──────────────────────────────────────────────────────");
+          parsedData
+            .split("\n")
+            .forEach((line) => console.log(`│     ${line}`));
+          console.log(
+            "└──────────────────────────────────────────────────────",
+          );
 
           // ─── parse data format {"para":"go-to","selected-value":{...}} ───
           let postbackData = data;
@@ -770,12 +1013,14 @@ export async function POST(req) {
             if (parsed?.["para"] === "go-to" && parsed?.["selected-value"]) {
               const sv = parsed["selected-value"];
               postbackData = sv.postbackData || data;
-              stateName    = sv.stateName    || "standby";
-              eventType    = sv.eventType    || "postback";
+              stateName = sv.stateName || "standby";
+              eventType = sv.eventType || "postback";
             }
           } catch {}
 
-          console.log(`  📌 postbackData: "${postbackData}" | stateName: "${stateName}"`);
+          console.log(
+            `  📌 postbackData: "${postbackData}" | stateName: "${stateName}"`,
+          );
 
           // ─── POSTBACK: ดึง action list + อัปเดต user_state ───
           if (token && replyToken) {
@@ -793,16 +1038,17 @@ export async function POST(req) {
 
               const botInfoRow = await pool.query(
                 "SELECT bot_user_id FROM line_bots WHERE bot_key = $1 OR id::text = $1 LIMIT 1",
-                [String(botKey)]
+                [String(botKey)],
               );
               const botUserId = botInfoRow.rows[0]?.bot_user_id;
 
               // ─── อ่าน user_state ปัจจุบันของ user ───
               const userStateRow = await pool.query(
                 `SELECT state_name FROM user_state WHERE user_id = $1 AND bot_id = $2`,
-                [userId, botUserId]
+                [userId, botUserId],
               );
-              const currentUserState = userStateRow.rows[0]?.state_name || "standby";
+              const currentUserState =
+                userStateRow.rows[0]?.state_name || "standby";
               console.log(`  👤 user_state ปัจจุบัน: "${currentUserState}"`);
 
               // ─── หา state ที่ตรงกับ postbackData AND stateName ตาม user_state ปัจจุบัน ───
@@ -812,7 +1058,7 @@ export async function POST(req) {
                  FROM state
                  WHERE "postbackData" = $1 AND "botID" = $2 AND "stateName" = $3
                  LIMIT 1`,
-                [postbackData, botUserId, currentUserState]
+                [postbackData, botUserId, currentUserState],
               );
 
               // ถ้าไม่เจอ → fallback หาจาก postbackData อย่างเดียว
@@ -822,67 +1068,80 @@ export async function POST(req) {
                    FROM state
                    WHERE "postbackData" = $1 AND "botID" = $2
                    LIMIT 1`,
-                  [postbackData, botUserId]
+                  [postbackData, botUserId],
                 );
               }
 
-              console.log(`  🔍 ค้นหา state: postbackData="${postbackData}" | userState="${currentUserState}" | botUserId="${botUserId}"`);
+              console.log(
+                `  🔍 ค้นหา state: postbackData="${postbackData}" | userState="${currentUserState}" | botUserId="${botUserId}"`,
+              );
 
               if (stateRow.rows.length > 0) {
                 const foundState = stateRow.rows[0];
-                const foundStateID = foundState.stateid ?? foundState.stateID;
-                const nextStateName = foundState.nextStateName ?? foundState.nextstatename ?? "standby";
-                console.log(`  ✅ พบ state: "${foundState.stateName}" (ID:${foundStateID}) → next: "${nextStateName}"`);
+                const foundStateID = foundState?.stateID ?? foundState?.stateid;
+                const nextStateName =
+                  foundState.nextStateName ??
+                  foundState.nextstatename ??
+                  "standby";
+                console.log(
+                  `  ✅ พบ state: "${foundState.stateName}" (ID:${foundStateID}) → next: "${nextStateName}"`,
+                );
 
-                // ─── ดึง actions โดยใช้ stateID โดยตรง (ถูกต้อง) ───
+                // ─── ดึง actions โดยใช้ stateID ───
                 const actionRows = await pool.query(
                   `SELECT al."actionType", al.payload, al."flexPayload"
-                   FROM action_list al
+                   FROM "action-list" al
                    WHERE al.action = $1
-                     AND al."actionType" IN ('text', 'flex')
                    ORDER BY al."order" ASC`,
-                  [foundStateID]
+                  [foundStateID],
                 );
 
                 console.log(`  📋 พบ ${actionRows.rows.length} actions`);
 
                 if (actionRows.rows.length > 0) {
-                  const messages = actionRows.rows.map(a => {
-                    if (a.actionType === "flex" && a.flexPayload) {
-                      try { return { type: "flex", altText: "ข้อความ", contents: JSON.parse(a.flexPayload) }; }
-                      catch { return { type: "text", text: a.payload || "ข้อความ" }; }
-                    }
-                    return { type: "text", text: a.payload || "ข้อความ" };
-                  }).slice(0, 5);
+                  const messages = (
+                    await processActions(actionRows.rows, { token, userId })
+                  ).slice(0, 5);
 
-                  const replyRes = await fetch("https://api.line.me/v2/bot/message/reply", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                    body: JSON.stringify({ replyToken, messages }),
-                  });
-                  const replyData = await replyRes.json();
-                  if (replyRes.ok) {
-                    console.log(`  ✅ ตอบกลับสำเร็จ ${messages.length} ข้อความ`);
-                    messages.forEach((m, i) => console.log(`     [${i+1}] ${m.type}: ${m.type === "text" ? m.text?.substring(0,50) : "(flex)"}`));
-
-                    // ✅ อัปเดต user_state → nextStateName
-                    await pool.query(
-                      `INSERT INTO user_state (user_id, bot_id, state_name, updated_at)
-                       VALUES ($1, $2, $3, NOW())
-                       ON CONFLICT (user_id, bot_id) DO UPDATE SET
-                         state_name = EXCLUDED.state_name,
-                         updated_at = NOW()`,
-                      [userId, botUserId, nextStateName]
+                  if (messages.length > 0) {
+                    const replyRes = await fetch(
+                      "https://api.line.me/v2/bot/message/reply",
+                      {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ replyToken, messages }),
+                      },
                     );
-                    console.log(`  📍 user_state อัปเดต → "${nextStateName}"`);
-                  } else {
-                    console.error("  ❌ ตอบกลับล้มเหลว:", JSON.stringify(replyData));
+                    const replyData = await replyRes.json();
+                    if (replyRes.ok) {
+                      console.log(`  ✅ ตอบกลับสำเร็จ ${messages.length} ข้อความ`);
+                      messages.forEach((m, i) =>
+                        console.log(`     [${i + 1}] ${m.type}${m.type === "flex" ? ` (${m.contents?.type})` : m.quickReply ? " +quickReply" : `: ${m.text?.substring(0, 50)}`}`),
+                      );
+                    } else {
+                      console.error("  ❌ ตอบกลับล้มเหลว:", JSON.stringify(replyData));
+                    }
                   }
+
+                  // อัปเดต user_state → nextStateName
+                  await pool.query(
+                    `INSERT INTO user_state (user_id, bot_id, state_name, updated_at)
+                     VALUES ($1, $2, $3, NOW())
+                     ON CONFLICT (user_id, bot_id) DO UPDATE SET
+                       state_name = EXCLUDED.state_name, updated_at = NOW()`,
+                    [userId, botUserId, nextStateName],
+                  );
+                  console.log(`  📍 user_state อัปเดต → "${nextStateName}"`);
                 } else {
-                  console.log("  ⚠️  ไม่พบ actions (text/flex) สำหรับ state นี้");
+                  console.log("  ⚠️  ไม่พบ actions สำหรับ state นี้");
                 }
               } else {
-                console.log(`  ⚠️  ไม่พบ state: postbackData="${postbackData}" botUserId="${botUserId}"`);
+                console.log(
+                  `  ⚠️  ไม่พบ state: postbackData="${postbackData}" botUserId="${botUserId}"`,
+                );
                 console.log(`      💡 กรุณา save flow ใหม่อีกครั้ง`);
               }
             } catch (replyErr) {
@@ -894,27 +1153,34 @@ export async function POST(req) {
             await pool.query(
               `INSERT INTO webhook_logs (bot_key, event_type, user_id, source_id, data, display_text, created_at)
                VALUES ($1,$2,$3,$4,$5,$6,NOW())`,
-              [botKey, "postback", userId, sourceId, data, displayText]
+              [botKey, "postback", userId, sourceId, data, displayText],
             );
           } catch (dbErr) {
-            console.warn("  ⚠️  ไม่มีตาราง webhook_logs (ข้ามได้):", dbErr.message);
+            console.warn(
+              "  ⚠️  ไม่มีตาราง webhook_logs (ข้ามได้):",
+              dbErr.message,
+            );
           }
         }
 
         // ─── MESSAGE (ส่งข้อความ) ───
         else if (event.type === "message") {
-          const msg        = event.message || {};
-          const msgType    = msg.type || "unknown";
-          const text       = msg.text || `[${msgType}]`;
+          const msg = event.message || {};
+          const msgType = msg.type || "unknown";
+          const text = msg.text || `[${msgType}]`;
           const replyToken = event.replyToken;
 
-          console.log("\n┌─ 💬 MESSAGE — ผู้ใช้ส่งข้อความ ──────────────────────");
+          console.log(
+            "\n┌─ 💬 MESSAGE — ผู้ใช้ส่งข้อความ ──────────────────────",
+          );
           console.log(`│  🕐 เวลา      : ${ts}`);
           console.log(`│  👤 userId    : ${userId}`);
           if (groupId) console.log(`│  👥 groupId   : ${groupId}`);
           console.log(`│  📝 ประเภท    : ${msgType}`);
           console.log(`│  📩 ข้อความ   : ${text}`);
-          console.log("└──────────────────────────────────────────────────────");
+          console.log(
+            "└──────────────────────────────────────────────────────",
+          );
 
           if (token && replyToken) {
             try {
@@ -931,90 +1197,101 @@ export async function POST(req) {
 
               const botInfoRow = await pool.query(
                 "SELECT bot_user_id FROM line_bots WHERE bot_key = $1 OR id::text = $1 LIMIT 1",
-                [String(botKey)]
+                [String(botKey)],
               );
               const botUserId = botInfoRow.rows[0]?.bot_user_id;
 
               // ✅ ดึง user_state ปัจจุบันของ user คนนี้
               const userStateRow = await pool.query(
                 `SELECT state_name FROM user_state WHERE user_id = $1 AND bot_id = $2`,
-                [userId, botUserId]
+                [userId, botUserId],
               );
-              const currentStateName = userStateRow.rows[0]?.state_name || "standby";
+              const currentStateName =
+                userStateRow.rows[0]?.state_name || "standby";
               console.log(`  📍 user_state ปัจจุบัน: "${currentStateName}"`);
 
               // ✅ ค้นหา state ที่ stateName = currentStateName AND eventType = message
               const stateRow = await pool.query(
-                `SELECT "stateName", "nextStateName", "actionListID"
-                 FROM state
-                 WHERE "stateName" = $1
-                   AND "eventType" = 'message'
-                   AND "eventMessageType" = $2
-                   AND "botID" = $3
-                 LIMIT 1`,
-                [currentStateName, msgType, botUserId]
+                `SELECT "stateID", "stateName", "nextStateName"
+   FROM state
+   WHERE "stateName" = $1
+     AND "eventType" = 'message'
+     AND "eventMessageType" = $2
+     AND "botID" = $3
+   LIMIT 1`,
+                [currentStateName, msgType, botUserId],
               );
 
-              console.log(`  🔍 ค้นหา state: stateName="${currentStateName}" eventType=message msgType="${msgType}"`);
+              console.log(
+                `  🔍 ค้นหา state: stateName="${currentStateName}" eventType=message msgType="${msgType}"`,
+              );
 
               if (stateRow.rows.length > 0) {
                 const foundState = stateRow.rows[0];
                 const nextStateName = foundState.nextStateName || "standby";
-                console.log(`  ✅ พบ state: "${foundState.stateName}" → next: "${nextStateName}"`);
+                console.log(
+                  `  ✅ พบ state: "${foundState.stateName}" → next: "${nextStateName}"`,
+                );
 
-                // ดึง actions โดย JOIN ผ่าน stateName + botID
+                // ✅ ดึง actions จาก stateID
+                const foundStateID = foundState.stateID ?? foundState.stateid;
                 const actionRows = await pool.query(
                   `SELECT al."actionType", al.payload, al."flexPayload"
-                   FROM action_list al
-                   JOIN state s ON al.action = s."actionListID"
-                   WHERE s."stateName" = $1
-                     AND s."eventType" = 'message'
-                     AND s."botID" = $2
-                     AND al."actionType" IN ('text', 'flex')
+                   FROM "action-list" al
+                   WHERE al.action = $1
                    ORDER BY al."order" ASC`,
-                  [currentStateName, botUserId]
+                  [foundStateID],
                 );
 
                 console.log(`  📋 พบ ${actionRows.rows.length} actions`);
 
                 if (actionRows.rows.length > 0) {
-                  const messages = actionRows.rows.map(a => {
-                    if (a.actionType === "flex" && a.flexPayload) {
-                      try { return { type: "flex", altText: "ข้อความ", contents: JSON.parse(a.flexPayload) }; }
-                      catch { return { type: "text", text: a.payload || "ข้อความ" }; }
-                    }
-                    return { type: "text", text: a.payload || "ข้อความ" };
-                  }).slice(0, 5);
+                  const messages = (
+                    await processActions(actionRows.rows, { token, userId })
+                  ).slice(0, 5);
 
-                  const replyRes = await fetch("https://api.line.me/v2/bot/message/reply", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                    body: JSON.stringify({ replyToken, messages }),
-                  });
-                  const replyData = await replyRes.json();
-                  if (replyRes.ok) {
-                    console.log(`  ✅ ตอบกลับ message สำเร็จ ${messages.length} ข้อความ`);
-                    messages.forEach((m, i) => console.log(`     [${i+1}] ${m.type}: ${m.type === "text" ? m.text?.substring(0,50) : "(flex)"}`));
-
-                    // ✅ อัปเดต user_state → nextStateName
-                    await pool.query(
-                      `INSERT INTO user_state (user_id, bot_id, state_name, updated_at)
-                       VALUES ($1, $2, $3, NOW())
-                       ON CONFLICT (user_id, bot_id) DO UPDATE SET
-                         state_name = EXCLUDED.state_name,
-                         updated_at = NOW()`,
-                      [userId, botUserId, nextStateName]
+                  if (messages.length > 0) {
+                    const replyRes = await fetch(
+                      "https://api.line.me/v2/bot/message/reply",
+                      {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ replyToken, messages }),
+                      },
                     );
-                    console.log(`  📍 user_state อัปเดต → "${nextStateName}"`);
-                  } else {
-                    console.error("  ❌ ตอบกลับล้มเหลว:", JSON.stringify(replyData));
+                    const replyData = await replyRes.json();
+                    if (replyRes.ok) {
+                      console.log(`  ✅ ตอบกลับ message สำเร็จ ${messages.length} ข้อความ`);
+                      messages.forEach((m, i) =>
+                        console.log(`     [${i + 1}] ${m.type}${m.type === "flex" ? ` (${m.contents?.type})` : m.quickReply ? " +quickReply" : `: ${m.text?.substring(0, 50)}`}`),
+                      );
+                    } else {
+                      console.error("  ❌ ตอบกลับล้มเหลว:", JSON.stringify(replyData));
+                    }
                   }
+
+                  // อัปเดต user_state → nextStateName
+                  await pool.query(
+                    `INSERT INTO user_state (user_id, bot_id, state_name, updated_at)
+                     VALUES ($1, $2, $3, NOW())
+                     ON CONFLICT (user_id, bot_id) DO UPDATE SET
+                       state_name = EXCLUDED.state_name, updated_at = NOW()`,
+                    [userId, botUserId, nextStateName],
+                  );
+                  console.log(`  📍 user_state อัปเดต → "${nextStateName}"`);
                 } else {
                   console.log(`  ⚠️  ไม่พบ actions สำหรับ state "${currentStateName}"`);
                 }
               } else {
-                console.log(`  ⚠️  ไม่พบ state สำหรับ stateName="${currentStateName}" + eventType=message`);
-                console.log(`      (user อยู่ใน state "${currentStateName}" แต่ไม่มี message handler — ข้ามได้)`);
+                console.log(
+                  `  ⚠️  ไม่พบ state สำหรับ stateName="${currentStateName}" + eventType=message`,
+                );
+                console.log(
+                  `      (user อยู่ใน state "${currentStateName}" แต่ไม่มี message handler — ข้ามได้)`,
+                );
               }
             } catch (msgErr) {
               console.error("  ❌ Message reply error:", msgErr.message);
@@ -1024,31 +1301,40 @@ export async function POST(req) {
 
         // ─── FOLLOW (เพิ่มเพื่อน) ───
         else if (event.type === "follow") {
-          console.log("\n┌─ ➕ FOLLOW — ผู้ใช้ใหม่เพิ่มบอท ──────────────────────");
+          console.log(
+            "\n┌─ ➕ FOLLOW — ผู้ใช้ใหม่เพิ่มบอท ──────────────────────",
+          );
           console.log(`│  🕐 เวลา    : ${ts}`);
           console.log(`│  👤 userId  : ${userId}`);
-          console.log("└──────────────────────────────────────────────────────");
+          console.log(
+            "└──────────────────────────────────────────────────────",
+          );
         }
 
         // ─── UNFOLLOW ───
         else if (event.type === "unfollow") {
-          console.log("\n┌─ ➖ UNFOLLOW — ผู้ใช้ลบบอท ───────────────────────────");
+          console.log(
+            "\n┌─ ➖ UNFOLLOW — ผู้ใช้ลบบอท ───────────────────────────",
+          );
           console.log(`│  🕐 เวลา    : ${ts}`);
           console.log(`│  👤 userId  : ${userId}`);
-          console.log("└──────────────────────────────────────────────────────");
+          console.log(
+            "└──────────────────────────────────────────────────────",
+          );
         }
 
         // ─── EVENT อื่นๆ ───
         else {
           console.log(`\n┌─ ❓ EVENT: ${event.type}`);
           console.log(`│  userId: ${userId} | เวลา: ${ts}`);
-          console.log("└──────────────────────────────────────────────────────");
+          console.log(
+            "└──────────────────────────────────────────────────────",
+          );
         }
       }
 
       // LINE ต้องการ 200 กลับเสมอ ไม่งั้นจะ retry
       return NextResponse.json({ status: "ok" }, { status: 200 });
-
     } catch (error) {
       console.error("[WEBHOOK ERROR]", error);
       return NextResponse.json({ status: "ok" }, { status: 200 });
@@ -1082,7 +1368,10 @@ export async function GET(req) {
     try {
       const botKey = searchParams.get("botKey");
       if (!botKey) {
-        return NextResponse.json({ error: "botKey is required" }, { status: 400 });
+        return NextResponse.json(
+          { error: "botKey is required" },
+          { status: 400 },
+        );
       }
 
       // JOIN กับ admin_system เพื่อได้ชื่อ admin จริง
@@ -1105,7 +1394,7 @@ export async function GET(req) {
          WHERE al.bot_key = $1
          ORDER BY al.created_at DESC
          LIMIT 200`,
-        [decodeURIComponent(botKey)]
+        [decodeURIComponent(botKey)],
       );
 
       return NextResponse.json({ logs: result.rows });
@@ -1123,12 +1412,15 @@ export async function GET(req) {
       const creatorId = searchParams.get("creatorId");
 
       if (!creatorId) {
-        return NextResponse.json({ error: "creatorId is required" }, { status: 400 });
+        return NextResponse.json(
+          { error: "creatorId is required" },
+          { status: 400 },
+        );
       }
 
       const result = await pool.query(
         "SELECT * FROM line_bots WHERE creator_id = $1 ORDER BY created_at DESC",
-        [creatorId]
+        [creatorId],
       );
 
       const bots = result.rows.map((row) => ({
@@ -1159,7 +1451,7 @@ export async function GET(req) {
       // ดึง bot_id และ token จาก DB
       const botRes = await pool.query(
         "SELECT id, channel_token FROM line_bots WHERE bot_key = $1",
-        [botKey]
+        [botKey],
       );
 
       if (botRes.rows.length === 0) {
@@ -1169,13 +1461,16 @@ export async function GET(req) {
       const { id: botId, channel_token: token } = botRes.rows[0];
 
       // ดึง currentMenuId จาก LINE API
-      const lineRes = await fetch("https://api.line.me/v2/bot/user/all/richmenu", {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const lineRes = await fetch(
+        "https://api.line.me/v2/bot/user/all/richmenu",
+        {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
       const data = await lineRes.json();
-      const currentMenuId = lineRes.ok ? (data.richMenuId || null) : null;
+      const currentMenuId = lineRes.ok ? data.richMenuId || null : null;
 
       // ถ้าได้ menuId ให้สร้าง imageUrl สำหรับ proxy ดึงรูปจาก LINE โดยตรง
       let imageUrl = null;
@@ -1183,7 +1478,7 @@ export async function GET(req) {
         // ลองหาจาก DB ก่อน (กรณี upload ผ่านระบบ)
         const menuRes = await pool.query(
           "SELECT image_url FROM bot_rich_menus WHERE rich_menu_id = $1 AND bot_id = $2",
-          [currentMenuId, botId]
+          [currentMenuId, botId],
         );
         const dbImageUrl = menuRes.rows[0]?.image_url;
 
@@ -1200,7 +1495,7 @@ export async function GET(req) {
       console.error("Error in current action:", error);
       return Response.json(
         { error: "Failed to fetch current menu", details: error.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
   }
@@ -1212,13 +1507,16 @@ export async function GET(req) {
     const botKey = searchParams.get("botKey");
 
     if (!botKey) {
-      return NextResponse.json({ error: "botKey is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "botKey is required" },
+        { status: 400 },
+      );
     }
 
     try {
       const botRes = await pool.query(
         "SELECT id, channel_token FROM line_bots WHERE bot_key = $1",
-        [botKey]
+        [botKey],
       );
       const bot = botRes.rows[0];
       if (!bot) {
@@ -1235,7 +1533,7 @@ export async function GET(req) {
       // ดึง ID ที่มีใน DB
       const dbRes = await pool.query(
         "SELECT rich_menu_id FROM bot_rich_menus WHERE bot_id = $1",
-        [bot.id]
+        [bot.id],
       );
       const dbMenuIds = dbRes.rows.map((row) => row.rich_menu_id);
 
@@ -1245,7 +1543,7 @@ export async function GET(req) {
           await pool.query(
             `INSERT INTO bot_rich_menus (bot_id, rich_menu_id, menu_name, creator_id) 
              VALUES ($1, $2, $3, $4)`,
-            [bot.id, menu.richMenuId, menu.name || "Legacy Menu", "system"]
+            [bot.id, menu.richMenuId, menu.name || "Legacy Menu", "system"],
           );
         }
       }
@@ -1261,7 +1559,7 @@ export async function GET(req) {
          FROM bot_rich_menus 
          WHERE bot_id = $1 
          ORDER BY created_at DESC`,
-        [bot.id]
+        [bot.id],
       );
 
       return NextResponse.json({ richmenus: finalResult.rows });
@@ -1284,20 +1582,20 @@ export async function GET(req) {
       if (!botKey || !menuId) {
         return new NextResponse(
           JSON.stringify({ error: "Missing botKey or menuId" }),
-          { status: 400, headers: { "Content-Type": "application/json" } }
+          { status: 400, headers: { "Content-Type": "application/json" } },
         );
       }
 
       const botRes = await client.query(
         "SELECT id, channel_token FROM line_bots WHERE bot_key = $1",
-        [botKey]
+        [botKey],
       );
       const bot = botRes.rows[0];
 
       if (!bot || !bot.channel_token) {
         return new NextResponse(
           JSON.stringify({ error: "Bot token not found" }),
-          { status: 404, headers: { "Content-Type": "application/json" } }
+          { status: 404, headers: { "Content-Type": "application/json" } },
         );
       }
 
@@ -1309,7 +1607,7 @@ export async function GET(req) {
           {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
-          }
+          },
         );
 
         if (!lineRes.ok) {
@@ -1319,18 +1617,21 @@ export async function GET(req) {
             JSON.stringify({
               error: errorData.message || "Failed to switch menu on LINE API",
             }),
-            { status: lineRes.status, headers: { "Content-Type": "application/json" } }
+            {
+              status: lineRes.status,
+              headers: { "Content-Type": "application/json" },
+            },
           );
         }
 
         await client.query("BEGIN");
         await client.query(
           "UPDATE bot_rich_menus SET is_active = FALSE WHERE bot_id = $1",
-          [bot.id]
+          [bot.id],
         );
         await client.query(
           "UPDATE bot_rich_menus SET is_active = TRUE WHERE rich_menu_id = $1 AND bot_id = $2",
-          [menuId, bot.id]
+          [menuId, bot.id],
         );
         await client.query("COMMIT");
 
@@ -1342,7 +1643,7 @@ export async function GET(req) {
 
       return new NextResponse(
         JSON.stringify({ error: "Unsupported switch type" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { "Content-Type": "application/json" } },
       );
     } catch (error) {
       await client.query("ROLLBACK");
@@ -1367,20 +1668,20 @@ export async function GET(req) {
       if (!botKey || !menuId) {
         return NextResponse.json(
           { error: "Missing botKey or menuId" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       const dbResult = await pool.query(
         "SELECT channel_token FROM line_bots WHERE bot_key = $1",
-        [botKey]
+        [botKey],
       );
       const token = dbResult.rows[0]?.channel_token;
 
       if (!token) {
         return NextResponse.json(
           { error: "Token not found in database" },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -1389,7 +1690,7 @@ export async function GET(req) {
         {
           method: "GET",
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       const data = await lineRes.json();
@@ -1397,14 +1698,17 @@ export async function GET(req) {
       if (!lineRes.ok) {
         return NextResponse.json(
           { error: data.message || "LINE API Error" },
-          { status: lineRes.status }
+          { status: lineRes.status },
         );
       }
 
       return NextResponse.json(data);
     } catch (error) {
       console.error("API Details Error:", error);
-      return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Internal Server Error" },
+        { status: 500 },
+      );
     }
   }
 
@@ -1414,7 +1718,8 @@ export async function GET(req) {
   if (action === "image") {
     try {
       let botKey = searchParams.get("botKey");
-      const richMenuId = searchParams.get("richMenuId") || searchParams.get("menuId");
+      const richMenuId =
+        searchParams.get("richMenuId") || searchParams.get("menuId");
 
       if (!richMenuId) {
         return new Response("Rich Menu ID is required", { status: 400 });
@@ -1442,7 +1747,7 @@ export async function GET(req) {
         {
           method: "GET",
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       console.log("[image] LINE response status:", lineRes.status);
@@ -1450,7 +1755,9 @@ export async function GET(req) {
       if (!lineRes.ok) {
         const errText = await lineRes.text();
         console.error("[image] LINE error body:", errText);
-        return new Response(`LINE API error: ${lineRes.status} - ${errText}`, { status: lineRes.status });
+        return new Response(`LINE API error: ${lineRes.status} - ${errText}`, {
+          status: lineRes.status,
+        });
       }
 
       // Stream รูปภาพกลับไปให้ browser โดยตรง

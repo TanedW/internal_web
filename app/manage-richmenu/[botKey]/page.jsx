@@ -169,14 +169,26 @@ export default function RichMenuDashboard() {
   const [flowSteps, setFlowSteps] = useState([]); // [{id, stateName, nextStateName, eventType, msgType, postbackData, actions:[]}]
   const [expandedFlowStep, setExpandedFlowStep] = useState(null);
   const [addingFlowAction, setAddingFlowAction] = useState(null); // stepId ที่กำลังเพิ่ม action
-  const [newFlowAction, setNewFlowAction] = useState({ order: 1, type: "text", payload: "" });
+  const [newFlowAction, setNewFlowAction] = useState({
+    order: 1,
+    type: "text",
+    payload: "",
+  });
   const [showNewFlowStep, setShowNewFlowStep] = useState(false);
   const [selectedFlowStepId, setSelectedFlowStepId] = useState(null);
-  const [newFlowStep, setNewFlowStep] = useState({ stateName: "", nextStateName: "", eventType: "postback", msgType: "text", postbackData: "" });
+  const [newFlowStep, setNewFlowStep] = useState({
+    stateName: "",
+    nextStateName: "",
+    eventType: "postback",
+    msgType: "text",
+    postbackData: "",
+  });
   const [apiDisplayText, setApiDisplayText] = useState("");
+  const [jsonError, setJsonError] = useState(""); // ✅ JSON validation error
   // compat: keep these so mappedAreas / upload still works
   const [apiStates, setApiStates] = useState([]);
   const [apiActionList, setApiActionList] = useState([]);
+  const [areaFlowMap, setAreaFlowMap] = useState({});
 
   // --- ✅ Refs for Scroll Targets ---
   const uploadSectionRef = useRef(null);
@@ -216,6 +228,7 @@ export default function RichMenuDashboard() {
     setFlowSteps([]);
     setSelectedFlowStepId(null);
     setExpandedFlowStep(null);
+    setAreaFlowMap({});
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -301,7 +314,9 @@ export default function RichMenuDashboard() {
     setIsLogModalOpen(true);
     setAuditLoading(true);
     try {
-      const res = await fetch(`/api/richmenu?action=audit_logs&botKey=${encodeURIComponent(botKey)}`);
+      const res = await fetch(
+        `/api/richmenu?action=audit_logs&botKey=${encodeURIComponent(botKey)}`,
+      );
       const data = await res.json();
       setAuditLogs(Array.isArray(data.logs) ? data.logs : []);
     } catch (err) {
@@ -381,53 +396,46 @@ export default function RichMenuDashboard() {
       data: "",
       label: "",
     };
-    // Map action types ให้ตรงกับ LINE API
+
     let lineActionType = action.type;
-    if (action.type === "link") {
-      lineActionType = "uri";
-    } else if (action.type === "text") {
-      lineActionType = "message";
-    } else if (action.type === "api") {
-      lineActionType = "postback";
-    }
+    if (action.type === "link") lineActionType = "uri";
+    else if (action.type === "text") lineActionType = "message";
+    else if (action.type === "api") lineActionType = "postback";
+
+    const linkedStepIds = areaFlowMap[area.id] || [];
+    const linkedSteps = flowSteps.filter((s) => linkedStepIds.includes(s.id));
+    const triggerStep = linkedSteps[0];
+
+    // ✅ label ต้องยาว 1-20 ตัวอักษร ห้ามว่าง
+    const rawLabel = action.label || action.displayText || "เมนู";
+    const safeLabel = rawLabel.substring(0, 20) || "เมนู";
 
     return {
-      bounds: {
-        x: area.x,
-        y: area.y,
-        width: area.w,
-        height: area.h,
-      },
+      bounds: { x: area.x, y: area.y, width: area.w, height: area.h },
       action: {
         type: lineActionType,
+        label: safeLabel,
         ...(action.type === "link" && {
-          uri: action.url || "https://example.com",
+          // ✅ ถ้า url ว่าง ใส่ fallback URL จริงๆ เพราะ LINE ไม่รับ uri ว่าง
+          uri: action.url || "https://line.me",
         }),
         ...(action.type === "text" && {
-          text: action.text || "ข้อความ", // ✅ ถูก! ใช้ action.text
+          text: action.text || "เมนู",
         }),
-        ...(action.type === "api" && (() => {
-          // หา flowStep ที่ถูกเลือก (selectedFlowStepId) เพื่อดึง stateName
-          const selStep = flowSteps.find(s => s.id === selectedFlowStepId);
-          const postbackData = action.data || selStep?.postbackData || "action=default";
-          const stateName = selStep?.stateName || "standby";
-          const eventType = selStep?.eventType || "postback";
-          // format เหมือนพี่เขา
-          const dataObj = {
-            "para": "go-to",
+        ...(action.type === "api" && {
+          data: JSON.stringify({
+            para: "go-to",
             "selected-value": {
-              "stateName": stateName,
-              "eventType": eventType,
-              "postbackData": postbackData,
-            }
-          };
-          return {
-            data: JSON.stringify(dataObj),
-            displayText: action.displayText || action.label || "เมนู",
-          };
-        })()),
-        label: action.label || action.displayText || action.data || "เมนู",
+              stateName: triggerStep?.stateName || "standby",
+              eventType: triggerStep?.eventType || "postback",
+              postbackData:
+                triggerStep?.postbackData || action.data || "default",
+            },
+          }),
+          displayText: action.displayText || action.label || "เมนู",
+        }),
       },
+      _flowStepIds: linkedStepIds,
     };
   });
 
@@ -455,7 +463,9 @@ export default function RichMenuDashboard() {
         return;
       }
 
-      const currentRes = await fetch(`/api/richmenu?action=current&botKey=${botKey}`);
+      const currentRes = await fetch(
+        `/api/richmenu?action=current&botKey=${botKey}`,
+      );
       const currentData = await currentRes.json();
       const activeId = currentData.currentMenuId || null;
       setCurrentMenuId(activeId);
@@ -608,7 +618,8 @@ export default function RichMenuDashboard() {
 
       // ✅ เพิ่มส่วนนี้: ส่งโครงสร้างปุ่ม (Action) ที่ตั้งค่าจากหน้าเว็บไปที่ API
       // mappedAreas คือ State ที่เก็บ Array ของตำแหน่งปุ่มและ Action ต่างๆ (Link, Postback, Text)
-      formData.append("areas", JSON.stringify(mappedAreas));
+      const lineAreas = mappedAreas.map(({ _flowStepIds, ...area }) => area);
+      formData.append("areas", JSON.stringify(lineAreas));
 
       // ✅ เพิ่ม: ส่งข้อความแถบเมนู (Chat Bar Text) และขนาดของ template
       formData.append("chatBarText", chatBarText || "เมนูหลัก");
@@ -655,8 +666,11 @@ export default function RichMenuDashboard() {
         throw new Error("ไม่ได้รับ richMenuId จาก API");
       }
 
-      // ✅ บันทึก flow (state + action_list) ลง DB ถ้ามี flowSteps
-      console.log("[save_flow] flowSteps ที่จะส่ง:", JSON.stringify(flowSteps, null, 2));
+      // ✅ บันทึก flow (state + action-list) ลง DB ถ้ามี flowSteps
+      console.log(
+        "[save_flow] flowSteps ที่จะส่ง:",
+        JSON.stringify(flowSteps, null, 2),
+      );
       if (flowSteps && flowSteps.length > 0) {
         try {
           const saveFlowRes = await fetch("/api/richmenu?action=save_flow", {
@@ -666,10 +680,14 @@ export default function RichMenuDashboard() {
               botKey: decodeURIComponent(botKey),
               botName: bot?.bot_name || botKey,
               flowSteps,
+              areaFlowMap,
             }),
           });
           const saveFlowData = await saveFlowRes.json();
-          console.log("[save_flow]", saveFlowData.message || saveFlowData.error);
+          console.log(
+            "[save_flow]",
+            saveFlowData.message || saveFlowData.error,
+          );
         } catch (flowErr) {
           console.warn("[save_flow] error:", flowErr.message);
         }
@@ -1101,8 +1119,13 @@ export default function RichMenuDashboard() {
                           </div>
                         </div>
                         {/* ==================== ACTION SETTINGS CARD (New UI) ==================== */}
-                        <div className="bg-white rounded-[12px] animate-in fade-in slide-in-from-top-4" style={{boxShadow: "0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px #E8ECEF"}}>
-
+                        <div
+                          className="bg-white rounded-[12px] animate-in fade-in slide-in-from-top-4"
+                          style={{
+                            boxShadow:
+                              "0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px #E8ECEF",
+                          }}
+                        >
                           {/* Header */}
                           <div className="p-4 border-b border-slate-300 flex justify-between items-center bg-white">
                             <h3 className="font-semibold text-[#2C3E50] flex items-center gap-2 text-sm">
@@ -1129,14 +1152,18 @@ export default function RichMenuDashboard() {
                           <div className="p-5 space-y-5">
                             {/* Action Type Selector */}
                             <div>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">ประเภท Action</p>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+                                ประเภท Action
+                              </p>
                               <div className="flex rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                                 <button
                                   onClick={() => updateAction("type", "link")}
                                   className={`flex-1 flex flex-col items-center gap-1.5 py-3 text-xs font-bold transition-all border-r border-slate-200
-                                    ${currentAction.type === "link"
-                                      ? "bg-[#F0FFF4] text-[#06C755] shadow-inner"
-                                      : "bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600"}`}
+                                    ${
+                                      currentAction.type === "link"
+                                        ? "bg-[#F0FFF4] text-[#06C755] shadow-inner"
+                                        : "bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                                    }`}
                                 >
                                   <LinkIcon size={16} />
                                   <span>Link</span>
@@ -1147,9 +1174,11 @@ export default function RichMenuDashboard() {
                                 <button
                                   onClick={() => updateAction("type", "text")}
                                   className={`flex-1 flex flex-col items-center gap-1.5 py-3 text-xs font-bold transition-all border-r border-slate-200
-                                    ${currentAction.type === "text"
-                                      ? "bg-[#F0FFF4] text-[#06C755] shadow-inner"
-                                      : "bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600"}`}
+                                    ${
+                                      currentAction.type === "text"
+                                        ? "bg-[#F0FFF4] text-[#06C755] shadow-inner"
+                                        : "bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                                    }`}
                                 >
                                   <Type size={16} />
                                   <span>Text</span>
@@ -1160,9 +1189,11 @@ export default function RichMenuDashboard() {
                                 <button
                                   onClick={() => updateAction("type", "api")}
                                   className={`flex-1 flex flex-col items-center gap-1.5 py-3 text-xs font-bold transition-all
-                                    ${currentAction.type === "api"
-                                      ? "bg-[#F0FFF4] text-[#06C755] shadow-inner"
-                                      : "bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600"}`}
+                                    ${
+                                      currentAction.type === "api"
+                                        ? "bg-[#F0FFF4] text-[#06C755] shadow-inner"
+                                        : "bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                                    }`}
                                 >
                                   <Zap size={16} />
                                   <span>API</span>
@@ -1182,7 +1213,9 @@ export default function RichMenuDashboard() {
                                 <input
                                   type="url"
                                   value={currentAction.url || ""}
-                                  onChange={(e) => updateAction("url", e.target.value)}
+                                  onChange={(e) =>
+                                    updateAction("url", e.target.value)
+                                  }
                                   placeholder="https://example.com"
                                   className="w-full px-3 py-2.5 bg-[#f8fafc] border border-slate-300 rounded-xl text-sm focus:bg-white focus:border-[#06C755] outline-none transition-all font-medium"
                                 />
@@ -1198,7 +1231,9 @@ export default function RichMenuDashboard() {
                                 <textarea
                                   rows={2}
                                   value={currentAction.text || ""}
-                                  onChange={(e) => updateAction("text", e.target.value)}
+                                  onChange={(e) =>
+                                    updateAction("text", e.target.value)
+                                  }
                                   placeholder="พิมพ์ข้อความที่ต้องการ..."
                                   className="w-full px-3 py-2.5 bg-[#f8fafc] border border-slate-300 rounded-xl text-sm focus:bg-white focus:border-[#06C755] outline-none transition-all resize-none font-medium"
                                 />
@@ -1206,345 +1241,1140 @@ export default function RichMenuDashboard() {
                             )}
 
                             {/* ===== API MODE — FLOW BUILDER ===== */}
-                            {currentAction.type === "api" && (() => {
-                              // ---- helpers ----
-                              const FLOW_COLORS = [
-                                { bg: "#EFF6FF", border: "#3B82F6", dot: "#3B82F6", tag: "#DBEAFE", tagText: "#1D4ED8" },
-                                { bg: "#F0FDF4", border: "#22C55E", dot: "#22C55E", tag: "#DCFCE7", tagText: "#15803D" },
-                                { bg: "#FFF7ED", border: "#F97316", dot: "#F97316", tag: "#FFEDD5", tagText: "#C2410C" },
-                                { bg: "#FDF4FF", border: "#A855F7", dot: "#A855F7", tag: "#F3E8FF", tagText: "#7E22CE" },
-                                { bg: "#FFF1F2", border: "#F43F5E", dot: "#F43F5E", tag: "#FFE4E6", tagText: "#BE123C" },
-                              ];
-                              const getFlowColor = (i) => FLOW_COLORS[i % FLOW_COLORS.length];
+                            {currentAction.type === "api" &&
+                              (() => {
+                                // ---- helpers ----
+                                const FLOW_COLORS = [
+                                  {
+                                    bg: "#EFF6FF",
+                                    border: "#3B82F6",
+                                    dot: "#3B82F6",
+                                    tag: "#DBEAFE",
+                                    tagText: "#1D4ED8",
+                                  },
+                                  {
+                                    bg: "#F0FDF4",
+                                    border: "#22C55E",
+                                    dot: "#22C55E",
+                                    tag: "#DCFCE7",
+                                    tagText: "#15803D",
+                                  },
+                                  {
+                                    bg: "#FFF7ED",
+                                    border: "#F97316",
+                                    dot: "#F97316",
+                                    tag: "#FFEDD5",
+                                    tagText: "#C2410C",
+                                  },
+                                  {
+                                    bg: "#FDF4FF",
+                                    border: "#A855F7",
+                                    dot: "#A855F7",
+                                    tag: "#F3E8FF",
+                                    tagText: "#7E22CE",
+                                  },
+                                  {
+                                    bg: "#FFF1F2",
+                                    border: "#F43F5E",
+                                    dot: "#F43F5E",
+                                    tag: "#FFE4E6",
+                                    tagText: "#BE123C",
+                                  },
+                                ];
+                                const getFlowColor = (i) =>
+                                  FLOW_COLORS[i % FLOW_COLORS.length];
 
-                              function addFlowStep() {
-                                if (!newFlowStep.stateName.trim()) return;
-                                const id = Date.now();
-                                const updated = [...flowSteps, { ...newFlowStep, id, actions: [] }];
-                                setFlowSteps(updated);
-                                setExpandedFlowStep(id);
-                                setNewFlowStep({ stateName: "", nextStateName: "", eventType: "postback", msgType: "text", postbackData: "" });
-                                setShowNewFlowStep(false);
-                                if (!selectedFlowStepId) {
-                                  setSelectedFlowStepId(id);
-                                  const sel = updated.find(s => s.id === id);
-                                  updateAction("data", sel?.postbackData || sel?.stateName || "");
+                                function addFlowStep() {
+                                  if (!newFlowStep.stateName.trim()) return;
+                                  const id = Date.now();
+                                  const updated = [
+                                    ...flowSteps,
+                                    { ...newFlowStep, id, actions: [] },
+                                  ];
+                                  setFlowSteps(updated);
+                                  setExpandedFlowStep(id);
+                                  setNewFlowStep({
+                                    stateName: "",
+                                    nextStateName: "",
+                                    eventType: "postback",
+                                    msgType: "text",
+                                    postbackData: "",
+                                  });
+                                  setShowNewFlowStep(false);
+                                  if (!selectedFlowStepId) {
+                                    setSelectedFlowStepId(id);
+                                    const sel = updated.find(
+                                      (s) => s.id === id,
+                                    );
+                                    updateAction(
+                                      "data",
+                                      sel?.postbackData || sel?.stateName || "",
+                                    );
+                                    setApiStates(updated);
+                                  }
+                                }
+
+                                function removeFlowStep(id) {
+                                  const updated = flowSteps.filter(
+                                    (s) => s.id !== id,
+                                  );
+                                  setFlowSteps(updated);
                                   setApiStates(updated);
+                                  if (selectedFlowStepId === id) {
+                                    setSelectedFlowStepId(null);
+                                    updateAction("data", "");
+                                  }
                                 }
-                              }
 
-                              function removeFlowStep(id) {
-                                const updated = flowSteps.filter(s => s.id !== id);
-                                setFlowSteps(updated);
-                                setApiStates(updated);
-                                if (selectedFlowStepId === id) {
-                                  setSelectedFlowStepId(null);
-                                  updateAction("data", "");
+                                function addFlowActionToStep(stepId) {
+                                  // rich-menu-unlink ไม่ต้องการ payload
+                                  const needsJson = [
+                                    "flex",
+                                    "bubble",
+                                    "calling",
+                                    "switch",
+                                  ].includes(newFlowAction.type);
+                                  const payload = newFlowAction.payload.trim();
+
+                                  if (
+                                    newFlowAction.type !== "rich-menu-unlink" &&
+                                    !payload
+                                  )
+                                    return;
+
+                                  // ✅ Validate + auto-format JSON สำหรับ type ที่ต้องใช้ JSON
+                                  let finalPayload = payload;
+                                  if (needsJson && payload) {
+                                    try {
+                                      const parsed = JSON.parse(payload);
+                                      finalPayload = JSON.stringify(parsed); // compact ก่อนเก็บ
+                                      setJsonError("");
+                                    } catch (e) {
+                                      setJsonError(
+                                        `JSON ไม่ถูกต้อง: ${e.message}`,
+                                      );
+                                      return; // ❌ ห้าม save ถ้า JSON ผิด
+                                    }
+                                  } else {
+                                    setJsonError("");
+                                  }
+
+                                  const updated = flowSteps.map((s) => {
+                                    if (s.id !== stepId) return s;
+                                    return {
+                                      ...s,
+                                      actions: [
+                                        ...s.actions,
+                                        {
+                                          id: Date.now(),
+                                          ...newFlowAction,
+                                          payload: finalPayload,
+                                        },
+                                      ],
+                                    };
+                                  });
+                                  setFlowSteps(updated);
+                                  setApiStates(updated);
+                                  setApiActionList(
+                                    updated.flatMap((s) =>
+                                      s.actions.map((a) => ({
+                                        actionID: a.id,
+                                        order: a.order,
+                                        actionType: a.type,
+                                        payload: a.payload,
+                                        action: s.id,
+                                      })),
+                                    ),
+                                  );
+                                  setAddingFlowAction(null);
+                                  setNewFlowAction({
+                                    order: 1,
+                                    type: "text",
+                                    payload: "",
+                                  });
                                 }
-                              }
 
-                              function addFlowActionToStep(stepId) {
-                                if (!newFlowAction.payload.trim()) return;
-                                const updated = flowSteps.map(s => {
-                                  if (s.id !== stepId) return s;
-                                  return { ...s, actions: [...s.actions, { id: Date.now(), ...newFlowAction }] };
-                                });
-                                setFlowSteps(updated);
-                                setApiStates(updated);
-                                setApiActionList(updated.flatMap(s => s.actions.map(a => ({ actionID: a.id, order: a.order, actionType: a.type, payload: a.payload, action: s.id }))));
-                                setAddingFlowAction(null);
-                                setNewFlowAction({ order: 1, type: "text", payload: "" });
-                              }
+                                function removeFlowAction(stepId, actionId) {
+                                  const updated = flowSteps.map((s) => {
+                                    if (s.id !== stepId) return s;
+                                    return {
+                                      ...s,
+                                      actions: s.actions.filter(
+                                        (a) => a.id !== actionId,
+                                      ),
+                                    };
+                                  });
+                                  setFlowSteps(updated);
+                                  setApiStates(updated);
+                                  setApiActionList(
+                                    updated.flatMap((s) =>
+                                      s.actions.map((a) => ({
+                                        actionID: a.id,
+                                        order: a.order,
+                                        actionType: a.type,
+                                        payload: a.payload,
+                                        action: s.id,
+                                      })),
+                                    ),
+                                  );
+                                }
 
-                              function removeFlowAction(stepId, actionId) {
-                                const updated = flowSteps.map(s => {
-                                  if (s.id !== stepId) return s;
-                                  return { ...s, actions: s.actions.filter(a => a.id !== actionId) };
-                                });
-                                setFlowSteps(updated);
-                                setApiStates(updated);
-                                setApiActionList(updated.flatMap(s => s.actions.map(a => ({ actionID: a.id, order: a.order, actionType: a.type, payload: a.payload, action: s.id }))));
-                              }
+                                function selectFlowStep(id) {
+                                  setSelectedFlowStepId(id);
+                                  const sel = flowSteps.find(
+                                    (s) => s.id === id,
+                                  );
+                                  updateAction(
+                                    "data",
+                                    sel?.postbackData || sel?.stateName || "",
+                                  );
+                                }
 
-                              function selectFlowStep(id) {
-                                setSelectedFlowStepId(id);
-                                const sel = flowSteps.find(s => s.id === id);
-                                updateAction("data", sel?.postbackData || sel?.stateName || "");
-                              }
+                                function linkFlowStepToArea(stepId) {
+                                  setAreaFlowMap((prev) => ({
+                                    ...prev,
+                                    [selectedAreaId]: (
+                                      prev[selectedAreaId] || []
+                                    ).includes(stepId)
+                                      ? prev[selectedAreaId].filter(
+                                          (id) => id !== stepId,
+                                        ) // toggle off
+                                      : [
+                                          ...(prev[selectedAreaId] || []),
+                                          stepId,
+                                        ], // toggle on
+                                  }));
+                                }
 
-                              const actionTypeLabel = { text: "💬 TEXT", flex: "🃏 FLEX", calling: "⚙️ CALLING" };
+                                const actionTypeLabel = {
+                                  text: "💬 TEXT",
+                                  flex: "🃏 FLEX",
+                                  calling: "⚙️ CALLING",
+                                };
 
-                              return (
-                                <div className="space-y-3">
+                                return (
+                                  <div className="space-y-3">
+                                    {/* Display Text */}
+                                    <div className="space-y-1">
+                                      <label className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                                        <Type
+                                          size={12}
+                                          className="text-[#06C755]"
+                                        />{" "}
+                                        Display Text (ข้อความในแชท)
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={currentAction.displayText || ""}
+                                        onChange={(e) =>
+                                          updateAction(
+                                            "displayText",
+                                            e.target.value,
+                                          )
+                                        }
+                                        placeholder="ข้อความที่แสดงเมื่อ User กดปุ่ม..."
+                                        className="w-full px-3 py-2.5 bg-[#f8fafc] border border-slate-300 rounded-xl text-sm focus:bg-white focus:border-[#06C755] outline-none font-medium"
+                                      />
+                                      <p className="text-[9px] text-slate-400 italic ml-1">
+                                        * หากเว้นว่าง ระบบจะแสดงค่า Default ตาม
+                                        Action Type
+                                      </p>
+                                    </div>
 
-                                  {/* Display Text */}
-                                  <div className="space-y-1">
-                                    <label className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                                      <Type size={12} className="text-[#06C755]" /> Display Text (ข้อความในแชท)
-                                    </label>
-                                    <input
-                                      type="text"
-                                      value={currentAction.displayText || ""}
-                                      onChange={(e) => updateAction("displayText", e.target.value)}
-                                      placeholder="ข้อความที่แสดงเมื่อ User กดปุ่ม..."
-                                      className="w-full px-3 py-2.5 bg-[#f8fafc] border border-slate-300 rounded-xl text-sm focus:bg-white focus:border-[#06C755] outline-none font-medium"
+                                    <div
+                                      style={{
+                                        height: 1,
+                                        background: "#E2E8F0",
+                                      }}
                                     />
-                                    <p className="text-[9px] text-slate-400 italic ml-1">* หากเว้นว่าง ระบบจะแสดงค่า Default ตาม Action Type</p>
-                                  </div>
 
-                                  <div style={{ height: 1, background: "#E2E8F0" }} />
-
-                                  {/* Flow Header */}
-                                  <div className="flex items-center justify-between">
-                                    <label className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                                      <Zap size={12} /> Flow การสนทนา
-                                    </label>
-                                    <button
-                                      onClick={() => setShowNewFlowStep(!showNewFlowStep)}
-                                      className="text-[10px] font-bold flex items-center gap-0.5"
-                                      style={{ color: showNewFlowStep ? "#EF4444" : "#06C755", background: "none", border: "none", cursor: "pointer" }}
-                                    >
-                                      <PlusCircle size={10} /> {showNewFlowStep ? "ยกเลิก" : "เพิ่ม State"}
-                                    </button>
-                                  </div>
-
-                                  {/* New Step Form */}
-                                  {showNewFlowStep && (
-                                    <div className="p-3 bg-[#f8fafc] border border-dashed border-slate-300 rounded-xl space-y-2">
-                                      <div className="grid grid-cols-2 gap-2">
-                                        <div className="space-y-1">
-                                          <span className="text-[9px] text-slate-400 font-bold uppercase">Current State</span>
-                                          <input value={newFlowStep.stateName}
-                                            onChange={e => setNewFlowStep(p => ({ ...p, stateName: e.target.value }))}
-                                            placeholder="เช่น standby"
-                                            className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:border-[#06C755]" />
-                                        </div>
-                                        <div className="space-y-1">
-                                          <span className="text-[9px] text-[#06C755] font-bold uppercase">Next State →</span>
-                                          <input value={newFlowStep.nextStateName}
-                                            onChange={e => setNewFlowStep(p => ({ ...p, nextStateName: e.target.value }))}
-                                            placeholder="เช่น blind-person"
-                                            className="w-full px-2 py-1.5 bg-white border border-green-200 rounded-lg text-xs outline-none focus:border-[#06C755]" />
-                                        </div>
-                                      </div>
-                                      <div className="grid grid-cols-2 gap-2">
-                                        <div className="space-y-1">
-                                          <span className="text-[9px] text-slate-400 font-bold uppercase">Event Type</span>
-                                          <select value={newFlowStep.eventType}
-                                            onChange={e => setNewFlowStep(p => ({ ...p, eventType: e.target.value }))}
-                                            className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none">
-                                            <option value="postback">postback</option>
-                                            <option value="message">message</option>
-                                          </select>
-                                        </div>
-                                        <div className="space-y-1">
-                                          <span className="text-[9px] text-slate-400 font-bold uppercase">Msg Type</span>
-                                          <select value={newFlowStep.msgType}
-                                            onChange={e => setNewFlowStep(p => ({ ...p, msgType: e.target.value }))}
-                                            className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none">
-                                            <option value="text">text</option>
-                                            <option value="image">image</option>
-                                            <option value="video">video</option>
-                                            <option value="audio">audio</option>
-                                          </select>
-                                        </div>
-                                      </div>
-                                      <div className="space-y-1">
-                                        <span className="text-[9px] text-slate-400 font-bold uppercase">Postback Data</span>
-                                        <input value={newFlowStep.postbackData}
-                                          onChange={e => setNewFlowStep(p => ({ ...p, postbackData: e.target.value }))}
-                                          placeholder="เช่น blind-person"
-                                          className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:border-[#06C755]" />
-                                      </div>
-                                      <button onClick={addFlowStep}
-                                        className="w-full py-2 bg-[#06C755] text-white text-xs font-bold rounded-lg hover:bg-[#05a546]">
-                                        ✓ สร้าง State
+                                    {/* Flow Header */}
+                                    <div className="flex items-center justify-between">
+                                      <label className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                                        <Zap size={12} /> Flow การสนทนา
+                                      </label>
+                                      <button
+                                        onClick={() =>
+                                          setShowNewFlowStep(!showNewFlowStep)
+                                        }
+                                        className="text-[10px] font-bold flex items-center gap-0.5"
+                                        style={{
+                                          color: showNewFlowStep
+                                            ? "#EF4444"
+                                            : "#06C755",
+                                          background: "none",
+                                          border: "none",
+                                          cursor: "pointer",
+                                        }}
+                                      >
+                                        <PlusCircle size={10} />{" "}
+                                        {showNewFlowStep
+                                          ? "ยกเลิก"
+                                          : "เพิ่ม State"}
                                       </button>
                                     </div>
-                                  )}
 
-                                  {/* Empty state */}
-                                  {flowSteps.length === 0 && !showNewFlowStep && (
-                                    <div className="text-center py-4 text-[11px] text-slate-300">
-                                      ยังไม่มี State — กด <b className="text-[#06C755]">+ เพิ่ม State</b> เพื่อเริ่มต้น
-                                    </div>
-                                  )}
+                                    {/* New Step Form */}
+                                    {showNewFlowStep && (
+                                      <div className="p-3 bg-[#f8fafc] border border-dashed border-slate-300 rounded-xl space-y-2">
+                                        <div className="grid grid-cols-2 gap-2">
+                                          <div className="space-y-1">
+                                            <span className="text-[9px] text-slate-400 font-bold uppercase">
+                                              Current State
+                                            </span>
+                                            <input
+                                              value={newFlowStep.stateName}
+                                              onChange={(e) =>
+                                                setNewFlowStep((p) => ({
+                                                  ...p,
+                                                  stateName: e.target.value,
+                                                }))
+                                              }
+                                              placeholder="เช่น standby"
+                                              className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:border-[#06C755]"
+                                            />
+                                          </div>
+                                          <div className="space-y-1">
+                                            <span className="text-[9px] text-[#06C755] font-bold uppercase">
+                                              Next State →
+                                            </span>
+                                            <input
+                                              value={newFlowStep.nextStateName}
+                                              onChange={(e) =>
+                                                setNewFlowStep((p) => ({
+                                                  ...p,
+                                                  nextStateName: e.target.value,
+                                                }))
+                                              }
+                                              placeholder="เช่น blind-person"
+                                              className="w-full px-2 py-1.5 bg-white border border-green-200 rounded-lg text-xs outline-none focus:border-[#06C755]"
+                                            />
+                                          </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                          <div className="space-y-1">
+                                            <span className="text-[9px] text-slate-400 font-bold uppercase">
+                                              Event Type
+                                            </span>
+                                            <select
+                                              value={newFlowStep.eventType}
+                                              onChange={(e) =>
+                                                setNewFlowStep((p) => ({
+                                                  ...p,
+                                                  eventType: e.target.value,
+                                                }))
+                                              }
+                                              className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none"
+                                            >
+                                              <option value="postback">
+                                                postback
+                                              </option>
+                                              <option value="message">
+                                                message
+                                              </option>
+                                            </select>
+                                          </div>
+                                          <div className="space-y-1">
+                                            <span className="text-[9px] text-slate-400 font-bold uppercase">
+                                              Msg Type
+                                            </span>
+                                            <select
+                                              value={newFlowStep.msgType}
+                                              onChange={(e) =>
+                                                setNewFlowStep((p) => ({
+                                                  ...p,
+                                                  msgType: e.target.value,
+                                                }))
+                                              }
+                                              className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none"
+                                            >
+                                              <option value="text">text</option>
+                                              <option value="image">
+                                                image
+                                              </option>
+                                              <option value="video">
+                                                video
+                                              </option>
+                                              <option value="audio">
+                                                audio
+                                              </option>
+                                              <option value="location">
+                                                location
+                                              </option>
+                                            </select>
+                                          </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                          <span className="text-[9px] text-slate-400 font-bold uppercase">
+                                            Postback Data
+                                          </span>
+                                          <input
+                                            value={newFlowStep.postbackData}
+                                            onChange={(e) =>
+                                              setNewFlowStep((p) => ({
+                                                ...p,
+                                                postbackData: e.target.value,
+                                              }))
+                                            }
+                                            placeholder="เช่น blind-person"
+                                            className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:border-[#06C755]"
+                                          />
+                                        </div>
+                                        <button
+                                          onClick={addFlowStep}
+                                          className="w-full py-2 bg-[#06C755] text-white text-xs font-bold rounded-lg hover:bg-[#05a546]"
+                                        >
+                                          ✓ สร้าง State
+                                        </button>
+                                      </div>
+                                    )}
 
-                                  {/* Steps */}
-                                  <div className="space-y-2">
-                                    {flowSteps.map((step, idx) => {
-                                      const color = getFlowColor(idx);
-                                      const isExpanded = expandedFlowStep === step.id;
-                                      const isSelected = selectedFlowStepId === step.id;
-                                      const isAddingHere = addingFlowAction === step.id;
+                                    {/* Empty state */}
+                                    {flowSteps.length === 0 &&
+                                      !showNewFlowStep && (
+                                        <div className="text-center py-4 text-[11px] text-slate-300">
+                                          ยังไม่มี State — กด{" "}
+                                          <b className="text-[#06C755]">
+                                            + เพิ่ม State
+                                          </b>{" "}
+                                          เพื่อเริ่มต้น
+                                        </div>
+                                      )}
 
-                                      return (
-                                        <div key={step.id} style={{
-                                          border: `1.5px solid ${isSelected ? color.dot : color.border}`,
-                                          borderRadius: 12, overflow: "hidden",
-                                          boxShadow: isSelected ? `0 0 0 3px ${color.dot}25` : "none"
-                                        }}>
-                                          {/* Step header */}
+                                    {/* Steps */}
+                                    <div className="space-y-2">
+                                      {flowSteps.map((step, idx) => {
+                                        const color = getFlowColor(idx);
+                                        const isExpanded =
+                                          expandedFlowStep === step.id;
+                                        const isSelected =
+                                          selectedFlowStepId === step.id;
+                                        const isAddingHere =
+                                          addingFlowAction === step.id;
+
+                                        return (
                                           <div
-                                            style={{ background: color.bg, padding: "8px 10px", display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}
-                                            onClick={() => setExpandedFlowStep(isExpanded ? null : step.id)}
+                                            key={step.id}
+                                            style={{
+                                              border: `1.5px solid ${isSelected ? color.dot : color.border}`,
+                                              borderRadius: 12,
+                                              overflow: "hidden",
+                                              boxShadow: isSelected
+                                                ? `0 0 0 3px ${color.dot}25`
+                                                : "none",
+                                            }}
                                           >
-                                            <div style={{
-                                              width: 20, height: 20, borderRadius: "50%", background: color.dot,
-                                              color: "white", fontSize: 9, fontWeight: 800,
-                                              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
-                                            }}>{idx + 1}</div>
+                                            {/* Step header */}
+                                            <div
+                                              style={{
+                                                background: color.bg,
+                                                padding: "8px 10px",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 6,
+                                                cursor: "pointer",
+                                              }}
+                                              onClick={() =>
+                                                setExpandedFlowStep(
+                                                  isExpanded ? null : step.id,
+                                                )
+                                              }
+                                            >
+                                              <div
+                                                style={{
+                                                  width: 20,
+                                                  height: 20,
+                                                  borderRadius: "50%",
+                                                  background: color.dot,
+                                                  color: "white",
+                                                  fontSize: 9,
+                                                  fontWeight: 800,
+                                                  display: "flex",
+                                                  alignItems: "center",
+                                                  justifyContent: "center",
+                                                  flexShrink: 0,
+                                                }}
+                                              >
+                                                {idx + 1}
+                                              </div>
 
-                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                              <div style={{ fontSize: 10, fontWeight: 700, color: "#1E293B", display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
-                                                <span style={{ display: "inline-block", padding: "1px 5px", borderRadius: 4, fontSize: 9, fontWeight: 700, background: color.tag, color: color.tagText }}>{step.stateName}</span>
-                                                <span style={{ color: "#94A3B8", fontSize: 8 }}>→</span>
-                                                <span style={{ display: "inline-block", padding: "1px 5px", borderRadius: 4, fontSize: 9, fontWeight: 700, background: "#F1F5F9", color: "#475569" }}>{step.nextStateName || "—"}</span>
+                                              <div
+                                                style={{ flex: 1, minWidth: 0 }}
+                                              >
+                                                <div
+                                                  style={{
+                                                    fontSize: 10,
+                                                    fontWeight: 700,
+                                                    color: "#1E293B",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: 3,
+                                                    flexWrap: "wrap",
+                                                  }}
+                                                >
+                                                  <span
+                                                    style={{
+                                                      display: "inline-block",
+                                                      padding: "1px 5px",
+                                                      borderRadius: 4,
+                                                      fontSize: 9,
+                                                      fontWeight: 700,
+                                                      background: color.tag,
+                                                      color: color.tagText,
+                                                    }}
+                                                  >
+                                                    {step.stateName}
+                                                  </span>
+                                                  <span
+                                                    style={{
+                                                      color: "#94A3B8",
+                                                      fontSize: 8,
+                                                    }}
+                                                  >
+                                                    →
+                                                  </span>
+                                                  <span
+                                                    style={{
+                                                      display: "inline-block",
+                                                      padding: "1px 5px",
+                                                      borderRadius: 4,
+                                                      fontSize: 9,
+                                                      fontWeight: 700,
+                                                      background: "#F1F5F9",
+                                                      color: "#475569",
+                                                    }}
+                                                  >
+                                                    {step.nextStateName || "—"}
+                                                  </span>
+                                                </div>
+                                                <div
+                                                  style={{
+                                                    fontSize: 8,
+                                                    color: "#94A3B8",
+                                                    marginTop: 1,
+                                                  }}
+                                                >
+                                                  {step.eventType} ·{" "}
+                                                  {step.msgType} ·{" "}
+                                                  {step.actions.length} action
+                                                  {step.actions.length !== 1
+                                                    ? "s"
+                                                    : ""}
+                                                </div>
                                               </div>
-                                              <div style={{ fontSize: 8, color: "#94A3B8", marginTop: 1 }}>
-                                                {step.eventType} · {step.msgType} · {step.actions.length} action{step.actions.length !== 1 ? "s" : ""}
-                                              </div>
+
+                                              <button
+                                                onClick={() =>
+                                                  linkFlowStepToArea(step.id)
+                                                }
+                                                className={`text-[10px] px-2 py-1 rounded-lg font-bold border transition-all ${
+                                                  (
+                                                    areaFlowMap[
+                                                      selectedAreaId
+                                                    ] || []
+                                                  ).includes(step.id)
+                                                    ? "bg-[#06C755] text-white border-[#06C755]"
+                                                    : "border-slate-300 text-slate-600 hover:border-[#06C755]"
+                                                }`}
+                                              >
+                                                {(
+                                                  areaFlowMap[selectedAreaId] ||
+                                                  []
+                                                ).includes(step.id)
+                                                  ? "✓ใช้"
+                                                  : "เลือก"}
+                                              </button>
+
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  removeFlowStep(step.id);
+                                                }}
+                                                style={{
+                                                  background: "none",
+                                                  border: "none",
+                                                  cursor: "pointer",
+                                                  color: "#CBD5E1",
+                                                  fontSize: 12,
+                                                  padding: 2,
+                                                  flexShrink: 0,
+                                                }}
+                                              >
+                                                ✕
+                                              </button>
+
+                                              <span
+                                                style={{
+                                                  color: "#94A3B8",
+                                                  fontSize: 9,
+                                                  flexShrink: 0,
+                                                  transform: isExpanded
+                                                    ? "rotate(180deg)"
+                                                    : "none",
+                                                  display: "inline-block",
+                                                  transition: "transform 0.15s",
+                                                }}
+                                              >
+                                                ▼
+                                              </span>
                                             </div>
 
-                                            <button
-                                              onClick={e => { e.stopPropagation(); selectFlowStep(step.id); }}
-                                              style={{
-                                                padding: "3px 8px", borderRadius: 5, fontSize: 8, fontWeight: 700,
-                                                background: isSelected ? color.dot : "white",
-                                                color: isSelected ? "white" : color.dot,
-                                                border: `1.5px solid ${color.dot}`,
-                                                cursor: "pointer", flexShrink: 0
-                                              }}
-                                            >{isSelected ? "✓ ใช้" : "เลือก"}</button>
-
-                                            <button onClick={e => { e.stopPropagation(); removeFlowStep(step.id); }}
-                                              style={{ background: "none", border: "none", cursor: "pointer", color: "#CBD5E1", fontSize: 12, padding: 2, flexShrink: 0 }}>✕</button>
-
-                                            <span style={{ color: "#94A3B8", fontSize: 9, flexShrink: 0, transform: isExpanded ? "rotate(180deg)" : "none", display: "inline-block", transition: "transform 0.15s" }}>▼</span>
-                                          </div>
-
-                                          {/* Expanded body */}
-                                          {isExpanded && (
-                                            <div style={{ padding: "10px", background: "white", borderTop: `1px solid ${color.border}20` }}>
-                                              {/* postback data */}
-                                              {step.postbackData && (
-                                                <div style={{
-                                                  display: "inline-flex", alignItems: "center", gap: 3,
-                                                  padding: "2px 6px", background: "#0F172A", borderRadius: 5,
-                                                  fontSize: 8, fontFamily: "monospace", color: "#94A3B8", marginBottom: 8
-                                                }}>
-                                                  <span style={{ color: "#64748B" }}>data:</span>
-                                                  <span style={{ color: "#38BDF8" }}>{step.postbackData}</span>
-                                                </div>
-                                              )}
-
-                                              {/* Action list */}
-                                              <div className="space-y-1.5">
-                                                {step.actions.length === 0 && (
-                                                  <div style={{ fontSize: 9, color: "#CBD5E1", textAlign: "center", padding: "6px 0" }}>
-                                                    ยังไม่มีคำสั่ง
+                                            {/* Expanded body */}
+                                            {isExpanded && (
+                                              <div
+                                                style={{
+                                                  padding: "10px",
+                                                  background: "white",
+                                                  borderTop: `1px solid ${color.border}20`,
+                                                }}
+                                              >
+                                                {/* postback data */}
+                                                {step.postbackData && (
+                                                  <div
+                                                    style={{
+                                                      display: "inline-flex",
+                                                      alignItems: "center",
+                                                      gap: 3,
+                                                      padding: "2px 6px",
+                                                      background: "#0F172A",
+                                                      borderRadius: 5,
+                                                      fontSize: 8,
+                                                      fontFamily: "monospace",
+                                                      color: "#94A3B8",
+                                                      marginBottom: 8,
+                                                    }}
+                                                  >
+                                                    <span
+                                                      style={{
+                                                        color: "#64748B",
+                                                      }}
+                                                    >
+                                                      data:
+                                                    </span>
+                                                    <span
+                                                      style={{
+                                                        color: "#38BDF8",
+                                                      }}
+                                                    >
+                                                      {step.postbackData}
+                                                    </span>
                                                   </div>
                                                 )}
-                                                {[...step.actions].sort((a, b) => a.order - b.order).map(action => (
-                                                  <div key={action.id} style={{
-                                                    display: "flex", alignItems: "flex-start", gap: 6,
-                                                    padding: "6px 8px", background: "#F8FAFC",
-                                                    border: "1px solid #E2E8F0", borderRadius: 7
-                                                  }}>
-                                                    <span style={{
-                                                      fontSize: 8, fontWeight: 700, color: "#94A3B8",
-                                                      background: "#E2E8F0", borderRadius: 3, padding: "1px 4px", flexShrink: 0
-                                                    }}>#{action.order}</span>
-                                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                                      <div style={{ fontSize: 8, fontWeight: 700, color: color.dot, marginBottom: 1 }}>
-                                                        {actionTypeLabel[action.type] || action.type}
+
+                                                {/* Action list */}
+                                                <div className="space-y-1.5">
+                                                  {step.actions.length ===
+                                                    0 && (
+                                                    <div
+                                                      style={{
+                                                        fontSize: 9,
+                                                        color: "#CBD5E1",
+                                                        textAlign: "center",
+                                                        padding: "6px 0",
+                                                      }}
+                                                    >
+                                                      ยังไม่มีคำสั่ง
+                                                    </div>
+                                                  )}
+                                                  {[...step.actions]
+                                                    .sort(
+                                                      (a, b) =>
+                                                        a.order - b.order,
+                                                    )
+                                                    .map((action) => (
+                                                      <div
+                                                        key={action.id}
+                                                        style={{
+                                                          display: "flex",
+                                                          alignItems:
+                                                            "flex-start",
+                                                          gap: 6,
+                                                          padding: "6px 8px",
+                                                          background: "#F8FAFC",
+                                                          border:
+                                                            "1px solid #E2E8F0",
+                                                          borderRadius: 7,
+                                                        }}
+                                                      >
+                                                        <span
+                                                          style={{
+                                                            fontSize: 8,
+                                                            fontWeight: 700,
+                                                            color: "#94A3B8",
+                                                            background:
+                                                              "#E2E8F0",
+                                                            borderRadius: 3,
+                                                            padding: "1px 4px",
+                                                            flexShrink: 0,
+                                                          }}
+                                                        >
+                                                          #{action.order}
+                                                        </span>
+                                                        <div
+                                                          style={{
+                                                            flex: 1,
+                                                            minWidth: 0,
+                                                          }}
+                                                        >
+                                                          <div
+                                                            style={{
+                                                              fontSize: 8,
+                                                              fontWeight: 700,
+                                                              color: color.dot,
+                                                              marginBottom: 1,
+                                                            }}
+                                                          >
+                                                            {actionTypeLabel[
+                                                              action.type
+                                                            ] || action.type}
+                                                          </div>
+                                                          <div
+                                                            style={{
+                                                              fontSize: 9,
+                                                              color: "#475569",
+                                                              wordBreak:
+                                                                "break-all",
+                                                              fontFamily:
+                                                                action.type ===
+                                                                "flex"
+                                                                  ? "monospace"
+                                                                  : "inherit",
+                                                              maxHeight: 48,
+                                                              overflow:
+                                                                "hidden",
+                                                            }}
+                                                          >
+                                                            {action.payload}
+                                                          </div>
+                                                        </div>
+                                                        <button
+                                                          onClick={() =>
+                                                            removeFlowAction(
+                                                              step.id,
+                                                              action.id,
+                                                            )
+                                                          }
+                                                          style={{
+                                                            background: "none",
+                                                            border: "none",
+                                                            cursor: "pointer",
+                                                            color: "#CBD5E1",
+                                                            fontSize: 11,
+                                                            flexShrink: 0,
+                                                          }}
+                                                        >
+                                                          ✕
+                                                        </button>
                                                       </div>
-                                                      <div style={{
-                                                        fontSize: 9, color: "#475569", wordBreak: "break-all",
-                                                        fontFamily: action.type === "flex" ? "monospace" : "inherit",
-                                                        maxHeight: 48, overflow: "hidden"
-                                                      }}>{action.payload}</div>
-                                                    </div>
-                                                    <button onClick={() => removeFlowAction(step.id, action.id)}
-                                                      style={{ background: "none", border: "none", cursor: "pointer", color: "#CBD5E1", fontSize: 11, flexShrink: 0 }}>✕</button>
-                                                  </div>
-                                                ))}
-                                              </div>
-
-                                              {/* Add action */}
-                                              {isAddingHere ? (
-                                                <div style={{ marginTop: 8, padding: 10, background: "#F8FAFC", border: "1px dashed #CBD5E1", borderRadius: 8 }} className="space-y-2">
-                                                  <div className="grid grid-cols-4 gap-2">
-                                                    <div className="col-span-1 space-y-1">
-                                                      <span className="text-[9px] text-slate-400 font-bold uppercase">Order</span>
-                                                      <input type="number" value={newFlowAction.order}
-                                                        onChange={e => setNewFlowAction(p => ({ ...p, order: Number(e.target.value) }))}
-                                                        className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:border-[#06C755]" />
-                                                    </div>
-                                                    <div className="col-span-3 space-y-1">
-                                                      <span className="text-[9px] text-slate-400 font-bold uppercase">Action Type</span>
-                                                      <select value={newFlowAction.type}
-                                                        onChange={e => setNewFlowAction(p => ({ ...p, type: e.target.value }))}
-                                                        className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none">
-                                                        <option value="text">💬 TEXT (ข้อความ)</option>
-                                                        <option value="flex">🃏 FLEX (การ์ด)</option>
-                                                        <option value="calling">⚙️ CALLING (ระบบ)</option>
-                                                      </select>
-                                                    </div>
-                                                  </div>
-                                                  <div className="space-y-1">
-                                                    <span className="text-[9px] text-slate-400 font-bold uppercase flex justify-between">
-                                                      Payload / Message
-                                                      <span className="px-1 py-0.5 bg-slate-200 text-slate-600 rounded text-[7px]">JSON SUPPORTED</span>
-                                                    </span>
-                                                    <textarea value={newFlowAction.payload}
-                                                      onChange={e => setNewFlowAction(p => ({ ...p, payload: e.target.value }))}
-                                                      placeholder="พิมพ์ข้อความ หรือ JSON ของ Flex Message..."
-                                                      className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-[10px] font-mono outline-none min-h-[60px] resize-none focus:border-[#06C755]" />
-                                                  </div>
-                                                  <div className="flex gap-1.5">
-                                                    <button onClick={() => addFlowActionToStep(step.id)}
-                                                      className="flex-1 py-1.5 bg-[#06C755] text-white text-xs font-bold rounded-lg hover:bg-[#05a546]">
-                                                      ✓ บันทึก Action
-                                                    </button>
-                                                    <button onClick={() => setAddingFlowAction(null)}
-                                                      className="px-3 py-1.5 bg-slate-100 text-slate-500 text-xs font-bold rounded-lg">
-                                                      ยกเลิก
-                                                    </button>
-                                                  </div>
+                                                    ))}
                                                 </div>
-                                              ) : (
-                                                <button
-                                                  onClick={() => { setAddingFlowAction(step.id); setNewFlowAction({ order: step.actions.length + 1, type: "text", payload: "" }); }}
-                                                  style={{ marginTop: 8, width: "100%", padding: "6px 0", background: "none", border: `1.5px dashed ${color.border}`, borderRadius: 7, color: color.dot, fontSize: 9, fontWeight: 700, cursor: "pointer" }}
-                                                >
-                                                  + เพิ่มคำสั่ง
-                                                </button>
-                                              )}
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
 
-                                  {/* Flow preview */}
-                                  {flowSteps.length > 1 && (
-                                    <div style={{ padding: "8px 10px", background: "#0F172A", borderRadius: 8, fontSize: 8, fontFamily: "monospace", color: "#64748B" }}>
-                                      <div style={{ color: "#475569", fontWeight: 700, marginBottom: 4, fontSize: 7, textTransform: "uppercase", letterSpacing: "0.1em" }}>Flow Preview</div>
-                                      {flowSteps.map((s, i) => (
-                                        <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: i < flowSteps.length - 1 ? 3 : 0 }}>
-                                          <span style={{ color: "#38BDF8" }}>{s.stateName}</span>
-                                          {s.nextStateName && <><span style={{ color: "#475569" }}>→</span><span style={{ color: "#86EFAC" }}>{s.nextStateName}</span></>}
-                                          <span style={{ color: "#475569" }}>({s.actions.length} actions)</span>
-                                          {selectedFlowStepId === s.id && <span style={{ color: "#FCD34D" }}>← active</span>}
-                                        </div>
-                                      ))}
+                                                {/* Add action */}
+                                                {isAddingHere ? (
+                                                  <div
+                                                    style={{
+                                                      marginTop: 8,
+                                                      padding: 10,
+                                                      background: "#F8FAFC",
+                                                      border:
+                                                        "1px dashed #CBD5E1",
+                                                      borderRadius: 8,
+                                                    }}
+                                                    className="space-y-2"
+                                                  >
+                                                    <div className="grid grid-cols-4 gap-2">
+                                                      <div className="col-span-1 space-y-1">
+                                                        <span className="text-[9px] text-slate-400 font-bold uppercase">
+                                                          Order
+                                                        </span>
+                                                        <input
+                                                          type="number"
+                                                          value={
+                                                            newFlowAction.order
+                                                          }
+                                                          onChange={(e) =>
+                                                            setNewFlowAction(
+                                                              (p) => ({
+                                                                ...p,
+                                                                order: Number(
+                                                                  e.target
+                                                                    .value,
+                                                                ),
+                                                              }),
+                                                            )
+                                                          }
+                                                          className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:border-[#06C755]"
+                                                        />
+                                                      </div>
+                                                      <div className="col-span-3 space-y-1">
+                                                        <span className="text-[9px] text-slate-400 font-bold uppercase">
+                                                          Action Type
+                                                        </span>
+                                                        <select
+                                                          value={
+                                                            newFlowAction.type
+                                                          }
+                                                          onChange={(e) =>
+                                                            setNewFlowAction(
+                                                              (p) => ({
+                                                                ...p,
+                                                                type: e.target
+                                                                  .value,
+                                                              }),
+                                                            )
+                                                          }
+                                                          className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none"
+                                                        >
+                                                          <option value="text">
+                                                            💬 TEXT (ข้อความ)
+                                                          </option>
+                                                          <option value="flex">
+                                                            🃏 FLEX (การ์ด)
+                                                          </option>
+                                                          <option value="calling">
+                                                            ⚙️ CALLING (ระบบ)
+                                                          </option>
+                                                          <option value="quick-reply">
+                                                            💭 quick-reply
+                                                          </option>
+                                                          <option value="rich-menu-unlink">
+                                                            👇🏻 rich-menu-unlink
+                                                          </option>
+                                                        </select>
+                                                      </div>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                      {/* Header row: label + Format button */}
+                                                      <span className="text-[9px] text-slate-400 font-bold uppercase flex justify-between items-center">
+                                                        Payload / Message
+                                                        {[
+                                                          "flex",
+                                                          "bubble",
+                                                          "calling",
+                                                          "switch",
+                                                        ].includes(
+                                                          newFlowAction.type,
+                                                        ) && (
+                                                          <button
+                                                            onClick={() => {
+                                                              try {
+                                                                const pretty =
+                                                                  JSON.stringify(
+                                                                    JSON.parse(
+                                                                      newFlowAction.payload,
+                                                                    ),
+                                                                    null,
+                                                                    2,
+                                                                  );
+                                                                setNewFlowAction(
+                                                                  (p) => ({
+                                                                    ...p,
+                                                                    payload:
+                                                                      pretty,
+                                                                  }),
+                                                                );
+                                                                setJsonError(
+                                                                  "",
+                                                                );
+                                                              } catch (e) {
+                                                                setJsonError(
+                                                                  `JSON ไม่ถูกต้อง: ${e.message}`,
+                                                                );
+                                                              }
+                                                            }}
+                                                            className="px-1.5 py-0.5 bg-indigo-100 text-indigo-600 hover:bg-indigo-200 rounded text-[7px] font-bold transition-colors"
+                                                          >
+                                                            {"{ }"} Format JSON
+                                                          </button>
+                                                        )}
+                                                      </span>
+
+                                                      {/* rich-menu-unlink: ไม่ต้องกรอก */}
+                                                      {newFlowAction.type ===
+                                                      "rich-menu-unlink" ? (
+                                                        <div className="px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-[10px] text-amber-700 font-medium">
+                                                          🙈 Rich Menu ของ User
+                                                          จะถูกซ่อนอัตโนมัติ
+                                                          ไม่ต้องกรอกข้อมูลเพิ่ม
+                                                        </div>
+                                                      ) : (
+                                                        <>
+                                                          <textarea
+                                                            value={
+                                                              newFlowAction.payload
+                                                            }
+                                                            onChange={(e) => {
+                                                              const val =
+                                                                e.target.value;
+                                                              setNewFlowAction(
+                                                                (p) => ({
+                                                                  ...p,
+                                                                  payload: val,
+                                                                }),
+                                                              );
+                                                              // live validate JSON types
+                                                              if (
+                                                                [
+                                                                  "flex",
+                                                                  "bubble",
+                                                                  "calling",
+                                                                  "switch",
+                                                                ].includes(
+                                                                  newFlowAction.type,
+                                                                ) &&
+                                                                val.trim()
+                                                              ) {
+                                                                try {
+                                                                  JSON.parse(
+                                                                    val,
+                                                                  );
+                                                                  setJsonError(
+                                                                    "",
+                                                                  );
+                                                                } catch (err) {
+                                                                  setJsonError(
+                                                                    `JSON ไม่ถูกต้อง: ${err.message}`,
+                                                                  );
+                                                                }
+                                                              } else {
+                                                                setJsonError(
+                                                                  "",
+                                                                );
+                                                              }
+                                                            }}
+                                                            placeholder={
+                                                              newFlowAction.type ===
+                                                              "text"
+                                                                ? "พิมพ์ข้อความที่ต้องการส่งหา User..."
+                                                                : newFlowAction.type ===
+                                                                      "flex" ||
+                                                                    newFlowAction.type ===
+                                                                      "bubble"
+                                                                  ? '{\n  "type": "bubble",\n  "body": {\n    "type": "box",\n    "layout": "vertical",\n    "contents": []\n  }\n}'
+                                                                  : newFlowAction.type ===
+                                                                      "calling"
+                                                                    ? '{\n  "url": "https://api.example.com/hook",\n  "method": "POST",\n  "body": {}\n}'
+                                                                    : newFlowAction.type ===
+                                                                        "switch"
+                                                                      ? '{"richMenuId": "richmenu-xxxxxxxxxxxx"}'
+                                                                      : "พิมพ์ข้อความ หรือ JSON..."
+                                                            }
+                                                            className={`w-full px-2 py-1.5 bg-white border rounded-lg text-[10px] font-mono outline-none min-h-[72px] resize-y focus:border-[#06C755] transition-colors ${
+                                                              jsonError
+                                                                ? "border-red-400 bg-red-50"
+                                                                : "border-slate-200"
+                                                            }`}
+                                                          />
+
+                                                          {/* JSON error */}
+                                                          {jsonError && (
+                                                            <div className="flex items-start gap-1 px-2 py-1.5 bg-red-50 border border-red-200 rounded-lg">
+                                                              <span className="text-red-500 text-[9px] flex-shrink-0 mt-0.5">
+                                                                ✕
+                                                              </span>
+                                                              <span className="text-[9px] text-red-600 font-mono break-all">
+                                                                {jsonError}
+                                                              </span>
+                                                            </div>
+                                                          )}
+
+                                                          {/* JSON ok badge */}
+                                                          {!jsonError &&
+                                                            [
+                                                              "flex",
+                                                              "bubble",
+                                                              "calling",
+                                                              "switch",
+                                                            ].includes(
+                                                              newFlowAction.type,
+                                                            ) &&
+                                                            newFlowAction.payload.trim() && (
+                                                              <div className="flex items-center gap-1 text-[9px] text-emerald-600 font-bold">
+                                                                <span>✓</span>
+                                                                <span>
+                                                                  JSON ถูกต้อง
+                                                                </span>
+                                                              </div>
+                                                            )}
+
+                                                          {/* Hint texts */}
+                                                          {newFlowAction.type ===
+                                                            "calling" && (
+                                                            <p className="text-[8px] text-slate-400 italic">
+                                                              * ระบบจะเรียก API
+                                                              ก่อนส่งข้อความ
+                                                              (url, method,
+                                                              headers?, body?)
+                                                            </p>
+                                                          )}
+                                                          {newFlowAction.type ===
+                                                            "switch" && (
+                                                            <p className="text-[8px] text-slate-400 italic">
+                                                              * เปลี่ยน Rich
+                                                              Menu เฉพาะ User
+                                                              คนนี้ (ไม่กระทบ
+                                                              User อื่น)
+                                                            </p>
+                                                          )}
+                                                          {(newFlowAction.type ===
+                                                            "flex" ||
+                                                            newFlowAction.type ===
+                                                              "bubble") && (
+                                                            <p className="text-[8px] text-slate-400 italic">
+                                                              * วาง JSON จาก{" "}
+                                                              <a
+                                                                href="https://developers.line.biz/flex-simulator/"
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-indigo-500 underline"
+                                                              >
+                                                                LINE Flex
+                                                                Message
+                                                                Simulator
+                                                              </a>
+                                                            </p>
+                                                          )}
+                                                        </>
+                                                      )}
+                                                    </div>
+
+                                                    <div className="flex gap-1.5">
+                                                      <button
+                                                        onClick={() =>
+                                                          addFlowActionToStep(
+                                                            step.id,
+                                                          )
+                                                        }
+                                                        disabled={!!jsonError}
+                                                        className={`flex-1 py-1.5 text-white text-xs font-bold rounded-lg transition-colors ${
+                                                          jsonError
+                                                            ? "bg-slate-300 cursor-not-allowed"
+                                                            : "bg-[#06C755] hover:bg-[#05a546]"
+                                                        }`}
+                                                      >
+                                                        ✓ บันทึก Action
+                                                      </button>
+                                                      <button
+                                                        onClick={() => {
+                                                          setAddingFlowAction(
+                                                            null,
+                                                          );
+                                                          setJsonError("");
+                                                        }}
+                                                        className="px-3 py-1.5 bg-slate-100 text-slate-500 text-xs font-bold rounded-lg"
+                                                      >
+                                                        ยกเลิก
+                                                      </button>
+                                                    </div>
+                                                  </div>
+                                                ) : (
+                                                  <button
+                                                    onClick={() => {
+                                                      setAddingFlowAction(
+                                                        step.id,
+                                                      );
+                                                      setNewFlowAction({
+                                                        order:
+                                                          step.actions.length +
+                                                          1,
+                                                        type: "text",
+                                                        payload: "",
+                                                      });
+                                                    }}
+                                                    style={{
+                                                      marginTop: 8,
+                                                      width: "100%",
+                                                      padding: "6px 0",
+                                                      background: "none",
+                                                      border: `1.5px dashed ${color.border}`,
+                                                      borderRadius: 7,
+                                                      color: color.dot,
+                                                      fontSize: 9,
+                                                      fontWeight: 700,
+                                                      cursor: "pointer",
+                                                    }}
+                                                  >
+                                                    + เพิ่มคำสั่ง
+                                                  </button>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
                                     </div>
-                                  )}
-                                </div>
-                              );
-                            })()}
+
+                                    {/* Flow preview */}
+                                    {flowSteps.length > 1 && (
+                                      <div
+                                        style={{
+                                          padding: "8px 10px",
+                                          background: "#0F172A",
+                                          borderRadius: 8,
+                                          fontSize: 8,
+                                          fontFamily: "monospace",
+                                          color: "#64748B",
+                                        }}
+                                      >
+                                        <div
+                                          style={{
+                                            color: "#475569",
+                                            fontWeight: 700,
+                                            marginBottom: 4,
+                                            fontSize: 7,
+                                            textTransform: "uppercase",
+                                            letterSpacing: "0.1em",
+                                          }}
+                                        >
+                                          Flow Preview
+                                        </div>
+                                        {flowSteps.map((s, i) => (
+                                          <div
+                                            key={s.id}
+                                            style={{
+                                              display: "flex",
+                                              alignItems: "center",
+                                              gap: 3,
+                                              marginBottom:
+                                                i < flowSteps.length - 1
+                                                  ? 3
+                                                  : 0,
+                                            }}
+                                          >
+                                            <span style={{ color: "#38BDF8" }}>
+                                              {s.stateName}
+                                            </span>
+                                            {s.nextStateName && (
+                                              <>
+                                                <span
+                                                  style={{ color: "#475569" }}
+                                                >
+                                                  →
+                                                </span>
+                                                <span
+                                                  style={{ color: "#86EFAC" }}
+                                                >
+                                                  {s.nextStateName}
+                                                </span>
+                                              </>
+                                            )}
+                                            <span style={{ color: "#475569" }}>
+                                              ({s.actions.length} actions)
+                                            </span>
+                                            {selectedFlowStepId === s.id && (
+                                              <span
+                                                style={{ color: "#FCD34D" }}
+                                              >
+                                                ← active
+                                              </span>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                           </div>
                         </div>
                       </div>
@@ -1796,7 +2626,10 @@ export default function RichMenuDashboard() {
 
             {/* ✅ NEW: Audit Log Modal (เพิ่มใหม่) */}
             {isLogModalOpen && (
-              <div className="php-modal-overlay" onClick={() => setIsLogModalOpen(false)}>
+              <div
+                className="php-modal-overlay"
+                onClick={() => setIsLogModalOpen(false)}
+              >
                 <div
                   onClick={(e) => e.stopPropagation()}
                   style={{
@@ -1813,38 +2646,141 @@ export default function RichMenuDashboard() {
                   }}
                 >
                   {/* ── Header ── */}
-                  <div style={{
-                    background: "linear-gradient(135deg, #06C755 0%, #05a546 100%)",
-                    padding: "14px 16px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    flexShrink: 0,
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ background: "rgba(255,255,255,0.2)", borderRadius: 10, padding: "7px 8px", display: "flex" }}>
+                  <div
+                    style={{
+                      background:
+                        "linear-gradient(135deg, #06C755 0%, #05a546 100%)",
+                      padding: "14px 16px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 10 }}
+                    >
+                      <div
+                        style={{
+                          background: "rgba(255,255,255,0.2)",
+                          borderRadius: 10,
+                          padding: "7px 8px",
+                          display: "flex",
+                        }}
+                      >
                         <History size={18} color="#fff" />
                       </div>
                       <div>
-                        <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>ประวัติการใช้งาน</div>
-                        <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 10, fontFamily: "monospace", marginTop: 1, maxWidth: "55vw", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{botKey}</div>
+                        <div
+                          style={{
+                            color: "#fff",
+                            fontWeight: 700,
+                            fontSize: 15,
+                          }}
+                        >
+                          ประวัติการใช้งาน
+                        </div>
+                        <div
+                          style={{
+                            color: "rgba(255,255,255,0.7)",
+                            fontSize: 10,
+                            fontFamily: "monospace",
+                            marginTop: 1,
+                            maxWidth: "55vw",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {botKey}
+                        </div>
                       </div>
                     </div>
                     <button
                       onClick={() => setIsLogModalOpen(false)}
-                      style={{ background: "rgba(255,255,255,0.2)", border: "none", cursor: "pointer", color: "#fff", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
-                    ><X size={16} /></button>
+                      style={{
+                        background: "rgba(255,255,255,0.2)",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "#fff",
+                        width: 32,
+                        height: 32,
+                        borderRadius: 8,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <X size={16} />
+                    </button>
                   </div>
 
                   {/* ── Stats Bar (horizontal scroll on mobile) ── */}
-                  <div style={{ background: "#fff", padding: "10px 12px", display: "flex", gap: 6, borderBottom: "1px solid #E8ECEF", flexShrink: 0, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                  <div
+                    style={{
+                      background: "#fff",
+                      padding: "10px 12px",
+                      display: "flex",
+                      gap: 6,
+                      borderBottom: "1px solid #E8ECEF",
+                      flexShrink: 0,
+                      overflowX: "auto",
+                      WebkitOverflowScrolling: "touch",
+                    }}
+                  >
                     {[
-                      { key: "all",         label: "ทั้งหมด",     color: "#06C755", bg: "#F0FFF4", count: auditLogs.length },
-                      { key: "create_menu", label: "สร้างเมนู",   color: "#3B82F6", bg: "#EFF6FF", count: auditLogs.filter(l => l.action === "create_menu").length },
-                      { key: "switch_menu", label: "เปลี่ยนเมนู", color: "#F59E0B", bg: "#FFFBEB", count: auditLogs.filter(l => l.action === "switch_menu").length },
-                      { key: "delete_menu", label: "ลบเมนู",      color: "#EF4444", bg: "#FEF2F2", count: auditLogs.filter(l => l.action === "delete_menu").length },
-                      { key: "add_bot",     label: "เพิ่มบอท",    color: "#8B5CF6", bg: "#F5F3FF", count: auditLogs.filter(l => l.action === "add_bot").length },
-                      { key: "delete_bot",  label: "ลบบอท",       color: "#DC2626", bg: "#FFF1F2", count: auditLogs.filter(l => l.action === "delete_bot").length },
+                      {
+                        key: "all",
+                        label: "ทั้งหมด",
+                        color: "#06C755",
+                        bg: "#F0FFF4",
+                        count: auditLogs.length,
+                      },
+                      {
+                        key: "create_menu",
+                        label: "สร้างเมนู",
+                        color: "#3B82F6",
+                        bg: "#EFF6FF",
+                        count: auditLogs.filter(
+                          (l) => l.action === "create_menu",
+                        ).length,
+                      },
+                      {
+                        key: "switch_menu",
+                        label: "เปลี่ยนเมนู",
+                        color: "#F59E0B",
+                        bg: "#FFFBEB",
+                        count: auditLogs.filter(
+                          (l) => l.action === "switch_menu",
+                        ).length,
+                      },
+                      {
+                        key: "delete_menu",
+                        label: "ลบเมนู",
+                        color: "#EF4444",
+                        bg: "#FEF2F2",
+                        count: auditLogs.filter(
+                          (l) => l.action === "delete_menu",
+                        ).length,
+                      },
+                      {
+                        key: "add_bot",
+                        label: "เพิ่มบอท",
+                        color: "#8B5CF6",
+                        bg: "#F5F3FF",
+                        count: auditLogs.filter((l) => l.action === "add_bot")
+                          .length,
+                      },
+                      {
+                        key: "delete_bot",
+                        label: "ลบบอท",
+                        color: "#DC2626",
+                        bg: "#FFF1F2",
+                        count: auditLogs.filter(
+                          (l) => l.action === "delete_bot",
+                        ).length,
+                      },
                     ].map((f) => {
                       const active = auditFilter === f.key;
                       return (
@@ -1852,127 +2788,399 @@ export default function RichMenuDashboard() {
                           key={f.key}
                           onClick={() => setAuditFilter(f.key)}
                           style={{
-                            display: "flex", flexDirection: "column", alignItems: "center",
-                            padding: "6px 12px", borderRadius: 10, cursor: "pointer",
-                            border: active ? `2px solid ${f.color}` : "2px solid transparent",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            padding: "6px 12px",
+                            borderRadius: 10,
+                            cursor: "pointer",
+                            border: active
+                              ? `2px solid ${f.color}`
+                              : "2px solid transparent",
                             background: active ? f.bg : "#F8FAFC",
-                            transition: "all 0.15s", flexShrink: 0, minWidth: 62,
+                            transition: "all 0.15s",
+                            flexShrink: 0,
+                            minWidth: 62,
                           }}
                         >
-                          <span style={{ fontSize: 16, fontWeight: 800, color: active ? f.color : "#94A3B8", lineHeight: 1 }}>{f.count}</span>
-                          <span style={{ fontSize: 9, fontWeight: 600, color: active ? f.color : "#94A3B8", marginTop: 2, whiteSpace: "nowrap" }}>{f.label}</span>
+                          <span
+                            style={{
+                              fontSize: 16,
+                              fontWeight: 800,
+                              color: active ? f.color : "#94A3B8",
+                              lineHeight: 1,
+                            }}
+                          >
+                            {f.count}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 9,
+                              fontWeight: 600,
+                              color: active ? f.color : "#94A3B8",
+                              marginTop: 2,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {f.label}
+                          </span>
                         </button>
                       );
                     })}
                   </div>
 
                   {/* ── Log Rows (card layout — mobile friendly) ── */}
-                  <div style={{ overflowY: "auto", flex: 1, background: "#fff", WebkitOverflowScrolling: "touch" }}>
+                  <div
+                    style={{
+                      overflowY: "auto",
+                      flex: 1,
+                      background: "#fff",
+                      WebkitOverflowScrolling: "touch",
+                    }}
+                  >
                     {auditLoading ? (
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: 12 }}>
-                        <div style={{ width: 32, height: 32, border: "3px solid #06C755", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-                        <span style={{ fontSize: 13, color: "#94A3B8" }}>กำลังโหลดประวัติ...</span>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: "60px 0",
+                          gap: 12,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            border: "3px solid #06C755",
+                            borderTopColor: "transparent",
+                            borderRadius: "50%",
+                            animation: "spin 0.8s linear infinite",
+                          }}
+                        />
+                        <span style={{ fontSize: 13, color: "#94A3B8" }}>
+                          กำลังโหลดประวัติ...
+                        </span>
                       </div>
-                    ) : (() => {
-                      const filtered = auditFilter === "all" ? auditLogs : auditLogs.filter(l => l.action === auditFilter);
+                    ) : (
+                      (() => {
+                        const filtered =
+                          auditFilter === "all"
+                            ? auditLogs
+                            : auditLogs.filter((l) => l.action === auditFilter);
 
-                      if (filtered.length === 0) {
-                        return (
-                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: 10 }}>
-                            <div style={{ background: "#F1F5F9", borderRadius: 16, padding: 20 }}>
-                              <History size={36} color="#CBD5E1" />
-                            </div>
-                            <span style={{ fontSize: 13, color: "#94A3B8", fontWeight: 600 }}>ยังไม่มีประวัติในหมวดนี้</span>
-                          </div>
-                        );
-                      }
-
-                      const actionConfig = {
-                        add_bot:     { label: "เพิ่มบอท",    color: "#8B5CF6", bg: "#F5F3FF", dot: "#8B5CF6" },
-                        create_menu: { label: "สร้างเมนู",   color: "#3B82F6", bg: "#EFF6FF", dot: "#3B82F6" },
-                        switch_menu: { label: "เปลี่ยนเมนู", color: "#F59E0B", bg: "#FFFBEB", dot: "#F59E0B" },
-                        delete_menu: { label: "ลบเมนู",      color: "#EF4444", bg: "#FEF2F2", dot: "#EF4444" },
-                        delete_bot:  { label: "ลบบอท",       color: "#DC2626", bg: "#FFF1F2", dot: "#DC2626" },
-                      };
-
-                      return filtered.map((log, i) => {
-                        const cfg = actionConfig[log.action] || { label: log.action, color: "#64748B", bg: "#F8FAFC", dot: "#94A3B8" };
-                        const createdAt = new Date(log.created_at);
-                        const dateStr = createdAt.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
-                        const timeStr = createdAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-
-                        return (
-                          <div
-                            key={log.id || i}
-                            style={{
-                              padding: "12px 16px",
-                              borderBottom: "1px solid #F1F5F9",
-                              borderLeft: `3px solid ${cfg.dot}`,
-                              background: "#fff",
-                              transition: "background 0.1s",
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
-                            onMouseLeave={e => e.currentTarget.style.background = "#fff"}
-                          >
-                            {/* Row 1: Badge + Timestamp */}
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                              <span style={{
-                                display: "inline-flex", alignItems: "center", gap: 5,
-                                padding: "3px 10px", borderRadius: 20,
-                                background: cfg.bg, color: cfg.color,
-                                fontSize: 10, fontWeight: 700,
-                              }}>
-                                <span style={{ width: 5, height: 5, borderRadius: "50%", background: cfg.dot }} />
-                                {cfg.label}
+                        if (filtered.length === 0) {
+                          return (
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                padding: "60px 0",
+                                gap: 10,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  background: "#F1F5F9",
+                                  borderRadius: 16,
+                                  padding: 20,
+                                }}
+                              >
+                                <History size={36} color="#CBD5E1" />
+                              </div>
+                              <span
+                                style={{
+                                  fontSize: 13,
+                                  color: "#94A3B8",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                ยังไม่มีประวัติในหมวดนี้
                               </span>
-                              <div style={{ textAlign: "right" }}>
-                                <div style={{ color: "#475569", fontSize: 11, fontWeight: 600 }}>{dateStr}</div>
-                                <div style={{ color: "#94A3B8", fontSize: 10, fontFamily: "monospace" }}>{timeStr}</div>
-                              </div>
                             </div>
+                          );
+                        }
 
-                            {/* Row 2: Detail */}
-                            {log.menu_name && (
-                              <div style={{ color: "#2C3E50", fontSize: 12, fontWeight: 600, marginBottom: 2 }}>{log.menu_name}</div>
-                            )}
-                            {log.detail && (
-                              <div style={{ color: "#64748B", fontSize: 11, lineHeight: 1.5, marginBottom: 4 }}>{log.detail}</div>
-                            )}
-                            {log.action === "switch_menu" && log.menu_id_from && (
-                              <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6, fontSize: 10, fontFamily: "monospace", flexWrap: "wrap" }}>
-                                <span style={{ color: "#94A3B8", background: "#F1F5F9", padding: "1px 6px", borderRadius: 4 }}>{log.menu_id_from?.substring(0, 12)}…</span>
-                                <span style={{ color: "#CBD5E1" }}>→</span>
-                                <span style={{ color: "#06C755", background: "#F0FFF4", padding: "1px 6px", borderRadius: 4 }}>{log.menu_id_to?.substring(0, 12)}…</span>
+                        const actionConfig = {
+                          add_bot: {
+                            label: "เพิ่มบอท",
+                            color: "#8B5CF6",
+                            bg: "#F5F3FF",
+                            dot: "#8B5CF6",
+                          },
+                          create_menu: {
+                            label: "สร้างเมนู",
+                            color: "#3B82F6",
+                            bg: "#EFF6FF",
+                            dot: "#3B82F6",
+                          },
+                          switch_menu: {
+                            label: "เปลี่ยนเมนู",
+                            color: "#F59E0B",
+                            bg: "#FFFBEB",
+                            dot: "#F59E0B",
+                          },
+                          delete_menu: {
+                            label: "ลบเมนู",
+                            color: "#EF4444",
+                            bg: "#FEF2F2",
+                            dot: "#EF4444",
+                          },
+                          delete_bot: {
+                            label: "ลบบอท",
+                            color: "#DC2626",
+                            bg: "#FFF1F2",
+                            dot: "#DC2626",
+                          },
+                        };
+
+                        return filtered.map((log, i) => {
+                          const cfg = actionConfig[log.action] || {
+                            label: log.action,
+                            color: "#64748B",
+                            bg: "#F8FAFC",
+                            dot: "#94A3B8",
+                          };
+                          const createdAt = new Date(log.created_at);
+                          const dateStr = createdAt.toLocaleDateString(
+                            "th-TH",
+                            { day: "numeric", month: "short", year: "numeric" },
+                          );
+                          const timeStr = createdAt.toLocaleTimeString(
+                            "th-TH",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              second: "2-digit",
+                            },
+                          );
+
+                          return (
+                            <div
+                              key={log.id || i}
+                              style={{
+                                padding: "12px 16px",
+                                borderBottom: "1px solid #F1F5F9",
+                                borderLeft: `3px solid ${cfg.dot}`,
+                                background: "#fff",
+                                transition: "background 0.1s",
+                              }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.background = "#F8FAFC")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.background = "#fff")
+                              }
+                            >
+                              {/* Row 1: Badge + Timestamp */}
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  marginBottom: 6,
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 5,
+                                    padding: "3px 10px",
+                                    borderRadius: 20,
+                                    background: cfg.bg,
+                                    color: cfg.color,
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      width: 5,
+                                      height: 5,
+                                      borderRadius: "50%",
+                                      background: cfg.dot,
+                                    }}
+                                  />
+                                  {cfg.label}
+                                </span>
+                                <div style={{ textAlign: "right" }}>
+                                  <div
+                                    style={{
+                                      color: "#475569",
+                                      fontSize: 11,
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    {dateStr}
+                                  </div>
+                                  <div
+                                    style={{
+                                      color: "#94A3B8",
+                                      fontSize: 10,
+                                      fontFamily: "monospace",
+                                    }}
+                                  >
+                                    {timeStr}
+                                  </div>
+                                </div>
                               </div>
-                            )}
 
-                            {/* Row 3: Admin */}
-                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-                              {log.admin_avatar ? (
-                                <img src={log.admin_avatar} alt="" style={{ width: 20, height: 20, borderRadius: "50%", objectFit: "cover", border: "1.5px solid #E2E8F0", flexShrink: 0 }} onError={(e) => { e.target.style.display = "none"; }} />
-                              ) : (
-                                <div style={{ width: 20, height: 20, borderRadius: "50%", background: "linear-gradient(135deg, #06C755, #05a546)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                  <User size={10} color="#fff" />
+                              {/* Row 2: Detail */}
+                              {log.menu_name && (
+                                <div
+                                  style={{
+                                    color: "#2C3E50",
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    marginBottom: 2,
+                                  }}
+                                >
+                                  {log.menu_name}
                                 </div>
                               )}
-                              <span style={{ color: "#64748B", fontSize: 10, fontWeight: 600 }}>
-                                {log.admin_name || log.admin_id || "—"}
-                              </span>
+                              {log.detail && (
+                                <div
+                                  style={{
+                                    color: "#64748B",
+                                    fontSize: 11,
+                                    lineHeight: 1.5,
+                                    marginBottom: 4,
+                                  }}
+                                >
+                                  {log.detail}
+                                </div>
+                              )}
+                              {log.action === "switch_menu" &&
+                                log.menu_id_from && (
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 5,
+                                      marginBottom: 6,
+                                      fontSize: 10,
+                                      fontFamily: "monospace",
+                                      flexWrap: "wrap",
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        color: "#94A3B8",
+                                        background: "#F1F5F9",
+                                        padding: "1px 6px",
+                                        borderRadius: 4,
+                                      }}
+                                    >
+                                      {log.menu_id_from?.substring(0, 12)}…
+                                    </span>
+                                    <span style={{ color: "#CBD5E1" }}>→</span>
+                                    <span
+                                      style={{
+                                        color: "#06C755",
+                                        background: "#F0FFF4",
+                                        padding: "1px 6px",
+                                        borderRadius: 4,
+                                      }}
+                                    >
+                                      {log.menu_id_to?.substring(0, 12)}…
+                                    </span>
+                                  </div>
+                                )}
+
+                              {/* Row 3: Admin */}
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                  marginTop: 4,
+                                }}
+                              >
+                                {log.admin_avatar ? (
+                                  <img
+                                    src={log.admin_avatar}
+                                    alt=""
+                                    style={{
+                                      width: 20,
+                                      height: 20,
+                                      borderRadius: "50%",
+                                      objectFit: "cover",
+                                      border: "1.5px solid #E2E8F0",
+                                      flexShrink: 0,
+                                    }}
+                                    onError={(e) => {
+                                      e.target.style.display = "none";
+                                    }}
+                                  />
+                                ) : (
+                                  <div
+                                    style={{
+                                      width: 20,
+                                      height: 20,
+                                      borderRadius: "50%",
+                                      background:
+                                        "linear-gradient(135deg, #06C755, #05a546)",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <User size={10} color="#fff" />
+                                  </div>
+                                )}
+                                <span
+                                  style={{
+                                    color: "#64748B",
+                                    fontSize: 10,
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  {log.admin_name || log.admin_id || "—"}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      });
-                    })()}
+                          );
+                        });
+                      })()
+                    )}
                   </div>
 
                   {/* ── Footer ── */}
-                  <div style={{ background: "#F8FAFC", padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid #E8ECEF", flexShrink: 0 }}>
+                  <div
+                    style={{
+                      background: "#F8FAFC",
+                      padding: "10px 16px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      borderTop: "1px solid #E8ECEF",
+                      flexShrink: 0,
+                    }}
+                  >
                     <span style={{ color: "#94A3B8", fontSize: 11 }}>
-                      {auditFilter === "all" ? auditLogs.length : auditLogs.filter(l => l.action === auditFilter).length} รายการ
+                      {auditFilter === "all"
+                        ? auditLogs.length
+                        : auditLogs.filter((l) => l.action === auditFilter)
+                            .length}{" "}
+                      รายการ
                     </span>
                     <button
                       onClick={() => setIsLogModalOpen(false)}
-                      style={{ background: "#06C755", border: "none", borderRadius: 10, padding: "8px 24px", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                      style={{
+                        background: "#06C755",
+                        border: "none",
+                        borderRadius: 10,
+                        padding: "8px 24px",
+                        color: "#fff",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
                     >
                       ปิด
                     </button>
