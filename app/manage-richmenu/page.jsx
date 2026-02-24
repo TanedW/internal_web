@@ -125,7 +125,7 @@ function BotCard({ bot, currentMenuId, currentImageUrl, isActive, onDelete }) {
 export default function RichMenuHome() {
   const router = useRouter();
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // เปลี่ยนเป็น false - ไม่แสดง loading screen
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [bots, setBots] = useState([]);
   const [currentMenus, setCurrentMenus] = useState({});
@@ -175,7 +175,7 @@ export default function RichMenuHome() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        setLoading(false);
+        setLoading(false); // ตั้งเป็น false ทันที
         fetchBotsData();
       } else {
         router.push("/");
@@ -190,35 +190,52 @@ export default function RichMenuHome() {
       const botsRes = await fetch(`/api/richmenu?action=list_bots`);
       const botsData = await botsRes.json();
       if (Array.isArray(botsData)) {
+        // แสดงรายการบอททันที (ไม่ต้องรอรูป)
         setBots(botsData);
+        setIsRefreshing(false); // ปิด loading indicator เร็วขึ้น
+        
+        // โหลดข้อมูลเมนูและรูปภาพทีหลัง (parallel)
+        const results = await Promise.all(
+          botsData.map(async (bot) => {
+            try {
+              // Sync menus (background - ไม่ต้องรอ)
+              fetch("/api/richmenu?action=sync", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ botKey: bot.key, creatorId: "system" }),
+              }).catch(err => console.error(`Sync error for ${bot.key}:`, err));
+
+              // ดึง currentMenuId และ imageUrl
+              const menuRes = await fetch(
+                `/api/richmenu?action=current&botKey=${encodeURIComponent(bot.key)}`,
+              );
+              const menuData = await menuRes.json();
+              
+              return {
+                botKey: bot.key,
+                currentMenuId: menuData.currentMenuId || null,
+                imageUrl: menuData.imageUrl || null
+              };
+            } catch (err) {
+              console.error(`Error for bot "${bot.key}":`, err);
+              return { botKey: bot.key, currentMenuId: null, imageUrl: null };
+            }
+          })
+        );
+
+        // อัพเดตรูปภาพเมื่อโหลดเสร็จ
         const menusData = {};
         const imagesData = {};
-        for (const bot of botsData) {
-          try {
-            // Auto-sync rich menus จาก LINE → DB (รองรับกรณีสร้างผ่าน POSTMAN)
-            await fetch("/api/richmenu?action=sync", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ botKey: bot.key, creatorId: "system" }),
-            });
-
-            // ดึง currentMenuId และ imageUrl
-            const menuRes = await fetch(
-              `/api/richmenu?action=current&botKey=${encodeURIComponent(bot.key)}`,
-            );
-            const menuData = await menuRes.json();
-            menusData[bot.key] = menuData.currentMenuId || null;
-            imagesData[bot.key] = menuData.imageUrl || null;
-          } catch (err) {
-            console.error(err);
-          }
-        }
+        results.forEach(result => {
+          menusData[result.botKey] = result.currentMenuId;
+          imagesData[result.botKey] = result.imageUrl;
+        });
+        
         setCurrentMenus(menusData);
         setCurrentImages(imagesData);
       }
     } catch (error) {
       console.error(error);
-    } finally {
       setIsRefreshing(false);
     }
   }
@@ -278,11 +295,7 @@ export default function RichMenuHome() {
   };
 
   if (loading)
-    return (
-      <div className="min-h-screen flex justify-center items-center">
-        <Loader2 className="animate-spin" />
-      </div>
-    );
+    return null; // ไม่แสดงอะไรถ้ายังตรวจสอบ auth ไม่เสร็จ (แต่จะเร็วมาก)
 
   return (
     <div className="min-h-screen bg-[#F4F6F8] font-sans">
