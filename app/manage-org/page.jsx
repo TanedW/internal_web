@@ -12,9 +12,10 @@ import {
  UserCheck, Mail, Phone, Shield, Check,
  MoveVertical, Type,
  Clock, Edit3, RefreshCw, FileText, ArrowRight, Filter, MoreVertical, Activity, Settings2,
- History // นำเข้า History สำหรับปุ่มมือถือ
+ History, Eye, UserCircle2 
 } from "lucide-react";
 
+// ข้อมูลจำลองสำหรับ Timeline
 const TIMELINE_DATA = [
  {
    id: 1,
@@ -52,6 +53,12 @@ const TIMELINE_DATA = [
    time: "2 วันที่แล้ว",
    status: "danger"
  }
+];
+
+const PHOTO_HISTORY_DATA = [
+  { id: 101, url: "https://storage.googleapis.com/traffy_public_bucket/attachment/org_sample/logo1.png", user: "ธนกฤต แอดมิน", date: "23 ก.พ. 2026", time: "14:30", reason: "อัปเดตโลโก้สำหรับปี 2026" },
+  { id: 102, url: "https://storage.googleapis.com/traffy_public_bucket/attachment/org_sample/logo2.png", user: "ศิริลักษณ์ ระบบ", date: "15 ม.ค. 2026", time: "09:15", reason: "เปลี่ยนตาม CI ของหน่วยงานใหม่" },
+  { id: 103, url: "https://storage.googleapis.com/traffy_public_bucket/attachment/org_sample/logo3.png", user: "Super Admin", date: "01 ธ.ค. 2025", time: "11:00", reason: "เริ่มใช้งานระบบครั้งแรก" },
 ];
 
 const getTypeStyles = (type) => {
@@ -108,7 +115,7 @@ export default function ManageOrgPage() {
  const [isSearching, setIsSearching] = useState(false);
  const [searchId, setSearchId] = useState("");
  const [cases, setCases] = useState([]); 
- const [orgId, setOrgId] = useState("");            
+ const [orgId, setOrgId] = useState("");                
  const [orgName, setOrgName] = useState("");
  const [logoPreview, setLogoPreview] = useState(null);
  const [qrReportUrl, setQrReportUrl] = useState("");
@@ -132,6 +139,9 @@ export default function ManageOrgPage() {
  const [showMobileTimeline, setShowMobileTimeline] = useState(false); 
  const editPanelRef = useRef(null);
 
+ // --- ส่วนที่เพิ่มใหม่: State สำหรับ Popover ประวัติชื่อ ---
+ const [showNameHistory, setShowNameHistory] = useState(false);
+
  const [updateModal, setUpdateModal] = useState({
    show: false,
    type: "", 
@@ -139,6 +149,11 @@ export default function ManageOrgPage() {
    newValue: null,
    reason: ""
  });
+
+ const [showPhotoActionMenu, setShowPhotoActionMenu] = useState(false);
+ const [showPhotoHistoryModal, setShowPhotoHistoryModal] = useState(false);
+ 
+ const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
  const API_URL_ORG = process.env.NEXT_PUBLIC_DB_SEARCH_ORG_API_URL || ""; 
  const API_URL_MANAGE = process.env.NEXT_PUBLIC_DB_MANAGE_ORG_API_URL || "";
@@ -313,7 +328,6 @@ export default function ManageOrgPage() {
    }
  }, [qrReportUrl]);
 
- // UI Component สำหรับ Timeline (เพื่อเรียกใช้ซ้ำได้)
  const TimelineComponent = () => (
    <div className="bg-white rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden relative">
      <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-slate-50 to-white z-0"></div>
@@ -324,7 +338,7 @@ export default function ManageOrgPage() {
              <Activity size={20} />
            </div>
            <div>
-             <h3 className="text-lg font-black text-slate-900 tracking-tight leading-none">Activity Log</h3>
+             <h3 className="text-lg font-black text-slate-900 tracking-tight leading-none mb-1 tracking-tight">Activity Log</h3>
              <div className="flex items-center gap-1.5 mt-1.5">
                <span className="relative flex h-2 w-2">
                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -405,9 +419,25 @@ export default function ManageOrgPage() {
          -webkit-overflow-scrolling: touch;
          height: 100%;
        }
+       
+       .bubble-menu-container {
+         filter: drop-shadow(0 15px 30px rgba(0,0,0,0.15));
+       }
+       .bubble-arrow-tip::after {
+         content: '';
+         position: absolute;
+         bottom: -8px;
+         left: 50%;
+         transform: translateX(-50%);
+         width: 0;
+         height: 0;
+         border-left: 10px solid transparent;
+         border-right: 10px solid transparent;
+         border-top: 10px solid white;
+       }
      `}</style>
      <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
-      
+     
      <Sidebar isDesktopSidebarOpen={isDesktopSidebarOpen} setIsDesktopSidebarOpen={setIsDesktopSidebarOpen} />
 
      <div className={`main-content-scroll container mx-auto px-4 lg:px-8 pt-28 lg:pt-16 pb-20 max-w-[1600px] transition-all duration-300 ${isDesktopSidebarOpen ? "lg:pl-80" : "lg:pl-24"}`}>
@@ -514,19 +544,25 @@ export default function ManageOrgPage() {
 
            {orgId && (
              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
-               
                <div className="xl:hidden grid grid-cols-2 gap-3">
                    <button 
-                       onClick={scrollToEdit}
-                       className="btn h-16 !bg-indigo-600 hover:!bg-indigo-700 !text-white !rounded-2xl border-none shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-xs font-black uppercase tracking-tight"
+                       onClick={() => {
+                         // Logic Toggle: ถ้าเปิดอยู่ให้ปิด ถ้าปิดอยู่ให้เปิดแล้ว Scroll
+                         if (showMobileEditPanel) {
+                           setShowMobileEditPanel(false);
+                         } else {
+                           scrollToEdit();
+                         }
+                       }}
+                       className={`btn h-16 !rounded-2xl border-none shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-xs font-black uppercase tracking-tight ${showMobileEditPanel ? '!bg-indigo-700 !text-white' : '!bg-white !text-slate-900 border-2 !border-slate-100'}`}
                    >
-                       <Settings2 size={18} /> จัดการข้อมูล
+                     <Settings2 size={18} /> {showMobileEditPanel ? 'ปิดการจัดการ' : 'จัดการข้อมูล'}
                    </button>
                    <button 
                        onClick={() => setShowMobileTimeline(!showMobileTimeline)}
                        className={`btn h-16 !rounded-2xl border-none shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-xs font-black uppercase tracking-tight ${showMobileTimeline ? '!bg-black !text-white' : '!bg-white !text-slate-900 border-2 !border-slate-100'}`}
                    >
-                       <History size={18} /> {showMobileTimeline ? 'ปิดไทม์ไลน์' : 'ดูไทม์ไลน์'}
+                     <History size={18} /> {showMobileTimeline ? 'ปิดไทม์ไลน์' : 'ดูไทม์ไลน์'}
                    </button>
                </div>
 
@@ -538,56 +574,139 @@ export default function ManageOrgPage() {
 
                <div 
                    ref={editPanelRef} 
-                   className={`space-y-8 ${!showMobileEditPanel ? 'hidden xl:block' : 'block'}`}
+                   className={`space-y-8 ${!showMobileEditPanel ? 'hidden xl:block' : 'block animate-in slide-in-from-top-4 duration-500'}`}
                >
                    <div className="!bg-white rounded-[2.5rem] p-8 shadow-sm border-2 border-white">
                        <div className="flex flex-col md:flex-row gap-8">
                            <div className="relative shrink-0 mx-auto md:mx-0">
-                           <div className="w-32 h-32 !bg-slate-50 rounded-[2.5rem] flex items-center justify-center overflow-hidden border-2 border-slate-100 shadow-inner">
-                               {logoPreview ? (
-                               <img src={STORAGE_BASE_URL + logoPreview} className="w-full h-full object-cover" alt="Preview" />
-                               ) : (
-                               <ImageIcon size={32} className="text-slate-400" />
-                               )}
-                           </div>
-                           <label className="absolute -bottom-2 -right-2 w-10 h-10 bg-black text-white rounded-2xl flex items-center justify-center cursor-pointer shadow-xl hover:scale-110 transition-all border-4 border-white">
-                               <Upload size={18} />
-                               <input 
-                               type="file" className="hidden" accept="image/*"
-                               onChange={(e) => { 
-                                   const file = e.target.files[0]; 
-                                   if (file) { 
-                                   setUpdateModal({
-                                       show: true,
-                                       type: 'logo',
-                                       title: 'รูปภาพหน่วยงาน',
-                                       newValue: file,
-                                       reason: ""
-                                   });
-                                   } 
-                               }} 
-                               />
-                           </label>
+                            <div 
+                                onClick={() => setShowPhotoActionMenu(!showPhotoActionMenu)}
+                                className="w-32 h-32 !bg-slate-50 rounded-[2.5rem] flex items-center justify-center overflow-hidden border-2 border-slate-100 shadow-inner cursor-pointer hover:border-black transition-all group relative"
+                            >
+                                {logoPreview ? (
+                                <img src={STORAGE_BASE_URL + logoPreview} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-500" alt="Preview" />
+                                ) : (
+                                <ImageIcon size={32} className="text-slate-400" />
+                                )
+                                }
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center text-white text-[10px] font-black uppercase tracking-widest text-center px-2">
+                                   Manage Photo
+                                </div>
+                            </div>
+                           {showPhotoActionMenu && (
+ <div className="bubble-menu-container absolute bottom-full left-1/2 -translate-x-1/2 mb-6 z-[110] w-[210px] bg-white rounded-[2rem] border border-slate-100 p-2 bubble-arrow-tip shadow-2xl">
+   <div className="flex flex-col gap-0.5">
+     <button 
+       onClick={() => { 
+         setCurrentPhotoIndex(0);
+         setShowQrModal(true); 
+         setShowPhotoActionMenu(false); 
+       }}
+       className="grid grid-cols-[60px_1fr] items-center w-full px-3 py-3 hover:bg-slate-50 rounded-2xl transition-all group"
+     >
+       <div className="flex items-center justify-center">
+         <UserCircle2 size={24} strokeWidth={1.5} className="text-[#1a2b3b]" />
+       </div>
+       <span className="text-[15px] font-bold text-[#1a2b3b] text-left">ดูรูปโปรไฟล์</span>
+     </button>
+
+     <label className="grid grid-cols-[40px_1fr] items-center w-full px-3 py-3 hover:bg-slate-50 rounded-2xl transition-all group cursor-pointer">
+       <div className="flex items-center justify-center">
+         <ImageIcon size={22} strokeWidth={1.5} className="text-[#1a2b3b]" />
+       </div>
+       <span className="text-[15px] font-bold text-[#1a2b3b] text-left">เลือกรูปโปรไฟล์</span>
+       <input 
+         type="file" className="hidden" accept="image/*"
+         onChange={(e) => { 
+           const file = e.target.files[0]; 
+           if (file) { 
+             setUpdateModal({
+               show: true, type: 'logo', title: 'รูปภาพหน่วยงาน', newValue: file, reason: ""
+             });
+             setShowPhotoActionMenu(false);
+           } 
+         }} 
+       />
+     </label>
+   </div>
+ </div>
+)}
                            </div>
                            
                            <div className="flex-1 space-y-4">
-                           <div>
-                               <label className="text-xs font-bold text-slate-600 uppercase tracking-widest mb-2 block px-1">ชื่อหน่วยงาน</label>
+                           {/* --- ส่วนที่ปรับปรุงใหม่: ชื่อหน่วยงานดีไซน์ Minimal Popover --- */}
+                           <div className="relative">
+                               <div className="flex justify-between items-center mb-2 px-1">
+                                   <div className="flex items-center gap-3">
+                                       <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block px-1">ชื่อหน่วยงาน</label>
+                                       
+                                       {/* ปุ่มประวัติที่ปรับให้ดูเป็นปุ่มกดชัดเจน มีข้อความกำกับ */}
+                                       <div className="relative flex items-center">
+                                           <button 
+                                               onMouseEnter={() => setShowNameHistory(true)}
+                                               onMouseLeave={() => setShowNameHistory(false)}
+                                               onClick={() => setShowNameHistory(!showNameHistory)}
+                                               className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold transition-all border cursor-pointer active:scale-95 ${
+                                                   showNameHistory 
+                                                   ? 'bg-black text-white border-black shadow-md' 
+                                                   : 'bg-white text-slate-500 border-slate-200 hover:border-black hover:bg-black hover:text-white shadow-sm'
+                                               }`}
+                                           >
+                                               <History size={12} strokeWidth={2.5} />
+                                               <span>ประวัติการแก้ไข</span>
+                                           </button>
+
+                                           {/* Popover ไทม์ไลน์แบบลอย (Floating Card) */}
+                                           {showNameHistory && (
+                                               <div className="absolute top-full left-0 mt-2 z-[150] w-[280px] bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 p-5 animate-in fade-in slide-in-from-top-2 duration-200">
+                                                   <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-50">
+                                                       <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
+                                                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Name Revision History</span>
+                                                   </div>
+                                                   <div className="space-y-4">
+                                                       {[
+                                                           { old: "อบต. เดิม", new: "เทศบาลนครนนทบุรี", user: "ธนกฤต แอดมิน", date: "24 ก.พ. 2026" },
+                                                           { old: "หน่วยงานทดสอบ", new: "อบต. เดิม", user: "Super Admin", date: "10 ม.ค. 2026" }
+                                                       ].map((h, i) => (
+                                                           <div key={i} className="flex gap-3">
+                                                               <div className="flex flex-col items-center">
+                                                                   <div className="w-1 h-1 bg-indigo-500 rounded-full"></div>
+                                                                   {i !== 1 && <div className="w-[1px] h-full bg-slate-100"></div>}
+                                                               </div>
+                                                               <div className="flex-1 min-w-0">
+                                                                   <p className="text-[11px] font-bold text-slate-900 leading-tight">
+                                                                       <span className="text-slate-400 line-through mr-1 font-medium">{h.old}</span>
+                                                                       <span className="text-indigo-600">→ {h.new}</span>
+                                                                   </p>
+                                                                   <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase">By {h.user} • {h.date}</p>
+                                                               </div>
+                                                           </div>
+                                                       ))}
+                                                   </div>
+                                                   {/* ติ่งแหลมของ Popover (ย้ายมาไว้ด้านบน) */}
+                                                   <div className="absolute bottom-full left-6 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px] border-b-white"></div>
+                                               </div>
+                                           )}
+                                       </div>
+                                   </div>
+                               </div>
                                <div className="flex flex-wrap sm:flex-nowrap gap-3 items-center">
-                               <input 
-                                   type="text" 
-                                   value={orgName} 
-                                   onChange={(e) => setOrgName(e.target.value)} 
-                                   className="input input-bordered flex-1 min-w-[200px] rounded-2xl font-bold !bg-white !text-slate-900 border-slate-200 focus:!border-black transition-all text-base" 
-                               />
-                               <button 
-                                   onClick={() => setUpdateModal({ show: true, type: 'name', title: 'ชื่อหน่วยงาน', newValue: orgName, reason: "" })}
-                                   className="btn h-14 w-14 !bg-black !text-white rounded-2xl border-none shadow-md hover:scale-105 active:scale-95 transition-all flex items-center justify-center shrink-0"
-                               >
-                                   <Save size={18}/>
-                               </button>
+                                   <input 
+                                       type="text" 
+                                       value={orgName} 
+                                       onChange={(e) => setOrgName(e.target.value)} 
+                                       className="input input-bordered flex-1 min-w-[200px] rounded-2xl font-bold !bg-white !text-slate-900 border-slate-200 focus:!border-black transition-all text-base shadow-sm" 
+                                   />
+                                   <button 
+                                       onClick={() => setUpdateModal({ show: true, type: 'name', title: 'ชื่อหน่วยงาน', newValue: orgName, reason: "" })}
+                                       className="btn h-14 w-14 !bg-black !text-white rounded-2xl border-none shadow-md hover:scale-105 active:scale-95 transition-all flex items-center justify-center shrink-0"
+                                   >
+                                       <Save size={18}/>
+                                   </button>
                                </div>
                            </div>
+                           {/* --- จบส่วนที่ปรับปรุงใหม่ --- */}
+
                            <div className="flex flex-col sm:grid sm:grid-cols-2 gap-4">
                                <div className="p-4 !bg-slate-50 rounded-2xl border border-slate-200 shadow-sm transition-all hover:bg-white">
                                <label className="text-xs font-black text-slate-600 uppercase block mb-1 tracking-widest px-1">Staff Code</label>
@@ -610,19 +729,19 @@ export default function ManageOrgPage() {
 
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                    <div className="!bg-white p-6 rounded-[2rem] shadow-sm border-2 border-white flex items-center justify-between hover:border-slate-200 transition-all">
-                       <div className="flex items-center gap-3">
-                       <div className="w-10 h-10 bg-green-50 text-green-700 rounded-xl flex items-center justify-center border border-green-100"><FileSpreadsheet size={20}/></div>
-                       <div>
-                           <p className="font-bold text-base !text-slate-900 tracking-tight">การส่งออก CSV</p>
-                           <p className="text-sm text-slate-600 font-bold uppercase tracking-tight">อนุญาตให้ดาวน์โหลดรายงาน</p>
-                       </div>
-                       </div>
-                       <input 
-                       type="checkbox" 
-                       className="toggle border-none bg-slate-300 checked:bg-[#00945e]" 
-                       checked={isCsvEnabled} 
-                       onChange={(e) => setUpdateModal({ show: true, type: 'csv', title: 'สิทธิ์ CSV', newValue: e.target.checked, reason: "" })} 
-                       />
+                        <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-green-50 text-green-700 rounded-xl flex items-center justify-center border border-green-100"><FileSpreadsheet size={20}/></div>
+                        <div>
+                            <p className="font-bold text-base !text-slate-900 tracking-tight">การส่งออก CSV</p>
+                            <p className="text-sm text-slate-600 font-bold uppercase tracking-tight">อนุญาตให้ดาวน์โหลดรายงาน</p>
+                        </div>
+                        </div>
+                        <input 
+                        type="checkbox" 
+                        className="toggle !bg-slate-450 !border-slate-600 hover:!bg-slate-300 checked:!bg-[#00945e] checked:!border-[#00945e] checked:hover:!bg-[#00945e] [--tglbg:white]" 
+                        checked={isCsvEnabled} 
+                        onChange={(e) => setUpdateModal({ show: true, type: 'csv', title: 'สิทธิ์ CSV', newValue: e.target.checked, reason: "" })} 
+                        />
                    </div>
                    <div className="!bg-white p-6 rounded-[2rem] shadow-sm border-2 border-white flex items-center justify-between hover:border-slate-200 transition-all">
                        <div className="flex items-center gap-3">
@@ -685,7 +804,6 @@ export default function ManageOrgPage() {
                        </div>
                    </div>
                    
-                   {/* ส่วน QR CODE: เอาปุ่ม "เพิ่ม QR ใหม่" ไปไว้คนละบรรทัด (บรรทัดใหม่ข้างล่างหัวข้อ) */}
                    <div className="!bg-white p-6 sm:p-8 rounded-[2.5rem] shadow-sm border-2 border-white overflow-hidden">
                        <div className="mb-6 px-1 space-y-6">
                            <div className="flex items-center gap-4 min-w-0 overflow-hidden">
@@ -698,7 +816,6 @@ export default function ManageOrgPage() {
                              </div>
                            </div>
                            
-                           {/* ปุ่มอยู่คนละบรรทัด จัดเต็มความกว้างหรือตามความสวยงาม */}
                            <button 
                              onClick={() => { setQrText("สแกนเพื่อแจ้งเหตุ"); setShowQrEditor(true); }}
                              className="w-full sm:w-auto btn h-14 !bg-slate-900 hover:!bg-black !text-white rounded-2xl px-8 border-none font-bold text-sm shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest"
@@ -786,6 +903,131 @@ export default function ManageOrgPage() {
 
        </div>
      </div>
+
+     {/* -------------------- MODAL ส่วนการพรีวิวรูปภาพ (Gallery Mode) -------------------- */}
+     {showQrModal && (
+       <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setShowQrModal(false)}>
+         
+         <div className="relative bg-white w-full max-w-6xl rounded-[3rem] overflow-hidden flex flex-col md:flex-row h-[85vh] shadow-2xl animate-in zoom-in duration-300 border-2 border-white" onClick={(e) => e.stopPropagation()}>
+           
+           {/* ปุ่มปิด Modal สไตล์สีแดง */}
+           <button 
+             onClick={() => setShowQrModal(false)} 
+             className="absolute top-5 right-5 w-10 h-10 !bg-[#ef4444] !text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all hover:scale-105 z-50 border-2 border-white"
+           >
+             <X size={24} strokeWidth={3} />
+           </button>
+
+           {/* ฝั่งซ้าย: Gallery รูปภาพ */}
+           <div className="flex-[1.5] bg-[#111] relative flex items-center justify-center group overflow-hidden">
+             <img 
+               src={PHOTO_HISTORY_DATA[currentPhotoIndex]?.url || qrReportUrl} 
+               className="max-w-full max-h-full object-contain transition-all duration-700" 
+               alt="Preview" 
+             />
+
+             {/* ปุ่ม Navigation สีขาวตัดขอบ Double Line ตามรูปสั่ง */}
+             {PHOTO_HISTORY_DATA.length > 1 && (
+               <>
+                 {/* ปุ่มซ้าย */}
+                 <button 
+                   onClick={() => setCurrentPhotoIndex((prev) => (prev === 0 ? PHOTO_HISTORY_DATA.length - 1 : prev - 1))}
+                   className="absolute left-6 w-20 h-20 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hover:scale-110 active:scale-90 z-20"
+                 >
+                   {/* เส้นวงกลมนอกสุด (สีขาวจาง) */}
+                   <div className="absolute inset-0 rounded-full border-[3px] border-white/40"></div>
+                   {/* วงกลมขาวด้านใน */}
+                   <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-2xl">
+                     <ChevronRight size={32} className="rotate-180 text-black translate-x-[-2px]" />
+                   </div>
+                 </button>
+
+                 {/* ปุ่มขวา */}
+                 <button 
+                   onClick={() => setCurrentPhotoIndex((prev) => (prev === PHOTO_HISTORY_DATA.length - 1 ? 0 : prev + 1))}
+                   className="absolute right-6 w-20 h-20 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hover:scale-110 active:scale-90 z-20"
+                 >
+                   {/* เส้นวงกลมนอกสุด (สีขาวจาง) */}
+                   <div className="absolute inset-0 rounded-full border-[3px] border-white/40"></div>
+                   {/* วงกลมขาวด้านใน */}
+                   <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-2xl">
+                     <ChevronRight size={32} className="text-black translate-x-[2px]" />
+                   </div>
+                 </button>
+               </>
+             )}
+             
+             <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-5 py-2 bg-black/60 backdrop-blur-md rounded-full text-white text-[11px] font-black uppercase tracking-[0.3em] border border-white/10">
+               {currentPhotoIndex + 1} / {PHOTO_HISTORY_DATA.length}
+             </div>
+           </div>
+
+           {/* ฝั่งขวา: รายละเอียดประวัติการแก้ */}
+           <div className="w-full md:w-[420px] flex flex-col bg-white">
+             <div className="p-8 flex-1 overflow-y-auto qr-gallery-scrollbar">
+               <div className="flex items-center gap-4 mb-10 mt-4">
+                 <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-lg">
+                   <UserCircle2 size={24} />
+                 </div>
+                 <div>
+                   <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none mb-1">รายละเอียดรูปภาพ</h3>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ประวัติการอัปเดตระบบ</p>
+                 </div>
+               </div>
+
+               <div className="space-y-8">
+                 <div className="flex items-center gap-4 p-5 bg-slate-50 rounded-[2rem] border border-slate-100">
+                   <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-xl font-black shadow-sm border border-slate-100 text-indigo-600">
+                     {PHOTO_HISTORY_DATA[currentPhotoIndex]?.user.charAt(0)}
+                   </div>
+                   <div className="min-w-0">
+                     <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">เจ้าหน้าที่ผู้ดูแล</p>
+                     <p className="text-lg font-bold text-slate-900 leading-none truncate">
+                       {PHOTO_HISTORY_DATA[currentPhotoIndex]?.user}
+                     </p>
+                   </div>
+                 </div>
+
+                 <div className="grid grid-cols-2 gap-4">
+                   <div className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100">
+                     <div className="flex items-center gap-2 mb-2">
+                       <Clock size={12} className="text-slate-400" />
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">อัปเดตเมื่อ</p>
+                     </div>
+                     <p className="text-sm font-bold text-slate-900">{PHOTO_HISTORY_DATA[currentPhotoIndex]?.date}</p>
+                   </div>
+                   <div className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100">
+                     <div className="flex items-center gap-2 mb-2">
+                       <Activity size={12} className="text-slate-400" />
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">เวลา</p>
+                     </div>
+                     <p className="text-sm font-bold text-slate-900">{PHOTO_HISTORY_DATA[currentPhotoIndex]?.time} น.</p>
+                   </div>
+                 </div>
+
+                 <div className="p-8 bg-indigo-50/50 rounded-[2.5rem] border-2 border-dashed border-indigo-100 relative mt-4">
+                   <div className="absolute -top-3 left-8 px-4 py-1 bg-white border border-indigo-100 rounded-full text-[9px] font-black text-indigo-600 uppercase tracking-[0.2em]">
+                     Update Reason
+                   </div>
+                   <p className="text-slate-700 text-sm font-bold leading-relaxed italic">
+                     "{PHOTO_HISTORY_DATA[currentPhotoIndex]?.reason}"
+                   </p>
+                 </div>
+               </div>
+             </div>
+
+             <div className="p-8 border-t border-slate-50 bg-slate-50/30">
+               <button 
+                 onClick={() => { alert('ทำการกู้คืนรูปภาพนี้กลับมาใช้งาน'); setShowQrModal(false); }}
+                 className="w-full h-16 bg-black hover:bg-slate-800 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] transition-all active:scale-95 shadow-xl flex items-center justify-center gap-3"
+               >
+                 <RefreshCw size={18} strokeWidth={3} /> Restore Previous Photo
+               </button>
+             </div>
+           </div>
+         </div>
+       </div>
+     )}
 
      {showQrEditor && (
        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
@@ -889,7 +1131,7 @@ export default function ManageOrgPage() {
      )}
 
      {updateModal.show && (
-       <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+       <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
          <div className="!bg-white w-full max-w-md rounded-[3rem] p-10 border-2 border-white shadow-2xl animate-in zoom-in duration-300 relative">
            <button 
              onClick={() => setUpdateModal({ show: false, type: "", title: "", newValue: null, reason: "" })} 
@@ -939,27 +1181,6 @@ export default function ManageOrgPage() {
                ยืนยัน
              </button>
            </div>
-         </div>
-       </div>
-     )}
-
-     {showQrModal && (
-       <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setShowQrModal(false)}>
-         <div className="relative !bg-white p-8 sm:p-10 rounded-[4rem] max-w-sm w-full shadow-2xl animate-in zoom-in duration-500 border-4 border-white/50" onClick={(e) => e.stopPropagation()} >
-           <button 
-             onClick={() => setShowQrModal(false)} 
-             className="absolute top-6 right-6 w-11 h-11 !bg-[#ef4444] !text-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 active:scale-90 transition-all z-20 border-4 border-white"
-           >
-             <X size={24} strokeWidth={3} />
-           </button>
-           <div className="text-center mb-8 mt-4">
-             <h3 className="font-bold text-slate-900 text-2xl tracking-tight uppercase px-4 font-bold">QR CODE สำหรับแจ้งเหตุ</h3>
-             <p className="text-sm text-slate-600 font-bold uppercase tracking-widest mt-2 px-4 truncate font-bold">{orgName}</p>
-           </div>
-           <div className="bg-slate-50 border border-slate-200 rounded-[3rem] p-6 shadow-inner mb-10 transition-all hover:bg-white">
-             <div className="bg-white rounded-[2rem] p-4 shadow-sm border border-slate-100"><img src={qrReportUrl} className="w-full h-auto object-contain transition-all hover:scale-105" alt="QR Large" /></div>
-           </div>
-           <button onClick={() => handleDownloadQR(qrReportUrl, orgName)} className="btn w-full h-16 !bg-slate-900 !text-white !rounded-[2rem] font-bold border-none shadow-2xl hover:!bg-black transition-all active:scale-95 flex items-center justify-center gap-3 text-sm uppercase tracking-widest font-bold"><Download size={24} strokeWidth={3} /> ดาวน์โหลด QR CODE</button>
          </div>
        </div>
      )}
