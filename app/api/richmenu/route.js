@@ -1405,22 +1405,12 @@ export async function GET(req) {
   }
 
   // --------------------------------------------------
-  // action=list_bots → ดึงเฉพาะบอทที่ user คนนี้เพิ่มไว้ (กรองด้วย creator_id)
+  // action=list_bots → ดึงบอททั้งหมดในระบบ (ทุก user เห็นเหมือนกัน)
   // --------------------------------------------------
   if (action === "list_bots") {
     try {
-      const creatorId = searchParams.get("creatorId");
-
-      if (!creatorId) {
-        return NextResponse.json(
-          { error: "creatorId is required" },
-          { status: 400 },
-        );
-      }
-
       const result = await pool.query(
-        "SELECT * FROM line_bots WHERE creator_id = $1 ORDER BY created_at DESC",
-        [creatorId],
+        "SELECT * FROM line_bots ORDER BY created_at DESC",
       );
 
       const bots = result.rows.map((row) => ({
