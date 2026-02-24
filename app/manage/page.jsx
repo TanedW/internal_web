@@ -43,13 +43,16 @@ export default function Manage() {
 
   // รายการ Role ให้เลือก
   const ROLE_OPTIONS = [
-    { value: "Admin", label: "Admin" },
-    { value: "Editor", label: "Editor" },
-    { value: "editor_manage_email", label: "Admin Email" },
+    { value: "editor_manage_user", label: "Admin Email" },
+    { value: "editor_manage_org", label: "Admin Manage Org" },
     { value: "editor_manage_case", label: "Admin Case" },
     { value: "editor_manage_menu", label: "Admin Menu" },
-    { value: "Member", label: "Member" },
-    { value: "Guest", label: "Guest" },
+    { value: "editor_manage_flex", label: "Admin Flex Message" },
+    { value: "editor_search_duplicate_org", label: "Admin Search Org" },
+
+
+
+
   ];
 
   // ✅ CSS แก้ไข Autofill และ ซ่อน Scrollbar ใน Modal
