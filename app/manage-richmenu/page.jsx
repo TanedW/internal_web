@@ -187,9 +187,7 @@ export default function RichMenuHome() {
   async function fetchBotsData() {
     setIsRefreshing(true);
     try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) return;
-      const botsRes = await fetch(`/api/richmenu?action=list_bots&creatorId=${currentUser.uid}`);
+      const botsRes = await fetch(`/api/richmenu?action=list_bots`);
       const botsData = await botsRes.json();
       if (Array.isArray(botsData)) {
         setBots(botsData);
