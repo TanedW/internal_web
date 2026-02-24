@@ -153,7 +153,7 @@ export default function RichMenuHome() {
     if (!deleteConfirm) return;
     setIsDeleting(true);
     try {
-      const res = await fetch("/api/richmenu?action=delete_bot", {
+      const res = await fetch("${API}?action=delete_bot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bot_key: deleteConfirm.key }),
@@ -187,7 +187,8 @@ export default function RichMenuHome() {
   async function fetchBotsData() {
     setIsRefreshing(true);
     try {
-      const botsRes = await fetch(`/api/richmenu?action=list_bots`);
+      const API = process.env.NEXT_PUBLIC_RICHMENU_HOME_API_URL;
+      const botsRes = await fetch(`${API}?action=list_bots`);
       const botsData = await botsRes.json();
       if (Array.isArray(botsData)) {
         // แสดงรายการบอททันที (ไม่ต้องรอรูป)
@@ -199,7 +200,7 @@ export default function RichMenuHome() {
           botsData.map(async (bot) => {
             try {
               // Sync menus (background - ไม่ต้องรอ)
-              fetch("/api/richmenu?action=sync", {
+              fetch("${API}?action=sync", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ botKey: bot.key, creatorId: "system" }),
@@ -207,7 +208,7 @@ export default function RichMenuHome() {
 
               // ดึง currentMenuId และ imageUrl
               const menuRes = await fetch(
-                `/api/richmenu?action=current&botKey=${encodeURIComponent(bot.key)}`,
+                `${API}?action=current&botKey=${encodeURIComponent(bot.key)}`,
               );
               const menuData = await menuRes.json();
               
@@ -245,7 +246,7 @@ export default function RichMenuHome() {
     setVerifyError(null);
     try {
       // STEP 1: เช็คใน bot_config ว่ามี token นี้ไหม + ดึงข้อมูลจาก LINE
-      const verifyRes = await fetch("/api/richmenu?action=verify_token", {
+      const verifyRes = await fetch("${API}?action=verify_token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: newBotData.token }),
@@ -258,7 +259,7 @@ export default function RichMenuHome() {
       if (!verifyRes.ok) throw new Error(lineInfo.message);
 
       // STEP 2: บันทึกลง line_bots + sync rich menus ลง bot_rich_menus
-      const addRes = await fetch("/api/richmenu?action=add_bot", {
+      const addRes = await fetch("${API}?action=add_bot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

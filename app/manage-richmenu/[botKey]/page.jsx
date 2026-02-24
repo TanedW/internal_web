@@ -127,6 +127,7 @@ export default function RichMenuDashboard() {
   const router = useRouter();
   const pathname = usePathname();
   const botKey = params.botKey;
+  const API = process.env.NEXT_PUBLIC_RICHMENU_DASHBOARD_API_URL;
 
   // --- State: Auth & Data ---
   const [user, setUser] = useState(null);
@@ -315,7 +316,7 @@ export default function RichMenuDashboard() {
     setAuditLoading(true);
     try {
       const res = await fetch(
-        `/api/richmenu?action=audit_logs&botKey=${encodeURIComponent(botKey)}`,
+        `${API}?action=audit_logs&botKey=${encodeURIComponent(botKey)}`,
       );
       const data = await res.json();
       setAuditLogs(Array.isArray(data.logs) ? data.logs : []);
@@ -464,13 +465,13 @@ export default function RichMenuDashboard() {
       }
 
       const currentRes = await fetch(
-        `/api/richmenu?action=current&botKey=${botKey}`,
+        `${API}?action=current&botKey=${botKey}`,
       );
       const currentData = await currentRes.json();
       const activeId = currentData.currentMenuId || null;
       setCurrentMenuId(activeId);
 
-      const listRes = await fetch(`/api/richmenu?action=list&botKey=${botKey}`);
+      const listRes = await fetch(`${API}?action=list&botKey=${botKey}`);
       const listData = await listRes.json();
 
       if (listData.richmenus && Array.isArray(listData.richmenus)) {
@@ -639,7 +640,7 @@ export default function RichMenuDashboard() {
         templateSize: `${selectedTemplate.width}x${selectedTemplate.height}`,
       });
 
-      const response = await fetch("/api/richmenu?action=upload", {
+      const response = await fetch("${API}?action=upload", {
         method: "POST",
         body: formData,
       });
@@ -673,7 +674,7 @@ export default function RichMenuDashboard() {
       );
       if (flowSteps && flowSteps.length > 0) {
         try {
-          const saveFlowRes = await fetch("/api/richmenu?action=save_flow", {
+          const saveFlowRes = await fetch("${API}?action=save_flow", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -705,7 +706,7 @@ export default function RichMenuDashboard() {
           });
 
           const switchResponse = await fetch(
-            `/api/richmenu?action=switch&${queryParams.toString()}`,
+            `${API}?action=switch&${queryParams.toString()}`,
             {
               method: "GET",
             },
@@ -797,7 +798,7 @@ export default function RichMenuDashboard() {
       });
 
       const response = await fetch(
-        `/api/richmenu?action=switch&${queryParams.toString()}`,
+        `${API}?action=switch&${queryParams.toString()}`,
         {
           method: "GET",
         },
@@ -832,7 +833,7 @@ export default function RichMenuDashboard() {
   const handleViewJson = async (menuId) => {
     try {
       const res = await fetch(
-        `/api/richmenu?action=details&botKey=${botKey}&menuId=${menuId}`,
+        `${API}?action=details&botKey=${botKey}&menuId=${menuId}`,
       );
       const data = await res.json();
 
@@ -874,7 +875,7 @@ export default function RichMenuDashboard() {
 
       console.log("Deleting menu:", { botKey, menuId }); // Debug
 
-      const response = await fetch("/api/richmenu?action=delete", {
+      const response = await fetch("${API}?action=delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ botKey, menuId }),
@@ -3302,7 +3303,7 @@ export default function RichMenuDashboard() {
                     const isCurrent = menu.richMenuId === currentMenuId;
                     const displayImageUrl =
                       menu.image_url ||
-                      `/api/richmenu?action=image&botKey=${botKey}&menuId=${menu.richMenuId}`;
+                      `${API}?action=image&botKey=${botKey}&menuId=${menu.richMenuId}`;
 
                     return (
                       <div
