@@ -191,23 +191,26 @@ export default function RichMenuHome() {
       const botsData = await botsRes.json();
       if (Array.isArray(botsData)) {
         setBots(botsData);
-
-        // ดึง currentMenu ของทุกบอทพร้อมกัน (parallel) ไม่ sync ทุกครั้ง
-        const results = await Promise.allSettled(
-          botsData.map((bot) =>
-            fetch(`/api/richmenu?action=current&botKey=${encodeURIComponent(bot.key)}`)
-              .then((r) => r.json())
-              .then((menuData) => ({ key: bot.key, menuData }))
-          )
-        );
-
         const menusData = {};
         const imagesData = {};
-        for (const result of results) {
-          if (result.status === "fulfilled") {
-            const { key, menuData } = result.value;
-            menusData[key] = menuData.currentMenuId || null;
-            imagesData[key] = menuData.imageUrl || null;
+        for (const bot of botsData) {
+          try {
+            // Auto-sync rich menus จาก LINE → DB (รองรับกรณีสร้างผ่าน POSTMAN)
+            await fetch("/api/richmenu?action=sync", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ botKey: bot.key, creatorId: "system" }),
+            });
+
+            // ดึง currentMenuId และ imageUrl
+            const menuRes = await fetch(
+              `/api/richmenu?action=current&botKey=${encodeURIComponent(bot.key)}`,
+            );
+            const menuData = await menuRes.json();
+            menusData[bot.key] = menuData.currentMenuId || null;
+            imagesData[bot.key] = menuData.imageUrl || null;
+          } catch (err) {
+            console.error(err);
           }
         }
         setCurrentMenus(menusData);
