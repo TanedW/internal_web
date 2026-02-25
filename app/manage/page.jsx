@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation"; 
+import { useRouter, usePathname } from "next/navigation"; 
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebaseConfig"; 
 import { 
@@ -10,10 +10,8 @@ import {
   Trash2, 
   X, 
   Mail,
-  Check,
-  History,
-  Clock,
-  ChevronRight
+  Menu,
+  Check 
 } from "lucide-react";
 
 // ✅ ดึง Sidebar มาจากไฟล์ภายนอก
@@ -32,17 +30,18 @@ export default function Manage() {
   const [currentRoles, setCurrentRoles] = useState([]); 
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [roleModalData, setRoleModalData] = useState(null);
+  const [selectedEmailForMobile, setSelectedEmailForMobile] = useState("");
   const [newEmail, setNewEmail] = useState("");
+  
+  // ✅ เปลี่ยนจาก String เป็น Array เพื่อรองรับการเลือกหลายอัน
   const [newRoles, setNewRoles] = useState([]); 
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sidebarKey, setSidebarKey] = useState(0);
 
-  // --- State สำหรับ Timeline ---
-  const [isTimelineOpen, setIsTimelineOpen] = useState(false);
-  const [selectedUserTimeline, setSelectedUserTimeline] = useState(null);
-
   const API_URL = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
 
+  // รายการ Role ให้เลือก
   const ROLE_OPTIONS = [
     { value: "editor_manage_user", label: "Admin Email" },
     { value: "editor_manage_org", label: "Admin Manage Org" },
@@ -50,15 +49,13 @@ export default function Manage() {
     { value: "editor_manage_menu", label: "Admin Menu" },
     { value: "editor_manage_flex", label: "Admin Flex Message" },
     { value: "editor_search_duplicate_org", label: "Admin Search Org" },
+
+
+
+
   ];
 
-  // Mockup ข้อมูลไทม์ไลน์
-  const mockTimeline = [
-    { id: 1, time: "10:30", date: "25 Feb 2026", action: "แก้ไขสถานะเคส #TF-9901", detail: "เปลี่ยนสถานะเป็น 'เสร็จสิ้น'", statusColor: "bg-green-500" },
-    { id: 2, time: "14:15", date: "24 Feb 2026", action: "ส่งข้อความ Flex Message", detail: "ส่งประกาศแจ้งเตือนน้ำท่วมขัง", statusColor: "bg-blue-500" },
-    { id: 3, time: "09:00", date: "22 Feb 2026", action: "เข้าสู่ระบบ", detail: "ล็อกอินผ่าน Chrome (Desktop)", statusColor: "bg-slate-400" },
-  ];
-
+  // ✅ CSS แก้ไข Autofill และ ซ่อน Scrollbar ใน Modal
   const customStyles = `
     input:-webkit-autofill,
     input:-webkit-autofill:hover, 
@@ -69,8 +66,15 @@ export default function Manage() {
         border-radius: 1rem !important;
         transition: background-color 5000s ease-in-out 0s;
     }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    /* ซ่อน Scrollbar สำหรับ Chrome, Safari และ Opera */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    /* ซ่อน Scrollbar สำหรับ IE, Edge และ Firefox */
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
   `;
 
   const getCurrentAdminId = () => {
@@ -102,7 +106,12 @@ export default function Manage() {
       if (currentAdminId && data.length > 0) {
         const myProfile = data.find(u => String(u.admin_id) === String(currentAdminId));
         if (myProfile) {
-            let roles = Array.isArray(myProfile.roles) ? myProfile.roles : (myProfile.role ? [myProfile.role] : []);
+            let roles = [];
+            if (Array.isArray(myProfile.roles)) {
+                roles = myProfile.roles;
+            } else if (myProfile.role) {
+                roles = [myProfile.role];
+            }
             setCurrentRoles(roles);
         }
       }
@@ -131,9 +140,12 @@ export default function Manage() {
     setFilteredEmails(results);
   }, [searchTerm, allowedEmails]);
 
+  // ✅ ฟังก์ชันจัดการการเลือก Role
   const toggleRole = (roleValue) => {
     setNewRoles(prev => 
-      prev.includes(roleValue) ? prev.filter(r => r !== roleValue) : [...prev, roleValue]
+      prev.includes(roleValue) 
+        ? prev.filter(r => r !== roleValue) 
+        : [...prev, roleValue]
     );
   };
 
@@ -160,7 +172,7 @@ export default function Manage() {
             document.getElementById('add_admin_modal').close();
         } else {
           const errorData = await res.json();
-          alert(errorData.message || "เกิดข้อผิดพลาด");
+          alert(errorData.message || "เกิดข้อผิดพลาดในการเพิ่มข้อมูล");
       }
     } catch (error) { console.error(error); } 
     finally { setIsSubmitting(false); }
@@ -175,12 +187,16 @@ export default function Manage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ current_admin_id: currentAdminId }),
         });
-        if (res.ok) fetchAdmins(); 
-        else {
+        if (res.ok) {
+            fetchAdmins(); 
+        } else {
             const err = await res.json();
             alert(err.message || "เกิดข้อผิดพลาด");
         }
-    } catch (error) { alert("ไม่สามารถติดต่อ Server ได้"); }
+    } catch (error) { 
+        console.error(error); 
+        alert("ไม่สามารถติดต่อ Server ได้");
+    }
   };
 
   if (loading) return <div className="min-h-screen flex justify-center items-center"><span className="loading loading-spinner text-primary"></span></div>;
@@ -188,8 +204,10 @@ export default function Manage() {
   const isFormValid = newEmail.trim().includes("@") && newRoles.length > 0;
 
   return (
-    <div className="min-h-screen bg-[#F4F6F8] font-sans overflow-x-hidden">
+    <div className="min-h-screen bg-[#F4F6F8] font-sans">
       <style>{customStyles}</style>
+      <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
+      <script src="https://cdn.tailwindcss.com"></script>
 
       <Sidebar 
         key={sidebarKey}
@@ -197,11 +215,11 @@ export default function Manage() {
         setIsDesktopSidebarOpen={setIsDesktopSidebarOpen} 
       />
 
-      <div className={`container mx-auto px-4 lg:px-8 pt-20 lg:pt-8 max-w-7xl transition-all duration-500 pb-24 ${
+      <div className={`container mx-auto px-4 lg:px-8 pt-20 lg:pt-8 max-w-7xl transition-all duration-300 pb-24 ${
           isDesktopSidebarOpen ? "lg:pl-80" : "lg:pl-8"
       }`}>
         
-        {/* Header Desktop */}
+        {/* Header Desktop - ปรับเป็นภาษาไทย */}
         <div className="hidden lg:flex justify-between items-center mb-8">
             <div>
                 <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">รายชื่อสมาชิกในทีม</h1>
@@ -221,7 +239,7 @@ export default function Manage() {
             </div>
         </div>
 
-        {/* Header Mobile */}
+        {/* Header Mobile - ปรับเป็นภาษาไทย */}
         <div className="lg:hidden mb-6">
             <h1 className="text-2xl font-bold text-slate-900">รายชื่อผู้ติดต่อ</h1>
             <div className="mt-4 flex gap-3 items-center">
@@ -252,7 +270,7 @@ export default function Manage() {
                 ? "md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" 
                 : "md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" 
         }`}>
-            {/* Add Member Card */}
+            {/* Add Member Card - ปรับเป็นภาษาไทย */}
             <div 
                className={`hidden lg:flex group relative flex-col items-center justify-center border-2 border-dashed border-indigo-300 !bg-white hover:border-indigo-600 hover:bg-indigo-50 transition-all duration-300 cursor-pointer rounded-3xl shadow-md hover:shadow-xl hover:shadow-indigo-200/50 hover:-translate-y-2 h-full ${
                  isDesktopSidebarOpen ? 'p-4' : 'p-6'
@@ -274,35 +292,21 @@ export default function Manage() {
                 const userRoles = item.roles && item.roles.length > 0 ? item.roles : (item.role ? [item.role] : ['member']);
                 return (
                     <div key={item.admin_id} 
-                        onClick={() => {
-                          setSelectedUserTimeline(item);
-                          setIsTimelineOpen(true);
-                        }}
-                        className={`group cursor-pointer relative !bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:border-indigo-200 hover:-translate-y-1 transition-all flex flex-col items-center text-center justify-center h-full ${
+                        className={`relative !bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col items-center text-center justify-center h-full hover:z-30 ${
                             isDesktopSidebarOpen ? "p-4" : "p-6"
                         }`}
                     >
-                        {/* Delete Button */}
                         {canDelete && (
                              <button 
-                               onClick={(e) => { 
-                                 e.stopPropagation(); // ❌ ป้องกันการเด้ง Timeline เมื่อคลิกลบ
-                                 handleDeleteEmail(item.admin_id); 
-                               }}
-                               className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 bg-red-50 hover:bg-red-500 hover:text-white rounded-full p-2 transition-all z-20 shadow-sm"
+                               onClick={() => handleDeleteEmail(item.admin_id)}
+                               className="absolute top-2 right-2 hover:bg-red-50 rounded-full p-2 transition-colors z-10"
                                title="ลบผู้ใช้งาน"
                                style={{ color: '#ef4444' }} 
                              >
-                               <Trash2 size={16} />
+                               <Trash2 size={20} />
                              </button>
                         )}
-
-                        {/* Timeline Icon Badge */}
-                        <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 bg-indigo-50 text-indigo-600 rounded-full p-2 transition-all">
-                             <History size={16} />
-                        </div>
-
-                        <div className={`rounded-full bg-slate-50 mb-3 overflow-hidden ring-2 ring-slate-50 mx-auto transition-transform group-hover:scale-110 ${
+                        <div className={`rounded-full bg-slate-50 mb-3 overflow-hidden ring-2 ring-slate-50 mx-auto ${
                             isDesktopSidebarOpen ? "w-10 h-10 mb-2" : "w-14 h-14 mb-3"
                         }`}>
                             <img 
@@ -323,21 +327,47 @@ export default function Manage() {
                             </div>
                         </div>
                         
-                        {/* Roles Display */}
-                        <div className="flex flex-nowrap gap-2 justify-center items-center mt-2 w-full px-1">
+                        <div className="lg:hidden mt-2 w-full px-2 flex flex-nowrap gap-2 justify-center items-center overflow-x-hidden">
+                            {userRoles.length > 0 && (
+                                <span className="flex-shrink-0 !text-indigo-600 font-bold text-[9px] uppercase tracking-wider !bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 whitespace-nowrap">
+                                    {userRoles[0].replace(/_/g, ' ')}
+                                </span>
+                            )}
+                            {userRoles.length > 1 && (
+                                <button 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setRoleModalData(userRoles);
+                                        document.getElementById('role_modal').showModal();
+                                    }}
+                                    className="flex-shrink-0 btn btn-xs h-7 min-h-0 !bg-slate-100 border border-slate-200 !text-slate-600 hover:bg-slate-200 rounded-full px-2.5 text-[9px] font-bold tracking-wide uppercase shadow-sm"
+                                >
+                                    +{userRoles.length - 1} เพิ่มเติม
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="hidden lg:flex flex-nowrap gap-2 justify-center items-center mt-2 w-full px-1">
                             {userRoles.length > 0 && (
                                 <span className={`flex-shrink-0 font-bold uppercase tracking-wider !bg-indigo-50 rounded-full border border-indigo-100 !text-indigo-600 whitespace-nowrap ${
-                                    isDesktopSidebarOpen ? "text-[9px] px-2 py-0.5" : "text-[10px] px-3 py-1" 
+                                    isDesktopSidebarOpen 
+                                        ? "text-[9px] px-2 py-0.5" 
+                                        : "text-[10px] px-3 py-1" 
                                 }`}>
                                     {userRoles[0].replace(/_/g, ' ')}
                                 </span>
                             )}
                             {userRoles.length > 1 && (
-                                <span className={`!text-slate-500 font-bold tracking-wider !bg-slate-100 rounded-full whitespace-nowrap border border-slate-200 transition-colors ${
-                                    isDesktopSidebarOpen ? "text-[9px] px-2 py-0.5" : "text-[10px] px-2.5 py-1"
-                                }`}>
-                                    +{userRoles.length - 1}
-                                </span>
+                                <div className="tooltip tooltip-bottom z-50 flex-shrink-0 before:max-w-[15rem] before:content-[attr(data-tip)]" 
+                                     data-tip={userRoles.slice(1).map(r => r.replace(/_/g, ' ')).join(', ')}>
+                                    <span className={`cursor-help !text-slate-500 font-bold tracking-wider !bg-slate-100 rounded-full whitespace-nowrap border border-slate-200 hover:bg-slate-200 transition-colors flex-shrink-0 ${
+                                        isDesktopSidebarOpen 
+                                            ? "text-[9px] px-2 py-0.5" 
+                                            : "text-[10px] px-2.5 py-1"
+                                    }`}>
+                                        +{userRoles.length - 1} เพิ่มเติม
+                                    </span>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -346,73 +376,9 @@ export default function Manage() {
         </div>
       </div>
 
-      {/* --- SIDE DRAWER: TIMELINE (ปรับ z-index สูงสุด) --- */}
-      <div className={`fixed inset-y-0 right-0 w-full sm:w-[450px] bg-white shadow-[-20px_0_50px_rgba(0,0,0,0.2)] z-[9999] transform transition-transform duration-500 ease-in-out ${isTimelineOpen ? "translate-x-0" : "translate-x-full"}`}>
-          <div className="h-full flex flex-col relative">
-              {/* Header Drawer */}
-              <div className="p-8 border-b border-slate-100 bg-slate-50/80 backdrop-blur-md sticky top-0 z-10">
-                  <button 
-                    onClick={() => setIsTimelineOpen(false)}
-                    className="absolute top-6 right-6 p-2 hover:bg-red-50 hover:text-red-500 rounded-full transition-all text-slate-400"
-                  >
-                    <X size={24} />
-                  </button>
-                  <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-2xl overflow-hidden ring-4 ring-white shadow-lg">
-                          <img src={selectedUserTimeline?.profile_url || getAvatarUrl(selectedUserTimeline?.email)} className="w-full h-full object-cover" alt="profile" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                          <h3 className="text-xl font-black text-slate-800">ประวัติการทำงาน</h3>
-                          <p className="text-sm text-indigo-600 font-bold truncate">{selectedUserTimeline?.email}</p>
-                      </div>
-                  </div>
-              </div>
-
-              {/* Timeline List */}
-              <div className="flex-1 overflow-y-auto p-8 no-scrollbar bg-white">
-                  <div className="relative border-l-2 border-slate-100 ml-3 space-y-10">
-                      {mockTimeline.map((item) => (
-                          <div key={item.id} className="relative pl-8 group">
-                              {/* Dot status */}
-                              <div className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full border-4 border-white shadow-sm transition-transform group-hover:scale-125 ${item.statusColor}`}></div>
-                              
-                              <div className="flex items-center gap-2 mb-2">
-                                  <Clock size={12} className="text-slate-400" />
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.date} • {item.time}</span>
-                              </div>
-
-                              <div className="p-5 bg-slate-50 border border-slate-100 rounded-2xl group-hover:bg-white group-hover:shadow-xl group-hover:border-indigo-100 transition-all">
-                                  <h4 className="text-sm font-black text-slate-700 mb-1">{item.action}</h4>
-                                  <p className="text-xs text-slate-500 leading-relaxed font-medium">{item.detail}</p>
-                              </div>
-                          </div>
-                      ))}
-                  </div>
-              </div>
-
-              {/* Footer Drawer */}
-              <div className="p-8 bg-white border-t border-slate-100 sticky bottom-0">
-                  <button 
-                    onClick={() => setIsTimelineOpen(false)}
-                    className="btn btn-block h-14 !bg-slate-900 !text-white rounded-2xl border-none font-bold hover:!bg-indigo-600 transition-all shadow-lg"
-                  >
-                    ปิดหน้าต่างประวัติ
-                  </button>
-              </div>
-          </div>
-      </div>
-
-      {/* Backdrop for Timeline (ปรับ z-index ให้ต่ำกว่า Drawer นิดเดียว) */}
-      {isTimelineOpen && (
-          <div 
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9998] transition-opacity duration-500"
-            onClick={() => setIsTimelineOpen(false)}
-          ></div>
-      )}
-
       {/* --- MODALS --- */}
       
-      {/* 1. Add Member Modal */}
+      {/* 1. Add Member Modal - ปรับเป็นภาษาไทยและซ่อนแถบเลื่อน */}
       <dialog id="add_admin_modal" className="modal modal-bottom sm:modal-middle z-[999]">
           <div className="modal-box !bg-[#F4F6F8] p-7 rounded-t-[3rem] sm:rounded-[2.5rem] shadow-2xl relative border-none overflow-y-auto no-scrollbar max-h-[90vh]">
               <div className="flex justify-between items-center mb-6 px-2">
@@ -441,6 +407,7 @@ export default function Manage() {
                       </label>
                   </div>
 
+                  {/* ✅ ส่วนเลือก Role สไตล์ Card เป๊ะตามรูป */}
                   <div className="form-control px-2">
                       <label className="label !text-slate-900 font-bold">กำหนดบทบาท</label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
@@ -459,6 +426,7 @@ export default function Manage() {
                                     <span className={`pl-2 text-[12px] font-black uppercase tracking-widest ${isSelected ? "text-indigo-900" : "text-[#475569]"}`}>
                                         {opt.label}
                                     </span>
+                                    
                                     <div className={`
                                         w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300
                                         ${isSelected ? "bg-indigo-600 shadow-lg" : "bg-[#DBE2E9]"}
@@ -479,9 +447,9 @@ export default function Manage() {
                         }`} 
                         disabled={isSubmitting || !isFormValid}
                     >
-                        <span className="text-white text-lg tracking-wide">
-                            {isSubmitting ? <span className="loading loading-spinner"></span> : "ยืนยัน"}
-                        </span>
+                            <span className="text-white text-lg tracking-wide">
+                                {isSubmitting ? <span className="loading loading-spinner"></span> : "ยืนยัน"}
+                            </span>
                     </button>
                   </div>
               </form>
@@ -489,7 +457,7 @@ export default function Manage() {
           <form method="dialog" className="modal-backdrop bg-slate-900/40 backdrop-blur-sm"><button>close</button></form>
       </dialog>
 
-      {/* 2. Role Modal */}
+      {/* 2. Role Modal - ปรับเป็นภาษาไทย */}
       <dialog id="role_modal" className="modal modal-bottom sm:modal-middle z-[9999]">
           <div className="modal-box !bg-white p-10 rounded-t-[3rem] sm:rounded-[2.5rem] text-center shadow-2xl border-none no-scrollbar">
               <h3 className="font-bold text-xl !text-slate-900 mb-6">บทบาททั้งหมด</h3>
