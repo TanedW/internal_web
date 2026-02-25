@@ -23,26 +23,164 @@
   --php-bg-hover: #f1f5f9;
 }
 
-/* Dark Mode Variables */
-.dark-mode {
-  --php-primary: #06C755;
-  --php-primary-hover: #05a546;
-  --php-bg-card: #1e293b;
-  --php-text-main: #f1f5f9;
-  --php-text-sub: #94a3b8;
-  --php-border: #334155;
-  --php-danger: #ef4444;
-  --php-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  --php-radius: 12px;
-  --php-bg-main: #0f172a;
-  --php-bg-input: #334155;
-  --php-bg-hover: #475569;
-}
+/* Dark Mode Variables — ตาม System Preference อัตโนมัติ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --php-primary: #06C755;
+    --php-primary-hover: #05a546;
+    --php-bg-card: #1e293b;
+    --php-text-main: #f1f5f9;
+    --php-text-sub: #94a3b8;
+    --php-border: #334155;
+    --php-danger: #ef4444;
+    --php-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    --php-radius: 12px;
+    --php-bg-main: #0f172a;
+    --php-bg-input: #334155;
+    --php-bg-hover: #475569;
+  }
 
-/* Dark Mode: Body Background */
-.dark-mode body {
-  background: #0f172a;
-  color: #f1f5f9;
+  body {
+    background: #0f172a;
+    color: #f1f5f9;
+  }
+
+  /* Cards */
+  .php-card { background: #1e293b; }
+  .php-qa-btn { background: #1e293b; }
+  .richmenu-editor-card { background: #1e293b; border-color: #334155; }
+  .rich-menu-card { background: #1e293b; border-color: #334155; }
+  .action-settings-card { background: #1e293b; border-color: #334155; box-shadow: none; }
+  .action-settings-header { background: #0f172a; border-bottom-color: #334155; }
+  .action-settings-body { background: #1e293b; }
+
+  /* Inputs */
+  .php-input-field {
+    background-color: #334155;
+    border-color: #475569;
+    color: #f1f5f9;
+  }
+  .php-input-field::placeholder { color: #64748b; }
+  .php-input-field:focus {
+    background-color: #1e293b;
+    border-color: #64748b;
+    box-shadow: 0 1px 3px 0 rgba(0,0,0,0.3);
+  }
+
+  /* Upload Zone */
+  .php-upload-zone {
+    background-color: #1e293b;
+    border-color: #334155;
+  }
+  .php-upload-zone:hover {
+    background-color: #0f2d1a;
+    border-color: #06C755;
+  }
+  .php-upload-icon-wrapper {
+    background-color: #334155;
+    color: #94a3b8;
+  }
+  .php-upload-title { color: #f1f5f9; }
+  .php-upload-subtitle { color: #94a3b8; }
+
+  /* Template Selector */
+  .php-template-selector {
+    background-color: #334155;
+    border-color: #475569;
+  }
+  .php-template-selector:hover {
+    background-color: #475569;
+    border-color: #64748b;
+  }
+  .php-template-name { color: #f1f5f9; }
+
+  /* Canvas */
+  .canvas-container { background-color: #0f172a; }
+  .canvas-toolbar { background-color: #1e293b; border-bottom-color: #334155; }
+  .canvas-viewport { background-color: #0f172a; }
+
+  /* Chat Bar */
+  .php-chatbar {
+    background-color: #1e293b;
+    color: #94a3b8;
+    border-top-color: #334155;
+  }
+
+  /* Modal */
+  .php-modal-content { background: #1e293b; }
+  .php-modal-header { background: #0f172a; }
+  .php-modal-footer { background: #0f172a; border-top-color: #334155; }
+  .php-btn-close-modal {
+    background: #1e293b;
+    border-color: #475569;
+    color: #cbd5e1;
+  }
+  .php-btn-close-modal:hover { background: #334155; }
+
+  /* JSON Modal */
+  .php-json-modal-content { background: #1e293b; }
+  .php-json-summary { background: #0f172a; border-bottom-color: #334155; }
+  .php-json-info-row { border-bottom-color: #334155; }
+  .php-json-label { color: #94a3b8; }
+  .php-json-value { color: #f1f5f9; }
+  .php-json-value-mono {
+    background: #334155;
+    color: #cbd5e1;
+    border-color: #475569;
+  }
+
+  /* Buttons */
+  .php-btn-secondary {
+    background-color: #1e293b;
+    border-color: #334155;
+    color: #94a3b8;
+  }
+  .php-btn-secondary:hover {
+    background-color: #334155;
+    color: #06C755;
+    border-color: #06C755;
+  }
+  .btn-menu-disabled {
+    background: #334155;
+    color: #64748b;
+    border-color: #475569;
+  }
+  .btn-menu-switch {
+    background: #052e16;
+    color: #4ade80;
+    border-color: #166534;
+  }
+  .btn-menu-switch:hover { background: #14532d; }
+  .btn-menu-delete {
+    background: #2d0a0a;
+    color: #f87171;
+    border-color: #7f1d1d;
+  }
+  .btn-menu-delete:hover { background: #450a0a; }
+
+  /* Quick Action Icons */
+  .php-qa-icon.green { background: #052e16; color: #4ade80; }
+  .php-qa-icon.blue  { background: #0c1a3a; color: #60a5fa; }
+  .php-qa-icon.amber { background: #2d1a00; color: #fbbf24; }
+
+  /* Empty State */
+  .php-empty-state {
+    background: #0f172a;
+    border-color: #334155;
+    color: #94a3b8;
+  }
+
+  /* Alert */
+  .php-alert-success {
+    background-color: #052e16;
+    color: #4ade80;
+    border-color: #166534;
+  }
+
+  /* Menu items (legacy) */
+  .php-menu-item { background: #1e293b; border-color: #334155; }
+  .php-menu-id { background: #334155; color: #94a3b8; }
+  .php-status-inactive { background: #334155; color: #94a3b8; }
 }
 
 .php-theme {
