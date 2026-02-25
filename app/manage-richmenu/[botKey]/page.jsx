@@ -3055,7 +3055,7 @@ export default function RichMenuDashboard() {
                                   {log.detail}
                                 </div>
                               )}
-                              {log.action?.startsWith("switch_menu") && (log.menu_id_from || log.menu_id_to) && (
+                              {log.action === "switch_menu" && (log.menu_id_from || log.menu_id_to) && (
                                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
                                     {/* เมนูเดิม */}
                                     <div style={{ display: "flex", flexDirection: "column", background: "#F1F5F9", borderRadius: 6, padding: "4px 10px", flex: "1 1 120px" }}>
