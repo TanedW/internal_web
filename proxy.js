@@ -7,6 +7,7 @@ const ROLE_PERMISSIONS = {
   '/manage-flex-message': ["admin", "editor", "editor_manage_flex"],
   '/manage-rich-menu': ["admin", "editor", "editor_manage_menu"],
   '/search-org': ["admin", "editor", "editor_search_duplicate_org"],
+  '/manage-file-search': ["admin", "editor", "editor_file_search"],
 };
 
 export async function proxy(request) {
@@ -80,10 +81,11 @@ export async function proxy(request) {
 // 5. กำหนดหน้าที่ Middleware จะเข้าไปทำงาน
 export const config = {
   matcher: [
-    '/manage-case/:path*',
-    '/manage-org/:path*',
-    '/manage-flex-message/:path*',
-    '/manage-rich-menu/:path*',
-    '/search-org/:path*',
+    '/manage-case/:path',
+    '/manage-org/:path',
+    '/manage-flex-message/:path',
+    '/manage-rich-menu/:path',
+    '/search-org/:path',
+    '/manage-file-search/:path',
   ],
 };

@@ -49,6 +49,7 @@ export default function Manage() {
     { value: "editor_manage_menu", label: "Admin Menu" },
     { value: "editor_manage_flex", label: "Admin Flex Message" },
     { value: "editor_search_duplicate_org", label: "Admin Search Org" },
+    { value: "editor_file_search", label: "Admin File Search" },
 
 
 
@@ -216,7 +217,7 @@ export default function Manage() {
       />
 
       <div className={`container mx-auto px-4 lg:px-8 pt-20 lg:pt-8 max-w-7xl transition-all duration-300 pb-24 ${
-          isDesktopSidebarOpen ? "lg:pl-80" : "lg:pl-8"
+          isDesktopSidebarOpen ? "lg:pl-72" : "lg:pl-24"
       }`}>
         
         {/* Header Desktop - ปรับเป็นภาษาไทย */}

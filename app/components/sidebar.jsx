@@ -15,6 +15,7 @@ import {
   Menu,
   MessageSquareCode,
   Search,
+  FolderSearch,
 } from "lucide-react";
 
 // --- Firebase Configuration ---
@@ -357,6 +358,19 @@ const res = await fetch(`${API_URL_ADMIN}?requester_id=${adminId}`, {
                       <span className="text-[15px] font-bold">ค้นหาหน่วยงานซ้ำ</span>
                     </Link>
                   )}
+
+                  {hasAccess(["admin", "editor", "editor_file_search"]) && (
+                    <Link
+                      href="/manage-file-search"
+                      className={getMenuClass("/manage-file-search")}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <FolderSearch size={20} />
+                      <span className="text-[15px] font-bold">
+                        จัดการไฟล์ FAQ
+                      </span>
+                    </Link>
+                  )}
                 </nav>
                 
                 <div className="mt-auto pt-4 border-t border-slate-100">
@@ -433,6 +447,19 @@ const res = await fetch(`${API_URL_ADMIN}?requester_id=${adminId}`, {
             <span className="font-bold text-[15px]">ค้นหาหน่วยงานซ้ำ</span>
           </Link>
         )}
+
+        {hasAccess(["admin", "editor", "editor_file_search"]) && (
+                <Link
+                  href="/manage-file-search"
+                  className={getMenuClass("/manage-file-search")}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <FolderSearch size={20} />
+                  <span className="text-[15px] font-bold">
+                    จัดการไฟล์ FAQ
+                  </span>
+                </Link>
+              )}
       </nav>
 
       <div className="mt-auto pt-4 border-t border-slate-100">

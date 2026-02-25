@@ -65,6 +65,7 @@ if (response.ok) {
   // 2. เก็บข้อมูลลง LocalStorage สำหรับ UI / Sidebar
   // localStorage.setItem("access_token", userData.access_token);
     localStorage.setItem("user_email", userData.email);
+    localStorage.setItem("user_name", responseData.name || userData.first_name);
     localStorage.setItem("current_admin_id", JSON.stringify(responseData.admin_id));
     // localStorage.setItem("user_roles", rolesString); 
 
