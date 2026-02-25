@@ -2742,14 +2742,6 @@ export default function RichMenuDashboard() {
                         count: auditLogs.length,
                       },
                       {
-                        key: "add_bot",
-                        label: "เพิ่มบอท",
-                        color: "#8B5CF6",
-                        bg: "#F5F3FF",
-                        count: auditLogs.filter((l) => l.action === "add_bot")
-                          .length,
-                      },
-                      {
                         key: "create_menu",
                         label: "สร้างเมนู",
                         color: "#3B82F6",
@@ -2775,6 +2767,14 @@ export default function RichMenuDashboard() {
                         count: auditLogs.filter(
                           (l) => l.action === "delete_menu",
                         ).length,
+                      },
+                      {
+                        key: "add_bot",
+                        label: "เพิ่มบอท",
+                        color: "#8B5CF6",
+                        bg: "#F5F3FF",
+                        count: auditLogs.filter((l) => l.action === "add_bot")
+                          .length,
                       },
                       {
                         key: "delete_bot",
@@ -3055,7 +3055,7 @@ export default function RichMenuDashboard() {
                                   {log.detail}
                                 </div>
                               )}
-                              {log.action === "switch_menu" && (log.menu_id_from || log.menu_id_to) && (
+                              {log.action?.startsWith("switch_menu") && (log.menu_id_from || log.menu_id_to) && (
                                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
                                     {/* เมนูเดิม */}
                                     <div style={{ display: "flex", flexDirection: "column", background: "#F1F5F9", borderRadius: 6, padding: "4px 10px", flex: "1 1 120px" }}>
