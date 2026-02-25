@@ -2696,7 +2696,6 @@ export default function RichMenuDashboard() {
                             whiteSpace: "nowrap",
                           }}
                         >
-                          {botKey}
                         </div>
                       </div>
                     </div>
