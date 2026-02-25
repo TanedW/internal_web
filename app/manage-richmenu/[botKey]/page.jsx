@@ -2742,47 +2742,47 @@ export default function RichMenuDashboard() {
                         count: auditLogs.length,
                       },
                       {
-                        key: "MENU_UPLOAD",
+                        key: "create_menu",
                         label: "สร้างเมนู",
                         color: "#3B82F6",
                         bg: "#EFF6FF",
                         count: auditLogs.filter(
-                          (l) => l.action === "MENU_UPLOAD",
+                          (l) => l.action === "create_menu",
                         ).length,
                       },
                       {
-                        key: "MENU_SWITCH",
+                        key: "switch_menu",
                         label: "เปลี่ยนเมนู",
                         color: "#F59E0B",
                         bg: "#FFFBEB",
                         count: auditLogs.filter(
-                          (l) => l.action === "MENU_SWITCH",
+                          (l) => l.action === "switch_menu",
                         ).length,
                       },
                       {
-                        key: "MENU_DELETE",
+                        key: "delete_menu",
                         label: "ลบเมนู",
                         color: "#EF4444",
                         bg: "#FEF2F2",
                         count: auditLogs.filter(
-                          (l) => l.action === "MENU_DELETE",
+                          (l) => l.action === "delete_menu",
                         ).length,
                       },
                       {
-                        key: "BOT_ADD",
+                        key: "add_bot",
                         label: "เพิ่มบอท",
                         color: "#8B5CF6",
                         bg: "#F5F3FF",
-                        count: auditLogs.filter((l) => l.action === "BOT_ADD")
+                        count: auditLogs.filter((l) => l.action === "add_bot")
                           .length,
                       },
                       {
-                        key: "BOT_DELETE",
+                        key: "delete_bot",
                         label: "ลบบอท",
                         color: "#DC2626",
                         bg: "#FFF1F2",
                         count: auditLogs.filter(
-                          (l) => l.action === "BOT_DELETE",
+                          (l) => l.action === "delete_bot",
                         ).length,
                       },
                     ].map((f) => {
@@ -2872,7 +2872,7 @@ export default function RichMenuDashboard() {
                         const filtered =
                           auditFilter === "all"
                             ? auditLogs
-                            : auditLogs.filter((l) => l.action === auditFilter || l.action === auditFilter + '_FAILED');
+                            : auditLogs.filter((l) => l.action === auditFilter);
 
                         if (filtered.length === 0) {
                           return (
@@ -2909,20 +2909,36 @@ export default function RichMenuDashboard() {
                         }
 
                         const actionConfig = {
-                          // ── Bot actions ──
-                          BOT_ADD:            { label: "เพิ่มบอท",    color: "#8B5CF6", bg: "#F5F3FF", dot: "#8B5CF6" },
-                          BOT_ADD_FAILED:     { label: "เพิ่มบอทล้มเหลว", color: "#DC2626", bg: "#FFF1F2", dot: "#DC2626" },
-                          BOT_DELETE:         { label: "ลบบอท",       color: "#DC2626", bg: "#FFF1F2", dot: "#DC2626" },
-                          BOT_DELETE_FAILED:  { label: "ลบบอทล้มเหลว",  color: "#DC2626", bg: "#FFF1F2", dot: "#DC2626" },
-                          // ── Menu actions ──
-                          MENU_UPLOAD:        { label: "สร้างเมนู",   color: "#3B82F6", bg: "#EFF6FF", dot: "#3B82F6" },
-                          MENU_UPLOAD_FAILED: { label: "สร้างเมนูล้มเหลว", color: "#EF4444", bg: "#FEF2F2", dot: "#EF4444" },
-                          MENU_SWITCH:        { label: "เปลี่ยนเมนู", color: "#F59E0B", bg: "#FFFBEB", dot: "#F59E0B" },
-                          MENU_SWITCH_FAILED: { label: "เปลี่ยนเมนูล้มเหลว", color: "#EF4444", bg: "#FEF2F2", dot: "#EF4444" },
-                          MENU_DELETE:        { label: "ลบเมนู",      color: "#EF4444", bg: "#FEF2F2", dot: "#EF4444" },
-                          MENU_DELETE_FAILED: { label: "ลบเมนูล้มเหลว",  color: "#EF4444", bg: "#FEF2F2", dot: "#EF4444" },
-                          MENU_SYNCED:        { label: "Sync เมนู",   color: "#06C755", bg: "#F0FFF4", dot: "#06C755" },
-                          MENU_SAVE_FLOW:     { label: "บันทึก Flow", color: "#0EA5E9", bg: "#F0F9FF", dot: "#0EA5E9" },
+                          add_bot: {
+                            label: "เพิ่มบอท",
+                            color: "#8B5CF6",
+                            bg: "#F5F3FF",
+                            dot: "#8B5CF6",
+                          },
+                          create_menu: {
+                            label: "สร้างเมนู",
+                            color: "#3B82F6",
+                            bg: "#EFF6FF",
+                            dot: "#3B82F6",
+                          },
+                          switch_menu: {
+                            label: "เปลี่ยนเมนู",
+                            color: "#F59E0B",
+                            bg: "#FFFBEB",
+                            dot: "#F59E0B",
+                          },
+                          delete_menu: {
+                            label: "ลบเมนู",
+                            color: "#EF4444",
+                            bg: "#FEF2F2",
+                            dot: "#EF4444",
+                          },
+                          delete_bot: {
+                            label: "ลบบอท",
+                            color: "#DC2626",
+                            bg: "#FFF1F2",
+                            dot: "#DC2626",
+                          },
                         };
 
                         return filtered.map((log, i) => {
@@ -3039,39 +3055,51 @@ export default function RichMenuDashboard() {
                                   {log.detail}
                                 </div>
                               )}
-                              {log.action?.startsWith("MENU_SWITCH") && log.menu_id_from &&
-                                log.menu_id_from && (
+                              {(log.action === "MENU_SWITCH" || log.action === "switch_menu") &&
+                                (log.menu_id_from || log.menu_id_to) && (
                                   <div
                                     style={{
                                       display: "flex",
                                       alignItems: "center",
-                                      gap: 5,
+                                      gap: 6,
                                       marginBottom: 6,
-                                      fontSize: 10,
-                                      fontFamily: "monospace",
                                       flexWrap: "wrap",
                                     }}
                                   >
+                                    {/* เมนูเก่า */}
                                     <span
                                       style={{
-                                        color: "#94A3B8",
+                                        display: "inline-flex",
+                                        flexDirection: "column",
                                         background: "#F1F5F9",
-                                        padding: "1px 6px",
-                                        borderRadius: 4,
+                                        borderRadius: 6,
+                                        padding: "3px 8px",
+                                        maxWidth: 160,
                                       }}
                                     >
-                                      {log.menu_id_from?.substring(0, 12)}…
+                                      <span style={{ color: "#94A3B8", fontSize: 9, marginBottom: 1 }}>เมนูเดิม</span>
+                                      <span style={{ color: "#475569", fontSize: 11, fontWeight: 600, wordBreak: "break-all" }}>
+                                        {log.menu_name_from || log.menu_id_from || "—"}
+                                      </span>
                                     </span>
-                                    <span style={{ color: "#CBD5E1" }}>→</span>
+
+                                    <span style={{ color: "#CBD5E1", fontSize: 16 }}>→</span>
+
+                                    {/* เมนูใหม่ */}
                                     <span
                                       style={{
-                                        color: "#06C755",
+                                        display: "inline-flex",
+                                        flexDirection: "column",
                                         background: "#F0FFF4",
-                                        padding: "1px 6px",
-                                        borderRadius: 4,
+                                        borderRadius: 6,
+                                        padding: "3px 8px",
+                                        maxWidth: 160,
                                       }}
                                     >
-                                      {log.menu_id_to?.substring(0, 12)}…
+                                      <span style={{ color: "#06C755", fontSize: 9, marginBottom: 1 }}>เมนูใหม่</span>
+                                      <span style={{ color: "#059669", fontSize: 11, fontWeight: 600, wordBreak: "break-all" }}>
+                                        {log.menu_name_to || log.menu_id_to || "—"}
+                                      </span>
                                     </span>
                                   </div>
                                 )}
