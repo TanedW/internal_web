@@ -30,8 +30,9 @@ export default function SearchOrgPage() {
     setError(null);
 
     try {
+      const baseUrl = process.env.NEXT_PUBLIC_PROXY_SEARCH_ORG_API_URL;
       const res = await fetch(
-        `/api/proxy-search-org?search=${encodeURIComponent(searchTerm)}&limit=20&threshold=0.1`,
+        `${baseUrl}?search=${encodeURIComponent(searchTerm)}&limit=20&threshold=0.1`,
       );
 
       const data = await res.json();
