@@ -3055,52 +3055,24 @@ export default function RichMenuDashboard() {
                                   {log.detail}
                                 </div>
                               )}
-                              {(log.action === "MENU_SWITCH" || log.action === "switch_menu") &&
-                                (log.menu_id_from || log.menu_id_to) && (
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: 6,
-                                      marginBottom: 6,
-                                      flexWrap: "wrap",
-                                    }}
-                                  >
-                                    {/* เมนูเก่า */}
-                                    <span
-                                      style={{
-                                        display: "inline-flex",
-                                        flexDirection: "column",
-                                        background: "#F1F5F9",
-                                        borderRadius: 6,
-                                        padding: "3px 8px",
-                                        maxWidth: 160,
-                                      }}
-                                    >
-                                      <span style={{ color: "#94A3B8", fontSize: 9, marginBottom: 1 }}>เมนูเดิม</span>
-                                      <span style={{ color: "#475569", fontSize: 11, fontWeight: 600, wordBreak: "break-all" }}>
+                              {log.action?.startsWith("switch_menu") && (log.menu_id_from || log.menu_id_to) && (
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
+                                    {/* เมนูเดิม */}
+                                    <div style={{ display: "flex", flexDirection: "column", background: "#F1F5F9", borderRadius: 6, padding: "4px 10px", flex: "1 1 120px" }}>
+                                      <span style={{ fontSize: 9, color: "#94A3B8", marginBottom: 2 }}>เมนูเดิม</span>
+                                      <span style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>
                                         {log.menu_name_from || log.menu_id_from || "—"}
                                       </span>
-                                    </span>
-
-                                    <span style={{ color: "#CBD5E1", fontSize: 16 }}>→</span>
-
+                                    </div>
+                                    {/* arrow */}
+                                    <span style={{ color: "#CBD5E1", fontSize: 18, flexShrink: 0 }}>→</span>
                                     {/* เมนูใหม่ */}
-                                    <span
-                                      style={{
-                                        display: "inline-flex",
-                                        flexDirection: "column",
-                                        background: "#F0FFF4",
-                                        borderRadius: 6,
-                                        padding: "3px 8px",
-                                        maxWidth: 160,
-                                      }}
-                                    >
-                                      <span style={{ color: "#06C755", fontSize: 9, marginBottom: 1 }}>เมนูใหม่</span>
-                                      <span style={{ color: "#059669", fontSize: 11, fontWeight: 600, wordBreak: "break-all" }}>
+                                    <div style={{ display: "flex", flexDirection: "column", background: "#F0FFF4", borderRadius: 6, padding: "4px 10px", flex: "1 1 120px" }}>
+                                      <span style={{ fontSize: 9, color: "#06C755", marginBottom: 2 }}>เมนูใหม่</span>
+                                      <span style={{ fontSize: 12, fontWeight: 600, color: "#059669" }}>
                                         {log.menu_name_to || log.menu_id_to || "—"}
                                       </span>
-                                    </span>
+                                    </div>
                                   </div>
                                 )}
 
