@@ -200,13 +200,6 @@ export default function RichMenuHome() {
         const results = await Promise.all(
           botsData.map(async (bot) => {
             try {
-              // Sync menus (background - ไม่ต้องรอ)
-              fetch(`${API}?action=sync`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ botKey: bot.key, creatorId: "system" }),
-              }).catch(err => console.error(`Sync error for ${bot.key}:`, err));
-
               // ดึง currentMenuId และ imageUrl
               const menuRes = await fetch(
                 `${API}?action=current&botKey=${encodeURIComponent(bot.key)}`,
