@@ -703,6 +703,7 @@ export default function RichMenuDashboard() {
             botKey: cleanBotKey,
             menuId: newMenuId,
             type: "batch",
+            adminId: user?.email || "",   // ✅ ส่ง email เพื่อ lookup admin_system
           });
 
           const switchResponse = await fetch(
@@ -2946,18 +2947,16 @@ export default function RichMenuDashboard() {
                             bg: "#F8FAFC",
                             dot: "#94A3B8",
                           };
+                          // ✅ created_at ถูกเก็บเป็นเวลาไทยแล้ว (AT TIME ZONE 'Asia/Bangkok')
+                          // ใช้ timeZone: 'Asia/Bangkok' ให้ถูก locale
                           const createdAt = new Date(log.created_at);
                           const dateStr = createdAt.toLocaleDateString(
                             "th-TH",
-                            { day: "numeric", month: "short", year: "numeric" },
+                            { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Bangkok" },
                           );
                           const timeStr = createdAt.toLocaleTimeString(
                             "th-TH",
-                            {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              second: "2-digit",
-                            },
+                            { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Bangkok" },
                           );
 
                           return (
@@ -3056,7 +3055,7 @@ export default function RichMenuDashboard() {
                                   {log.detail}
                                 </div>
                               )}
-                              {log.action === "switch_menu" &&
+                              {(log.action === "MENU_SWITCH" || log.action === "switch_menu") &&
                                 log.menu_id_from && (
                                   <div
                                     style={{
