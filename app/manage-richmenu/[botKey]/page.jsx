@@ -640,7 +640,7 @@ export default function RichMenuDashboard() {
         templateSize: `${selectedTemplate.width}x${selectedTemplate.height}`,
       });
 
-      const response = await fetch("${API}?action=upload", {
+      const response = await fetch(`${API}?action=upload`, {
         method: "POST",
         body: formData,
       });
@@ -674,7 +674,7 @@ export default function RichMenuDashboard() {
       );
       if (flowSteps && flowSteps.length > 0) {
         try {
-          const saveFlowRes = await fetch("${API}?action=save_flow", {
+          const saveFlowRes = await fetch(`${API}?action=save_flow`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
