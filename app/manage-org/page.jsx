@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import Sidebar from "../components/sidebar"; 
 import { 
  Building2, Upload, Image as ImageIcon, 
@@ -115,7 +115,7 @@ export default function ManageOrgPage() {
  const [isSearching, setIsSearching] = useState(false);
  const [searchId, setSearchId] = useState("");
  const [cases, setCases] = useState([]); 
- const [orgId, setOrgId] = useState("");                 
+ const [orgId, setOrgId] = useState("");                  
  const [orgName, setOrgName] = useState("");
  const [logoPreview, setLogoPreview] = useState(null);
  const [qrReportUrl, setQrReportUrl] = useState("");
@@ -137,6 +137,25 @@ export default function ManageOrgPage() {
  const [qrText, setQrText] = useState("สแกนเพื่อแจ้งเหตุ");
  const [textSize, setTextSize] = useState(20);
  const [textPos, setTextPos] = useState(380);
+ 
+ const [newQrFile, setNewQrFile] = useState(null);
+
+ const [originalSettings, setOriginalSettings] = useState({
+   frame: "none",
+   text: "สแกนเพื่อแจ้งเหตุ",
+   size: 20,
+   pos: 380
+ });
+
+ const isQrModified = useMemo(() => {
+   return (
+     selectedFrame !== originalSettings.frame ||
+     qrText !== originalSettings.text ||
+     textSize !== originalSettings.size ||
+     textPos !== originalSettings.pos ||
+     newQrFile !== null 
+   );
+ }, [selectedFrame, qrText, textSize, textPos, originalSettings, newQrFile]);
   
  const [showMobileEditPanel, setShowMobileEditPanel] = useState(false);
  const [showMobileTimeline, setShowMobileTimeline] = useState(false); 
@@ -145,11 +164,17 @@ export default function ManageOrgPage() {
  const staffScrollRef = useRef(null);
  const qrScrollRef = useRef(null);
 
- // State สำหรับซ่อนลูกศร
  const [staffScrollPos, setStaffScrollPos] = useState({ left: true, right: false });
  const [qrScrollPos, setQrScrollPos] = useState({ left: true, right: false });
 
  const [showNameHistory, setShowNameHistory] = useState(false);
+
+ const staffMockup = [
+   { id: 1, name: "สมชาย สายตรวจ", role: "Super Admin", phone: "081-234-5678", email: "somchai@citydata.go.th", img: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=100" },
+   { id: 2, name: "สมหญิง มั่นคง", role: "Manager", phone: "082-999-8888", email: "somying@citydata.go.th", img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=100" },
+   { id: 3, name: "กิตติพงษ์ ใจดี", role: "Staff", phone: "089-777-6655", email: "kittipong@citydata.go.th", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=100" },
+   { id: 4, name: "วิภาวดี ขยันยิ่ง", role: "Staff", phone: "085-111-2233", email: "wipawadee@citydata.go.th", img: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=100" },
+ ];
 
  const [updateModal, setUpdateModal] = useState({
    show: false,
@@ -160,13 +185,34 @@ export default function ManageOrgPage() {
  });
 
  const [showPhotoActionMenu, setShowPhotoActionMenu] = useState(false);
- 
  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
  const API_URL_ORG = process.env.NEXT_PUBLIC_DB_SEARCH_ORG_API_URL || ""; 
  const API_URL_MANAGE = process.env.NEXT_PUBLIC_DB_MANAGE_ORG_API_URL || "";
  const uploadApiUrl = process.env.NEXT_PUBLIC_FILE_UPLOAD_API_URL;
  const STORAGE_BASE_URL = "https://storage.googleapis.com/traffy_public_bucket/";
+
+ // รวมรูปปัจจุบัน เข้ากับประวัติเพื่อให้โชว์ใน Gallery เดียวกัน
+ const combinedPhotoHistory = useMemo(() => {
+   const history = [...PHOTO_HISTORY_DATA];
+   if (logoPreview) {
+     const currentUrl = (logoPreview.includes("blob:") || logoPreview.startsWith("http")) 
+        ? logoPreview 
+        : STORAGE_BASE_URL + logoPreview;
+     return [
+       {
+         id: 'current',
+         url: currentUrl,
+         user: "แอดมิน ระบบ",
+         date: "ปัจจุบัน",
+         time: "-",
+         reason: "รูปภาพโปรไฟล์ที่กำลังใช้งานอยู่ ณ ปัจจุบัน"
+       },
+       ...history
+     ];
+   }
+   return history;
+ }, [logoPreview]);
 
  const fetchOrgData = async (targetId = "") => {
    if (!targetId) return;
@@ -204,7 +250,6 @@ export default function ManageOrgPage() {
    }, 100);
  };
 
- // ฟังก์ชันเช็คตำแหน่ง Scroll เพื่อซ่อนลูกศร
  const handleScrollCheck = (ref, setPosState) => {
     if (ref.current) {
       const { scrollLeft, scrollWidth, clientWidth } = ref.current;
@@ -256,6 +301,24 @@ export default function ManageOrgPage() {
        payload.old_official = currentOrgData.is_official;
      } else if (updateModal.type === 'restore') {
        payload.restore = true;
+     } else if (updateModal.type === 'qr_edit') {
+       payload.qr_config = updateModal.newValue;
+       payload.old_qr_url = currentOrgData?.qr_report_url || "";
+       if (updateModal.newValue.file) {
+         const base64Image = await fileToBase64(updateModal.newValue.file);
+         const uploadRes = await fetch(uploadApiUrl, {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({ folder_path: `attachment/org_${orgId}`, image: base64Image }), 
+         });
+         const uploadResult = await uploadRes.json();
+         if (uploadRes.ok && uploadResult.photo_link) {
+           const storageUrl = "https://storage.googleapis.com/traffy_public_bucket/";
+           payload.file_url = uploadResult.photo_link.replace(storageUrl, "");        
+         } else {
+           throw new Error("Upload QR image failed");
+         }
+       }
      } else if (updateModal.type === 'logo') {
        const base64Image = await fileToBase64(updateModal.newValue);
        const uploadRes = await fetch(uploadApiUrl, {
@@ -266,8 +329,9 @@ export default function ManageOrgPage() {
        const uploadResult = await uploadRes.json();
        if (uploadRes.ok && uploadResult.photo_link) {
          const storageUrl = "https://storage.googleapis.com/traffy_public_bucket/";
-          const relativePath = uploadResult.photo_link.replace(storageUrl, "");
-         payload.file_url = relativePath;        } else {
+         const relativePath = uploadResult.photo_link.replace(storageUrl, "");
+         payload.file_url = relativePath;        
+       } else {
          throw new Error("Upload logo failed");
        }
      }
@@ -282,6 +346,7 @@ export default function ManageOrgPage() {
      if (response.ok && result.success) {
        alert(updateModal.type === 'restore' ? "กู้คืนหน่วยงานสำเร็จ" : `แก้ไข${updateModal.title}สำเร็จ`);
        setUpdateModal({ show: false, type: "", title: "", newValue: null, reason: "" });
+       setShowQrEditor(false); 
        await fetchOrgData(searchId); 
      } else {
        alert("เกิดข้อผิดพลาด: " + (result.message || result.error));
@@ -347,7 +412,18 @@ export default function ManageOrgPage() {
 
  const handleEditExistingQr = (qr) => {
    setQrReportUrl(qr.url);
-   setQrText(qr.label || "สแกนเพื่อแจ้งเหตุ");
+   const labelText = qr.label || "สแกนเพื่อแจ้งเหตุ";
+   setQrText(labelText);
+   setSelectedFrame("none");
+   setTextSize(20);
+   setTextPos(380);
+   setNewQrFile(null); 
+   setOriginalSettings({
+     frame: "none",
+     text: labelText,
+     size: 20,
+     pos: 380
+   });
    setShowQrEditor(true);
  };
 
@@ -361,7 +437,6 @@ export default function ManageOrgPage() {
    } else {
      setQrList([]);
    }
-   // รีเซ็ตตำแหน่งลูกศรเมื่อข้อมูลเปลี่ยน
    setQrScrollPos({ left: true, right: false });
  }, [qrReportUrl]);
 
@@ -434,7 +509,7 @@ export default function ManageOrgPage() {
  );
 
  return (
-   <div data-theme="light" className="min-h-screen !bg-[#F4F6F8] !text-slate-900 font-bold" style={{ fontFamily: "'Inter', sans-serif" }}>
+   <div data-theme="light" className="min-h-screen !bg-[#F4F6F8] !text-slate-900 font-bold overflow-x-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
      <style>{`
        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
        html { scroll-behavior: smooth; overflow-x: hidden; }
@@ -472,7 +547,6 @@ export default function ManageOrgPage() {
          border-right: 10px solid transparent;
          border-top: 10px solid white;
        }
-       /* Class ซ่อน scrollbar เฉพาะมือถือเพื่อให้ลูกศรใช้งานได้เต็มที่ */
        @media (max-width: 639px) {
            .hide-scrollbar-on-mobile::-webkit-scrollbar {
                display: none;
@@ -555,7 +629,12 @@ export default function ManageOrgPage() {
                          } ${item.is_deleted ? 'opacity-75' : ''}`}
                        >
                          <div className="h-28 sm:h-32 w-full !bg-[#f8fafc] rounded-xl sm:rounded-2xl flex items-center justify-center relative overflow-hidden">
-                           <img src={STORAGE_BASE_URL + item.logo_url} className={`w-full h-full object-cover transition-transform duration-700 ${isSelected ? 'scale-110' : ''} ${item.is_deleted ? 'grayscale' : ''}`} alt="Logo" />
+                           {item.logo_url ? (
+                               <img src={STORAGE_BASE_URL + item.logo_url} className={`w-full h-full object-cover transition-transform duration-700 ${isSelected ? 'scale-110' : ''} ${item.is_deleted ? 'grayscale' : ''}`} alt="Logo" />
+                           ) : (
+                               <ImageIcon size={32} className="text-slate-300" />
+                           )}
+                           
                            {item.is_deleted && (
                              <div className="absolute inset-0 bg-red-600/10 flex items-center justify-center backdrop-blur-[2px]">
                                <span className="bg-red-600 text-white text-[10px] px-3 py-1 rounded-full font-black tracking-widest uppercase">Deleted</span>
@@ -632,54 +711,53 @@ export default function ManageOrgPage() {
                                   className="w-24 h-24 sm:w-32 sm:h-32 !bg-slate-50 rounded-[2rem] sm:rounded-[2.5rem] flex items-center justify-center overflow-hidden border-2 border-slate-100 shadow-inner cursor-pointer hover:border-black transition-all group relative"
                               >
                                   {logoPreview ? (
-                                  <img src={STORAGE_BASE_URL + logoPreview} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-500" alt="Preview" />
+                                    <img src={logoPreview.includes("blob:") ? logoPreview : STORAGE_BASE_URL + logoPreview} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-500" alt="Preview" />
                                   ) : (
-                                  <ImageIcon size={28} className="sm:w-8 sm:h-8 text-slate-400" />
-                                  )
-                                  }
+                                    <ImageIcon size={32} className="text-slate-400" />
+                                  )}
                                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center text-white text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-center px-2">
                                       Manage Photo
                                   </div>
                               </div>
                              {showPhotoActionMenu && (
-   <div className="bubble-menu-container absolute bottom-full left-1/2 -translate-x-1/2 mb-4 sm:mb-6 z-[110] w-[180px] sm:w-[210px] bg-white rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 p-1.5 sm:p-2 bubble-arrow-tip shadow-2xl">
-     <div className="flex flex-col gap-0.5">
-       <button 
-         onClick={() => { 
-           setGalleryMode('logo'); // ตั้งค่าเป็นโหมด Logo
-           setCurrentPhotoIndex(0);
-           setShowQrModal(true); 
-           setShowPhotoActionMenu(false); 
-         }}
-         className="grid grid-cols-[40px_1fr] sm:grid-cols-[60px_1fr] items-center w-full px-2 sm:px-3 py-2 sm:py-3 hover:bg-slate-50 rounded-[1rem] sm:rounded-2xl transition-all group"
-       >
-         <div className="flex items-center justify-center">
-           <UserCircle2 size={20} strokeWidth={1.5} className="sm:w-6 sm:h-6 text-[#1a2b3b]" />
-         </div>
-         <span className="text-[13px] sm:text-[15px] font-bold text-[#1a2b3b] text-left">ดูรูปโปรไฟล์</span>
-       </button>
+                                <div className="bubble-menu-container absolute bottom-full left-1/2 -translate-x-1/2 mb-4 sm:mb-6 z-[110] w-[180px] sm:w-[210px] bg-white rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 p-1.5 sm:p-2 bubble-arrow-tip shadow-2xl">
+                                  <div className="flex flex-col gap-0.5">
+                                    <button 
+                                      onClick={() => { 
+                                        setGalleryMode('logo');
+                                        setCurrentPhotoIndex(0); // ให้รูปที่ 1 เป็นรูปปัจจุบันเสมอ
+                                        setShowQrModal(true); 
+                                        setShowPhotoActionMenu(false); 
+                                      }}
+                                      className="grid grid-cols-[40px_1fr] sm:grid-cols-[60px_1fr] items-center w-full px-2 sm:px-3 py-2 sm:py-3 hover:bg-slate-50 rounded-[1rem] sm:rounded-2xl transition-all group"
+                                    >
+                                      <div className="flex items-center justify-center">
+                                        <UserCircle2 size={20} strokeWidth={1.5} className="sm:w-6 sm:h-6 text-[#1a2b3b]" />
+                                      </div>
+                                      <span className="text-[13px] sm:text-[15px] font-bold text-[#1a2b3b] text-left">ดูรูปโปรไฟล์</span>
+                                    </button>
 
-       <label className="grid grid-cols-[40px_1fr] sm:grid-cols-[60px_1fr] items-center w-full px-2 sm:px-3 py-2 sm:py-3 hover:bg-slate-50 rounded-[1rem] sm:rounded-2xl transition-all group cursor-pointer">
-         <div className="flex items-center justify-center">
-           <ImageIcon size={18} strokeWidth={1.5} className="sm:w-5 sm:h-5 text-[#1a2b3b]" />
-         </div>
-         <span className="text-[13px] sm:text-[15px] font-bold text-[#1a2b3b] text-left">เลือกรูปโปรไฟล์</span>
-         <input 
-           type="file" className="hidden" accept="image/*"
-           onChange={(e) => { 
-             const file = e.target.files[0]; 
-             if (file) { 
-               setUpdateModal({
-                 show: true, type: 'logo', title: 'รูปภาพหน่วยงาน', newValue: file, reason: ""
-               });
-               setShowPhotoActionMenu(false);
-             } 
-           }} 
-         />
-       </label>
-     </div>
-   </div>
- )}
+                                    <label className="grid grid-cols-[20px_1fr] sm:grid-cols-[40px_1fr] items-center w-full px-2 sm:px-3 py-2 sm:py-3 hover:bg-slate-50 rounded-[1rem] sm:rounded-2xl transition-all group cursor-pointer">
+                                      <div className="flex items-center justify-center">
+                                        <ImageIcon size={18} strokeWidth={1.5} className="sm:w-5 sm:h-5 text-[#1a2b3b]" />
+                                      </div>
+                                      <span className="text-[13px] sm:text-[15px] font-bold text-[#1a2b3b] text-left">เลือกรูปโปรไฟล์</span>
+                                      <input 
+                                        type="file" className="hidden" accept="image/*"
+                                        onChange={(e) => { 
+                                          const file = e.target.files[0]; 
+                                          if (file) { 
+                                            setUpdateModal({
+                                              show: true, type: 'logo', title: 'รูปภาพหน่วยงาน', newValue: file, reason: ""
+                                            });
+                                            setShowPhotoActionMenu(false);
+                                          } 
+                                        }} 
+                                      />
+                                    </label>
+                                  </div>
+                                </div>
+                              )}
                              </div>
                              
                              <div className="flex-1 space-y-4">
@@ -701,57 +779,59 @@ export default function ManageOrgPage() {
                                          <div className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2">
                                              <div className="relative flex items-center tooltip tooltip-left" data-tip="ประวัติการแก้ไข">
                                                 <button 
-                                                  onClick={() => setShowNameHistory(!showNameHistory)} // เปลี่ยนจาก hover เป็นคลิกเพื่อ toggle
-                                                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
-                                                      showNameHistory 
-                                                      ? 'bg-slate-900 text-white' // เมื่อเปิดอยู่ ให้ปุ่มเข้มขึ้น
-                                                      : 'bg-transparent text-slate-400 hover:bg-slate-100 hover:text-black'
-                                                  }`}
-                                              >
-                                                  <History size={18} className="sm:w-5 sm:h-5" strokeWidth={2.5} />
-                                              </button>
-                                                                                              {showNameHistory && (
-                                                /* ใช้ style={{ border: '2px solid black' }} เพื่อบังคับให้มีขอบแน่นอน */
-                                                <div 
-                                                  className="absolute top-full right-0 mt-2 sm:mt-3 z-[150] w-[260px] sm:w-[320px] max-w-[calc(100vw-32px)] bg-white rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl p-5 sm:p-6 animate-in fade-in slide-in-from-top-2 duration-200 text-left cursor-default"
-                                                  style={{ border: '2px solid #000000' }} 
+                                                    onClick={() => setShowNameHistory(!showNameHistory)}
+                                                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
+                                                        showNameHistory 
+                                                        ? 'bg-slate-900 text-white' 
+                                                        : 'bg-transparent text-slate-400 hover:bg-slate-100 hover:text-black'
+                                                    }`}
                                                 >
-                                                    <div className="flex items-center gap-2.5 mb-5 pb-3 border-b border-slate-100">
-                                                        <div className="w-2.5 h-2.5 bg-black rounded-full shrink-0 shadow-sm"></div>
-                                                        <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.15em] text-black">Name Revision History</span>
-                                                    </div>
-                                                    
-                                                    <div className="space-y-4 sm:space-y-5 ml-1">
-                                                        {[
-                                                            { old: "อบต. เดิม", new: "เทศบาลนครนนทบุรี", user: "ธนกฤต แอดมิน", date: "24 ก.พ. 2026" },
-                                                            { old: "หน่วยงานทดสอบ", new: "อบต. เดิม", user: "Super Admin", date: "10 ม.ค. 2026" }
-                                                        ].map((h, i, arr) => (
-                                                            <div key={i} className="flex gap-3 sm:gap-4 relative">
-                                                                {i !== arr.length - 1 && <div className="absolute left-[2.5px] top-3 bottom-[-1.5rem] w-[1.5px] bg-slate-300"></div>}
-                                                                
-                                                                <div className="flex flex-col items-center mt-1.5 z-10">
-                                                                    <div className="w-1.5 h-1.5 bg-black rounded-full"></div>
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <p className="text-[11px] sm:text-[13px] font-bold text-slate-900 leading-tight mb-1">
-                                                                        <span className="text-slate-400 mr-1.5 font-medium line-through">{h.old}</span>
-                                                                        <span className="text-slate-400 mr-1.5">→</span>
-                                                                        <span className="text-black font-black">{h.new}</span>
-                                                                    </p>
-                                                                    <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wide">By {h.user} • {h.date}</p>
-                                                                </div>
+                                                    <History size={18} className="sm:w-5 sm:h-5" strokeWidth={2.5} />
+                                                </button>
+                                                
+                                                {showNameHistory && (
+                                                    <>
+                                                        <div className="fixed inset-0 z-[140]" onClick={() => setShowNameHistory(false)} />
+                                                        <div 
+                                                          className="absolute top-full right-0 mt-2 sm:mt-3 z-[150] w-[260px] sm:w-[320px] max-w-[calc(100vw-32px)] bg-white rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl p-5 sm:p-6 animate-in fade-in slide-in-from-top-2 duration-200 text-left cursor-default"
+                                                          style={{ border: '2px solid #000000' }} 
+                                                        >
+                                                            <div className="flex items-center gap-2.5 mb-5 pb-3 border-b border-slate-100">
+                                                                <div className="w-2.5 h-2.5 bg-black rounded-full shrink-0 shadow-sm"></div>
+                                                                <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.15em] text-black">Name Revision History</span>
                                                             </div>
-                                                        ))}
-                                                    </div>
+                                                            
+                                                            <div className="space-y-4 sm:space-y-5 ml-1">
+                                                                {[
+                                                                    { old: "อบต. เดิม", new: "เทศบาลนครนนทบุรี", user: "ธนกฤต แอดมิน", date: "24 ก.พ. 2026" },
+                                                                    { old: "หน่วยงานทดสอบ", new: "อบต. เดิม", user: "Super Admin", date: "10 ม.ค. 2026" }
+                                                                ].map((h, i, arr) => (
+                                                                    <div key={i} className="flex gap-3 sm:gap-4 relative">
+                                                                        {i !== arr.length - 1 && <div className="absolute left-[2.5px] top-3 bottom-[-1.5rem] w-[1.5px] bg-slate-300"></div>}
+                                                                        
+                                                                        <div className="flex flex-col items-center mt-1.5 z-10">
+                                                                            <div className="w-1.5 h-1.5 bg-black rounded-full"></div>
+                                                                        </div>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <p className="text-[11px] sm:text-[13px] font-bold text-slate-900 leading-tight mb-1">
+                                                                                <span className="text-slate-400 mr-1.5 font-medium line-through">{h.old}</span>
+                                                                                <span className="text-slate-400 mr-1.5">→</span>
+                                                                                <span className="text-black font-black">{h.new}</span>
+                                                                            </p>
+                                                                            <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wide">By {h.user} • {h.date}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
 
-                                                    {/* ส่วนติ่งแหลมชี้ขึ้น (Triangle) */}
-                                                    <div 
-                                                      className="absolute bottom-full right-4 sm:right-5 w-0 h-0 border-l-[9px] border-l-transparent border-r-[9px] border-r-transparent border-b-[9px]"
-                                                      style={{ borderBottomColor: '#000000' }}
-                                                    ></div>
-                                                    <div className="absolute bottom-full right-[17px] sm:right-[21px] w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px] border-b-white z-10"></div>
-                                                </div>
-                                              )}
+                                                            <div 
+                                                              className="absolute bottom-full right-4 sm:right-5 w-0 h-0 border-l-[9px] border-l-transparent border-r-[9px] border-r-transparent border-b-[9px]"
+                                                              style={{ borderBottomColor: '#000000' }}
+                                                            ></div>
+                                                            <div className="absolute bottom-full right-[17px] sm:right-[21px] w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px] border-b-white z-10"></div>
+                                                        </div>
+                                                    </>
+                                                )}
                                              </div>
                                          </div>
                                      </div>
@@ -835,7 +915,6 @@ export default function ManageOrgPage() {
                          </div>
                          
                          <div className="relative w-full">
-                             {/* ซ่อนลูกศรย้อนกลับเมื่ออยู่ใบแรก */}
                              {!staffScrollPos.left && (
                                 <button onClick={() => scrollStaff('left')} className="absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white border border-slate-100 rounded-full shadow-lg flex items-center justify-center text-slate-700 sm:hidden active:scale-90 transition-all"><ChevronLeft size={20}/></button>
                              )}
@@ -851,8 +930,12 @@ export default function ManageOrgPage() {
                                      className="snap-center snap-always w-full min-w-full sm:w-auto sm:min-w-[280px] bg-white rounded-[2rem] sm:rounded-[2.8rem] p-5 sm:p-7 border border-slate-200 pop-card flex flex-col items-center transition-all duration-500 hover:-translate-y-2 sm:hover:-translate-y-4 hover:shadow-2xl group shrink-0"
                                  >
                                      <div className="relative mb-4 sm:mb-5">
-                                     <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-[4px] sm:border-[6px] border-white shadow-xl transition-all duration-500 group-hover:scale-105">
-                                         <img src={staff.picture_profile} className="w-full h-full object-cover" alt={staff.member_name} />
+                                     <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-[4px] sm:border-[6px] border-white shadow-xl transition-all duration-500 group-hover:scale-105 bg-slate-100 flex items-center justify-center">
+                                         {staff.picture_profile ? (
+                                           <img src={staff.picture_profile} className="w-full h-full object-cover" alt={staff.member_name} />
+                                         ) : (
+                                           <UserCircle2 size={40} className="text-slate-300" />
+                                         )}
                                      </div>
                                      <div className="absolute bottom-1 right-1 w-5 h-5 sm:w-6 sm:h-6 bg-[#00945e] border-[3px] sm:border-4 border-white rounded-full shadow-lg"></div>
                                      </div>
@@ -884,7 +967,6 @@ export default function ManageOrgPage() {
                                  ))}
                              </div>
 
-                             {/* ซ่อนลูกศรไปต่อเมื่ออยู่ใบสุดท้าย */}
                              {!staffScrollPos.right && (
                                 <button onClick={() => scrollStaff('right')} className="absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white border border-slate-100 rounded-full shadow-lg flex items-center justify-center text-slate-700 sm:hidden active:scale-90 transition-all"><ChevronRight size={20}/></button>
                              )}
@@ -906,7 +988,16 @@ export default function ManageOrgPage() {
                                
                                <div className="flex items-center justify-end w-full sm:w-auto shrink-0">
                                    <button 
-                                     onClick={() => { setQrText("สแกนเพื่อแจ้งเหตุ"); setShowQrEditor(true); }}
+                                     onClick={() => { 
+                                        setQrText("สแกนเพื่อแจ้งเหตุ"); 
+                                        setSelectedFrame("none");
+                                        setTextSize(20);
+                                        setTextPos(380);
+                                        setNewQrFile(null); 
+                                        setQrReportUrl(""); 
+                                        setOriginalSettings({ frame: "none", text: "", size: 20, pos: 380 });
+                                        setShowQrEditor(true); 
+                                     }}
                                      className="w-full sm:w-auto btn h-12 sm:h-14 !bg-slate-900 hover:!bg-black !text-white rounded-xl sm:rounded-2xl px-6 sm:px-8 border-none font-bold text-xs sm:text-sm shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest shrink-0"
                                    >
                                      <Plus size={16} className="sm:w-5 sm:h-5" strokeWidth={3} /> เพิ่ม QR ใหม่
@@ -916,7 +1007,6 @@ export default function ManageOrgPage() {
                          </div>
 
                          <div className="relative w-full">
-                             {/* แก้ไข: ซ่อนลูกศรย้อนกลับ (ซ้าย) เมื่ออยู่การ์ดใบแรก */}
                              {!qrScrollPos.left && (
                                 <button onClick={() => scrollQr('left')} className="absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white border border-slate-100 rounded-full shadow-lg flex items-center justify-center text-slate-700 active:scale-90 transition-all"><ChevronLeft size={20}/></button>
                              )}
@@ -939,10 +1029,14 @@ export default function ManageOrgPage() {
                                          <Download size={14} className="sm:w-5 sm:h-5" strokeWidth={2.5} />
                                      </button>
                                      <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-xl overflow-hidden mb-4 sm:mb-6 border-2 border-slate-100 shadow-sm bg-white flex items-center justify-center p-2 mt-2">
-                                         <img src={qr.url} className="w-full h-auto object-contain" alt="QR" />
+                                         {qr.url ? (
+                                           <img src={qr.url} className="w-full h-auto object-contain" alt="QR" />
+                                         ) : (
+                                           <QrCode size={40} className="text-slate-200" />
+                                         )}
                                      </div>
                                      <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-0.5 text-center leading-tight px-2 tracking-tight truncate w-full">{qr.label}</h4>
-                                     <p className="text-[9px] sm:text-[11px] font-bold text-slate-400 mb-4 sm:mb-6 uppercase tracking-widest">ID: #{qr.id}</p>
+                                     <p className="text-[9px] sm:text-[11px] font-bold text-slate-400 mb-6 uppercase tracking-widest">ID: #{qr.id}</p>
                                      <div className="flex gap-1.5 sm:gap-2 mb-6 sm:mb-8">
                                          <span className="px-2 sm:px-3 py-1 bg-black rounded-md sm:rounded-lg text-[8px] sm:text-[9px] font-bold text-white uppercase tracking-wider">Official</span>
                                          <span className="px-2 sm:px-3 py-1 bg-slate-100 rounded-md sm:rounded-lg text-[8px] sm:text-[9px] font-bold text-slate-600 uppercase tracking-wider border border-slate-200">Report</span>
@@ -978,7 +1072,6 @@ export default function ManageOrgPage() {
                                  )}
                              </div>
 
-                             {/* แก้ไข: ซ่อนลูกศรไปต่อ (ขวา) เมื่ออยู่การ์ดใบสุดท้าย */}
                              {!qrScrollPos.right && (
                                 <button onClick={() => scrollQr('right')} className="absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white border border-slate-100 rounded-full shadow-lg flex items-center justify-center text-slate-700 active:scale-90 transition-all"><ChevronRight size={20}/></button>
                              )}
@@ -1031,18 +1124,24 @@ export default function ManageOrgPage() {
            </button>
 
            <div className="min-h-[40vh] md:min-h-0 md:flex-[1.5] bg-[#111] relative flex items-center justify-center group overflow-hidden">
-             {/* เลือกรูปแสดงตามโหมด ถ้าโหมด QR ก็โชว์รูป QR */}
-             <img 
-               src={galleryMode === 'qr' ? qrReportUrl : (PHOTO_HISTORY_DATA[currentPhotoIndex]?.url || logoPreview)} 
-               className="max-w-full max-h-full object-contain transition-all duration-700 p-4 sm:p-0" 
-               alt="Preview" 
-             />
+             {galleryMode === 'qr' ? (
+                qrReportUrl ? (
+                  <img src={qrReportUrl} className="max-w-full max-h-full object-contain transition-all duration-700 p-4 sm:p-0" alt="Preview" />
+                ) : (
+                  <QrCode size={100} className="text-slate-600" />
+                )
+             ) : (
+                combinedPhotoHistory[currentPhotoIndex]?.url ? (
+                  <img src={combinedPhotoHistory[currentPhotoIndex].url} className="max-w-full max-h-full object-contain transition-all duration-700 p-4 sm:p-0" alt="Preview" />
+                ) : (
+                  <ImageIcon size={100} className="text-slate-600" />
+                )
+             )}
 
-             {/* ซ่อนปุ่มเลื่อนและตัวนับภาพ หากอยู่ในโหมดดู QR */}
-             {galleryMode === 'logo' && PHOTO_HISTORY_DATA.length > 1 && (
+             {galleryMode === 'logo' && combinedPhotoHistory.length > 1 && (
                <>
                  <button 
-                   onClick={() => setCurrentPhotoIndex((prev) => (prev === 0 ? PHOTO_HISTORY_DATA.length - 1 : prev - 1))}
+                   onClick={() => setCurrentPhotoIndex((prev) => (prev === 0 ? combinedPhotoHistory.length - 1 : prev - 1))}
                    className="absolute left-2 sm:left-6 w-12 h-12 sm:w-20 sm:h-20 rounded-full flex items-center justify-center transition-all opacity-100 sm:opacity-0 group-hover:opacity-100 hover:scale-110 active:scale-90 z-20"
                  >
                    <div className="absolute inset-0 rounded-full border-[2px] sm:border-[3px] border-white/30 sm:border-white/40"></div>
@@ -1052,7 +1151,7 @@ export default function ManageOrgPage() {
                  </button>
 
                  <button 
-                   onClick={() => setCurrentPhotoIndex((prev) => (prev === PHOTO_HISTORY_DATA.length - 1 ? 0 : prev + 1))}
+                   onClick={() => setCurrentPhotoIndex((prev) => (prev === combinedPhotoHistory.length - 1 ? 0 : prev + 1))}
                    className="absolute right-2 sm:right-6 w-12 h-12 sm:w-20 sm:h-20 rounded-full flex items-center justify-center transition-all opacity-100 sm:opacity-0 group-hover:opacity-100 hover:scale-110 active:scale-90 z-20"
                  >
                    <div className="absolute inset-0 rounded-full border-[2px] sm:border-[3px] border-white/30 sm:border-white/40"></div>
@@ -1065,7 +1164,7 @@ export default function ManageOrgPage() {
              
              {galleryMode === 'logo' && (
                <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 px-4 sm:px-5 py-1.5 sm:py-2 bg-black/60 backdrop-blur-md rounded-full text-white text-[9px] sm:text-[11px] font-black uppercase tracking-[0.3em] border border-white/10">
-                 {currentPhotoIndex + 1} / {PHOTO_HISTORY_DATA.length}
+                 {currentPhotoIndex + 1} / {combinedPhotoHistory.length}
                </div>
              )}
            </div>
@@ -1087,12 +1186,12 @@ export default function ManageOrgPage() {
                      <div className="space-y-4 sm:space-y-6">
                        <div className="flex items-center gap-3 sm:gap-4 p-4 sm:p-5 bg-slate-50 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100">
                          <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-xl sm:rounded-2xl flex items-center justify-center text-lg sm:text-xl font-black shadow-sm border border-slate-100 text-indigo-600 shrink-0">
-                           {PHOTO_HISTORY_DATA[currentPhotoIndex]?.user.charAt(0)}
+                           {combinedPhotoHistory[currentPhotoIndex]?.user?.charAt(0) || "-"}
                          </div>
                          <div className="min-w-0 flex-1">
                            <p className="text-[9px] sm:text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-0.5 sm:mb-1">เจ้าหน้าที่ผู้ดูแล</p>
                            <p className="text-base sm:text-lg font-bold text-slate-900 leading-none truncate w-full">
-                             {PHOTO_HISTORY_DATA[currentPhotoIndex]?.user}
+                             {combinedPhotoHistory[currentPhotoIndex]?.user}
                            </p>
                          </div>
                        </div>
@@ -1103,14 +1202,14 @@ export default function ManageOrgPage() {
                              <Clock size={10} className="sm:w-3 sm:h-3 text-slate-400" />
                              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">อัปเดตเมื่อ</p>
                            </div>
-                           <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">{PHOTO_HISTORY_DATA[currentPhotoIndex]?.date}</p>
+                           <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">{combinedPhotoHistory[currentPhotoIndex]?.date}</p>
                          </div>
                          <div className="p-4 sm:p-5 bg-slate-50 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100">
                            <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
                              <Activity size={10} className="sm:w-3 sm:h-3 text-slate-400" />
                              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">เวลา</p>
                            </div>
-                           <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">{PHOTO_HISTORY_DATA[currentPhotoIndex]?.time} น.</p>
+                           <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">{combinedPhotoHistory[currentPhotoIndex]?.time}</p>
                          </div>
                        </div>
 
@@ -1119,24 +1218,66 @@ export default function ManageOrgPage() {
                            Update Reason
                          </div>
                          <p className="text-slate-700 text-xs sm:text-sm font-bold leading-relaxed italic">
-                           "{PHOTO_HISTORY_DATA[currentPhotoIndex]?.reason}"
+                           "{combinedPhotoHistory[currentPhotoIndex]?.reason}"
                          </p>
                        </div>
                      </div>
                    </div>
-
-                   <div className="p-4 sm:p-8 border-t border-slate-50 bg-slate-50/30 shrink-0">
-                     <button 
-                       onClick={() => { alert('ทำการกู้คืนรูปภาพนี้กลับมาใช้งาน'); setShowQrModal(false); }}
-                       className="w-full h-12 sm:h-14 bg-black hover:bg-slate-800 text-white rounded-[1rem] sm:rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] transition-all active:scale-95 shadow-xl flex items-center justify-center gap-2 sm:gap-3"
-                     >
-                       <RefreshCw size={14} className="sm:w-4 sm:h-4" strokeWidth={3} /> Restore <span className="hidden sm:inline">Previous Photo</span>
-                     </button>
-                   </div>
+                  {/* --- บังคับเป็นปุ่มก้อนสี มีกรอบหนาชัดเจน ด้วย Inline Style --- */}
+                  <div style={{ padding: '24px', borderTop: '2px solid #e2e8f0', background: '#f8fafc' }}>
+                    {currentPhotoIndex === 0 ? (
+                      /* ปุ่ม Current Photo: ก้อนสีเขียว กรอบเขียวเข้ม */
+                      <button 
+                        type="button"
+                        style={{
+                          width: '100%',
+                          height: '56px',
+                          backgroundColor: '#22c55e', 
+                          color: 'white',
+                          borderRadius: '16px',
+                          fontWeight: '900',
+                          fontSize: '14px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.1em',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '12px',
+                          cursor: 'default'
+                        }}
+                      >
+                        <Check size={24} strokeWidth={4} color="white" /> 
+                        Current Photo
+                      </button>
+                    ) : (
+                      /* ปุ่ม Restore: ก้อนสีแดง กรอบแดงเข้ม */
+                      <button 
+                        onClick={() => { alert('ทำการกู้คืนรูปภาพนี้กลับมาใช้งาน'); setShowQrModal(false); }}
+                        style={{
+                          width: '100%',
+                          height: '56px',
+                          backgroundColor: '#ef4444', 
+                          color: 'white',
+                          borderRadius: '16px',
+                          fontWeight: '900',
+                          fontSize: '14px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.1em',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '12px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <RefreshCw size={20} strokeWidth={3} color="white" /> 
+                        Restore Previous Photo
+                      </button>
+                    )}
+                  </div>
                  </>
              ) : (
                  <>
-                   {/* แผงรายละเอียดเมื่อขยายดู QR Code ปรับดีไซน์ตามรูป */}
                    <div className="p-6 sm:p-10 flex-1 overflow-y-auto qr-gallery-scrollbar flex flex-col relative">
                        <div className="flex items-center gap-4 mb-8 sm:mb-10 pr-10">
                            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-indigo-50 text-indigo-600 rounded-[1rem] flex items-center justify-center shrink-0">
@@ -1193,7 +1334,6 @@ export default function ManageOrgPage() {
           
           <div className="relative bg-white w-full max-w-5xl rounded-[2rem] sm:rounded-[3rem] overflow-hidden flex flex-col md:flex-row h-[90dvh] md:h-[85vh] shadow-2xl animate-in zoom-in duration-300 border-2 border-white/20 sm:border-white" onClick={(e) => e.stopPropagation()}>
             
-            {/* ปุ่มปิด สีแดงเหมือน Gallery */}
             <button 
               onClick={() => setShowQrEditor(false)} 
               className="absolute top-3 right-3 sm:top-5 sm:right-5 w-8 h-8 sm:w-10 sm:h-10 !bg-[#ef4444] !text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all hover:scale-105 z-50 border-2 border-white"
@@ -1201,7 +1341,6 @@ export default function ManageOrgPage() {
               <X size={16} className="sm:w-6 sm:h-6" strokeWidth={3} />
             </button>
 
-            {/* ฝั่งซ้าย: ส่วนแสดง QR Preview */}
             <div className="h-[280px] sm:h-[350px] md:h-auto md:flex-[1.5] bg-[#f8fafc] flex items-center justify-center relative overflow-hidden shrink-0 border-b border-slate-200 md:border-b-0 md:border-r">
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transform scale-[0.50] sm:scale-[0.6] md:scale-[0.85] lg:scale-100 transition-transform flex flex-col items-center bg-white shadow-2xl p-0 rounded-2xl border border-slate-200" 
                    style={{ width: '380px', height: '520px' }}>
@@ -1218,8 +1357,15 @@ export default function ManageOrgPage() {
                   </span>
                 </div>
                 
-                <div className="w-full h-full flex items-center justify-center p-14 bg-white">
-                  <img src={qrReportUrl} className="w-full h-auto object-contain" alt="QR Preview" />
+                <div className="w-full h-full flex items-center justify-center p-14 bg-white relative">
+                  {qrReportUrl ? (
+                    <img src={qrReportUrl} className="w-full h-auto object-contain" alt="QR Preview" />
+                  ) : (
+                    <div className="w-full h-full bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col gap-2 items-center justify-center text-slate-300">
+                       <QrCode size={50} strokeWidth={1.5} />
+                       <span className="text-xs font-bold uppercase tracking-widest">No QR</span>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="absolute bottom-6 text-xs font-black text-slate-600 uppercase tracking-widest z-20 opacity-80">
@@ -1228,10 +1374,7 @@ export default function ManageOrgPage() {
               </div>
             </div>
 
-            {/* ฝั่งขวา: ส่วนตั้งค่า - แก้ไขโครงสร้าง Flexbox เพื่อแก้ปัญหา Scroll ไม่ไป */}
             <div className="flex-1 flex flex-col min-h-0 w-full md:w-[420px] bg-white overflow-hidden">
-              
-              {/* พื้นที่ที่ Scroll ได้ */}
               <div 
                 className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6 qr-gallery-scrollbar"
                 style={{ WebkitOverflowScrolling: 'touch' }}
@@ -1241,7 +1384,28 @@ export default function ManageOrgPage() {
                   <p className="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-widest">ออกแบบใบแจ้งเหตุ</p>
                 </div>
 
-                {/* เลือกกรอบ */}
+                <div className="space-y-3">
+                  <label className="text-[10px] sm:text-xs font-black uppercase text-slate-700 tracking-widest flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-pulse"></div> อัปโหลดรูป QR Code (ถ้ามี)
+                  </label>
+                  <label className="btn h-12 w-full bg-slate-50 border-2 border-dashed border-slate-300 hover:border-slate-800 hover:text-slate-800 text-slate-500 rounded-[1rem] flex items-center justify-center gap-2 cursor-pointer transition-all shadow-sm">
+                    <Upload size={16} /> <span className="font-bold text-xs uppercase tracking-widest">เลือกไฟล์รูปภาพ</span>
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const tempUrl = URL.createObjectURL(file);
+                          setQrReportUrl(tempUrl); 
+                          setNewQrFile(file); 
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+
                 <div className="space-y-3">
                   <label className="text-[10px] sm:text-xs font-black uppercase text-slate-700 tracking-widest flex items-center gap-2">
                     <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-pulse"></div> เลือกกรอบ (FRAME)
@@ -1256,7 +1420,6 @@ export default function ManageOrgPage() {
                   </div>
                 </div>
 
-                {/* ข้อความกำกับ */}
                 <div className="space-y-3">
                   <label className="text-[10px] sm:text-xs font-black uppercase text-slate-700 tracking-widest flex items-center gap-2">
                      <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-pulse"></div> ข้อความกำกับ (CAPTION)
@@ -1269,7 +1432,6 @@ export default function ManageOrgPage() {
                   />
                 </div>
 
-                {/* ปรับขนาดและตำแหน่ง */}
                 <div className="space-y-5 bg-[#f8fafc] p-5 rounded-[1.5rem] border border-slate-100/50 shadow-sm mt-2">
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-[10px] sm:text-xs font-black text-slate-700 uppercase tracking-widest">
@@ -1288,9 +1450,22 @@ export default function ManageOrgPage() {
                 </div>
               </div>
 
-              {/* Action Bar ยึดติดล่างเสมอ */}
               <div className="p-4 sm:p-6 border-t border-slate-100 bg-white shrink-0 z-10">
-                <button className="btn w-full !bg-[#00945e] hover:!bg-[#007a4d] !text-white rounded-[1rem] sm:rounded-2xl h-14 border-none shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-sm sm:text-base font-black uppercase tracking-widest">
+                <button 
+                   disabled={!isQrModified}
+                   onClick={() => setUpdateModal({
+                     show: true,
+                     type: 'qr_edit',
+                     title: 'การตั้งค่า QR Code',
+                     newValue: { frame: selectedFrame, text: qrText, size: textSize, pos: textPos, file: newQrFile },
+                     reason: ""
+                   })}
+                   className={`btn w-full rounded-[1rem] sm:rounded-2xl h-14 border-none shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-sm sm:text-base font-black uppercase tracking-widest ${
+                     isQrModified 
+                     ? '!bg-[#00945e] hover:!bg-[#007a4d] !text-white' 
+                     : '!bg-slate-200 !text-slate-400 cursor-not-allowed'
+                   }`}
+                >
                   <Save size={20} strokeWidth={2.5} /> บันทึก QR Code
                 </button>
               </div>
@@ -1299,8 +1474,9 @@ export default function ManageOrgPage() {
         </div>
       )}
 
+     {/* -------------------- MODAL สำหรับการยืนยันและการกรอก Log เหตุผล -------------------- */}
      {updateModal.show && (
-       <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+       <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
          <div className="!bg-white w-full max-w-md rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 border-2 border-white shadow-2xl animate-in zoom-in duration-300 relative">
            <button 
              onClick={() => setUpdateModal({ show: false, type: "", title: "", newValue: null, reason: "" })} 
@@ -1311,14 +1487,14 @@ export default function ManageOrgPage() {
            <div className={`w-16 h-16 sm:w-20 sm:h-20 ${updateModal.type === 'restore' ? 'bg-indigo-50 text-indigo-600' : 'bg-blue-50 text-blue-600'} rounded-full flex items-center justify-center mx-auto mb-6 sm:mb-8 shadow-inner border border-slate-100`}>
                <AlertCircle size={32} className="sm:w-10 sm:h-10" />
            </div>
-           <h3 className="text-xl sm:text-2xl font-bold text-center mb-2 !text-slate-900 tracking-tight font-bold">ยืนยัน{updateModal.title}?</h3>
-           <p className="text-slate-600 text-sm sm:text-base text-center mb-6 sm:mb-8 font-bold leading-relaxed font-bold">{updateModal.type === 'restore' ? "ข้อมูลจะกลับมาแสดงผลในระบบตามปกติ" : "กรุณาระบุรายละเอียดการแก้ไขเพื่อบันทึก Log การเข้าถึงข้อมูล"}</p>
-           <textarea className="textarea textarea-bordered w-full rounded-2xl sm:rounded-3xl min-h-[100px] sm:min-h-[120px] mb-6 sm:mb-8 font-bold text-sm sm:text-base !bg-slate-50 !text-slate-900 border-slate-300 focus:!border-black outline-none shadow-inner p-4 sm:p-5 transition-all font-bold" placeholder="ระบุเหตุผลในการแก้ไขครั้งนี้..." value={updateModal.reason} onChange={(e) => setUpdateModal({...updateModal, reason: e.target.value})}></textarea>
+           <h3 className="text-xl sm:text-2xl font-bold text-center mb-2 !text-slate-900 tracking-tight">ยืนยัน{updateModal.title}?</h3>
+           <p className="text-slate-600 text-sm sm:text-base text-center mb-6 sm:mb-8 font-bold leading-relaxed">{updateModal.type === 'restore' ? "ข้อมูลจะกลับมาแสดงผลในระบบตามปกติ" : "กรุณาระบุรายละเอียดการแก้ไขเพื่อบันทึก Log การเข้าถึงข้อมูล"}</p>
+           <textarea className="textarea textarea-bordered w-full rounded-2xl sm:rounded-3xl min-h-[100px] sm:min-h-[120px] mb-6 sm:mb-8 font-bold text-sm sm:text-base !bg-slate-50 !text-slate-900 border-slate-300 focus:!border-black outline-none shadow-inner p-4 sm:p-5 transition-all" placeholder="ระบุเหตุผลในการแก้ไขครั้งนี้..." value={updateModal.reason} onChange={(e) => setUpdateModal({...updateModal, reason: e.target.value})}></textarea>
            <div className="flex gap-3 sm:gap-4">
              <button 
                onClick={handleIndividualUpdate} 
                disabled={isSearching || !updateModal.reason.trim()} 
-               className={`btn flex-1 rounded-xl sm:rounded-2xl font-bold uppercase tracking-widest !text-white border-none shadow-xl h-12 sm:h-14 transition-all font-bold !bg-[#00945e] hover:!bg-[#007a4d] disabled:!bg-slate-300 disabled:!text-slate-500 text-xs sm:text-sm`}
+               className={`btn flex-1 rounded-xl sm:rounded-2xl font-bold uppercase tracking-widest !text-white border-none shadow-xl h-12 sm:h-14 transition-all !bg-[#00945e] hover:!bg-[#007a4d] disabled:!bg-slate-300 disabled:!text-slate-500 text-xs sm:text-sm`}
              >
                {isSearching ? <Loader2 className="animate-spin" /> : "ยืนยัน"}
              </button>
@@ -1337,15 +1513,15 @@ export default function ManageOrgPage() {
              <X size={16} className="sm:w-6 sm:h-6" strokeWidth={3} />
            </button>
            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6 sm:mb-8 shadow-inner border border-red-100"><AlertCircle size={32} className="sm:w-10 sm:h-10" /></div>
-           <h3 className="text-xl sm:text-2xl font-bold text-center mb-2 !text-slate-900 tracking-tight font-bold">ยืนยันการลบหน่วยงาน?</h3>
-           <p className="text-slate-600 text-sm sm:text-base text-center mb-6 sm:mb-8 font-bold leading-relaxed font-bold">ข้อมูลจะถูกซ่อนจากระบบชั่วคราว แต่สามารถกู้คืนได้ภายหลังโดย Admin สูงสุด</p>
-           <textarea className="textarea textarea-bordered w-full rounded-2xl sm:rounded-3xl min-h-[100px] sm:min-h-[120px] mb-6 sm:mb-8 font-bold text-sm sm:text-base !bg-slate-50 !text-slate-900 border-slate-300 focus:!border-red-500 outline-none shadow-inner p-4 sm:p-5 transition-all font-bold" placeholder="ระบุสาเหตุการลบ..." value={deleteReason} onChange={(e) => setDeleteReason(e.target.value)}></textarea>
+           <h3 className="text-xl sm:text-2xl font-bold text-center mb-2 !text-slate-900 tracking-tight">ยืนยันการลบหน่วยงาน?</h3>
+           <p className="text-slate-600 text-sm sm:text-base text-center mb-6 sm:mb-8 font-bold leading-relaxed">ข้อมูลจะถูกซ่อนจากระบบชั่วคราว แต่สามารถกู้คืนได้ภายหลังโดย Admin สูงสุด</p>
+           <textarea className="textarea textarea-bordered w-full rounded-2xl sm:rounded-3xl min-h-[100px] sm:min-h-[120px] mb-6 sm:mb-8 font-bold text-sm sm:text-base !bg-slate-50 !text-slate-900 border-slate-300 focus:!border-red-500 outline-none shadow-inner p-4 sm:p-5 transition-all" placeholder="ระบุสาเหตุการลบ..." value={deleteReason} onChange={(e) => setDeleteReason(e.target.value)}></textarea>
            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-             <button onClick={() => setShowDeleteModal(false)} className="btn flex-1 rounded-xl sm:rounded-2xl font-bold uppercase tracking-widest !bg-rose-600 hover:!bg-rose-700 !text-white border-none h-12 sm:h-14 transition-all font-bold text-xs sm:text-sm order-2 sm:order-1">ยกเลิก</button>
+             <button onClick={() => setShowDeleteModal(false)} className="btn flex-1 rounded-xl sm:rounded-2xl font-bold uppercase tracking-widest !bg-rose-600 hover:!bg-rose-700 !text-white border-none h-12 sm:h-14 transition-all text-xs sm:text-sm order-2 sm:order-1">ยกเลิก</button>
              <button 
                onClick={() => handleDelete()} 
                disabled={!deleteReason.trim()}
-               className="btn flex-1 rounded-xl sm:rounded-2xl !bg-[#00945e] !text-white hover:!bg-[#007a4d] border-none font-bold uppercase tracking-widest shadow-xl h-12 sm:h-14 transition-all font-bold disabled:!bg-slate-300 disabled:!text-slate-500 text-xs sm:text-sm order-1 sm:order-2"
+               className="btn flex-1 rounded-xl sm:rounded-2xl !bg-[#00945e] !text-white hover:!bg-[#007a4d] border-none font-bold uppercase tracking-widest shadow-xl h-12 sm:h-14 transition-all disabled:!bg-slate-300 disabled:!text-slate-500 text-xs sm:text-sm order-1 sm:order-2"
              >
                ยืนยัน
              </button>
