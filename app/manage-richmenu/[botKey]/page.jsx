@@ -613,8 +613,8 @@ export default function RichMenuDashboard() {
       formData.append("menuName", menuName || `Menu_${botKey}`);
       formData.append("menuImage", selectedFile);
       // ส่ง Firebase UID ของผู้ใช้ที่ล็อกอินอยู่
-      if (user?.uid) {
-        formData.append("creatorId", user.uid);
+      if (user?.email) {
+        formData.append("creatorId", user.email); // ✅ ส่ง email แทน uid เพื่อ lookup ใน admin_system
       }
 
       // ✅ เพิ่มส่วนนี้: ส่งโครงสร้างปุ่ม (Action) ที่ตั้งค่าจากหน้าเว็บไปที่ API
@@ -875,10 +875,11 @@ export default function RichMenuDashboard() {
 
       console.log("Deleting menu:", { botKey, menuId }); // Debug
 
-      const response = await fetch("${API}?action=delete", {
+      const API_URL = process.env.NEXT_PUBLIC_RICHMENU_DASHBOARD_API_URL;
+      const response = await fetch(`${API_URL}?action=delete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ botKey, menuId }),
+        body: JSON.stringify({ botKey, menuId, current_admin_id: user?.email }), // ✅ ส่ง email
       });
 
       const data = await response.json();
