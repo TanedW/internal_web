@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Sidebar from "../components/sidebar";
-import { Search, Info, Loader2, CheckCircle2 } from "lucide-react";
+import { Search, Info, Loader2, CheckCircle2, Menu } from "lucide-react";
 import "./style.css";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebaseConfig";
@@ -74,9 +74,20 @@ export default function SearchOrgPage() {
       />
 
       <main
-        className={`flex-1 transition-all duration-300 pt-20 px-4 md:px-6 lg:p-8 ${isDesktopSidebarOpen ? "lg:ml-72" : "lg:ml-20"}`}
+        className={`transition-all duration-300 pt-16 lg:pt-0 ${isDesktopSidebarOpen ? "lg:pl-72" : "lg:pl-0"}`}
       >
-        <div className="container-custom">
+        {!isDesktopSidebarOpen && (
+        <div className="hidden lg:flex items-center gap-4 fixed top-8 left-8 z-30">
+          <button
+            onClick={() => setIsDesktopSidebarOpen(true)}
+            className="p-2 bg-white rounded-xl shadow-md border border-slate-200"
+          >
+            <Menu size={24} />
+          </button>
+        </div>
+      )}
+
+      <div className="container-custom py-8 px-4 md:px-6 lg:px-8 max-w-4xl mx-auto">
           <header className="header-section text-center mb-10">
             <h1 className="text-2xl md:text-3xl font-semibold text-blue-600 mb-2">
               ระบบตรวจสอบหน่วยงาน
