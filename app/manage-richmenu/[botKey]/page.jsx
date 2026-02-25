@@ -2742,6 +2742,14 @@ export default function RichMenuDashboard() {
                         count: auditLogs.length,
                       },
                       {
+                        key: "add_bot",
+                        label: "เพิ่มบอท",
+                        color: "#8B5CF6",
+                        bg: "#F5F3FF",
+                        count: auditLogs.filter((l) => l.action === "add_bot")
+                          .length,
+                      },
+                      {
                         key: "create_menu",
                         label: "สร้างเมนู",
                         color: "#3B82F6",
@@ -2767,14 +2775,6 @@ export default function RichMenuDashboard() {
                         count: auditLogs.filter(
                           (l) => l.action === "delete_menu",
                         ).length,
-                      },
-                      {
-                        key: "add_bot",
-                        label: "เพิ่มบอท",
-                        color: "#8B5CF6",
-                        bg: "#F5F3FF",
-                        count: auditLogs.filter((l) => l.action === "add_bot")
-                          .length,
                       },
                       {
                         key: "delete_bot",
