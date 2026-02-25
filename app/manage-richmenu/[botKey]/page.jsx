@@ -2729,30 +2729,30 @@ export default function RichMenuDashboard() {
                         count: auditLogs.length,
                       },
                       {
-                        key: "create_menu",
+                        key: "MENU_UPLOAD",
                         label: "สร้างเมนู",
                         color: "#3B82F6",
                         bg: "#EFF6FF",
                         count: auditLogs.filter(
-                          (l) => l.action === "create_menu",
+                          (l) => l.action === "MENU_UPLOAD",
                         ).length,
                       },
                       {
-                        key: "switch_menu",
+                        key: "MENU_SWITCH",
                         label: "เปลี่ยนเมนู",
                         color: "#F59E0B",
                         bg: "#FFFBEB",
                         count: auditLogs.filter(
-                          (l) => l.action === "switch_menu",
+                          (l) => l.action === "MENU_SWITCH",
                         ).length,
                       },
                       {
-                        key: "delete_menu",
+                        key: "MENU_DELETE",
                         label: "ลบเมนู",
                         color: "#EF4444",
                         bg: "#FEF2F2",
                         count: auditLogs.filter(
-                          (l) => l.action === "delete_menu",
+                          (l) => l.action === "MENU_DELETE",
                         ).length,
                       },
                       {
@@ -2902,29 +2902,53 @@ export default function RichMenuDashboard() {
                             bg: "#F5F3FF",
                             dot: "#8B5CF6",
                           },
-                          create_menu: {
-                            label: "สร้างเมนู",
-                            color: "#3B82F6",
-                            bg: "#EFF6FF",
-                            dot: "#3B82F6",
-                          },
-                          switch_menu: {
-                            label: "เปลี่ยนเมนู",
-                            color: "#F59E0B",
-                            bg: "#FFFBEB",
-                            dot: "#F59E0B",
-                          },
-                          delete_menu: {
-                            label: "ลบเมนู",
-                            color: "#EF4444",
-                            bg: "#FEF2F2",
-                            dot: "#EF4444",
-                          },
                           delete_bot: {
                             label: "ลบบอท",
                             color: "#DC2626",
                             bg: "#FFF1F2",
                             dot: "#DC2626",
+                          },
+                          MENU_UPLOAD: {
+                            label: "สร้างเมนู",
+                            color: "#3B82F6",
+                            bg: "#EFF6FF",
+                            dot: "#3B82F6",
+                          },
+                          MENU_UPLOAD_FAILED: {
+                            label: "สร้างเมนูล้มเหลว",
+                            color: "#F97316",
+                            bg: "#FFF7ED",
+                            dot: "#F97316",
+                          },
+                          MENU_SWITCH: {
+                            label: "เปลี่ยนเมนู",
+                            color: "#F59E0B",
+                            bg: "#FFFBEB",
+                            dot: "#F59E0B",
+                          },
+                          MENU_SWITCH_FAILED: {
+                            label: "เปลี่ยนเมนูล้มเหลว",
+                            color: "#F97316",
+                            bg: "#FFF7ED",
+                            dot: "#F97316",
+                          },
+                          MENU_DELETE: {
+                            label: "ลบเมนู",
+                            color: "#EF4444",
+                            bg: "#FEF2F2",
+                            dot: "#EF4444",
+                          },
+                          MENU_DELETE_FAILED: {
+                            label: "ลบเมนูล้มเหลว",
+                            color: "#F97316",
+                            bg: "#FFF7ED",
+                            dot: "#F97316",
+                          },
+                          MENU_SAVE_FLOW: {
+                            label: "บันทึก Flow",
+                            color: "#06B6D4",
+                            bg: "#ECFEFF",
+                            dot: "#06B6D4",
                           },
                         };
 
