@@ -23,164 +23,240 @@
   --php-bg-hover: #f1f5f9;
 }
 
-/* Dark Mode Variables — ตาม System Preference อัตโนมัติ */
+/* ============================================================
+   Dark Mode — อัตโนมัติตาม System (ไม่ต้องกดปุ่ม)
+   ============================================================ */
 @media (prefers-color-scheme: dark) {
+
+  /* ── CSS Variables ── */
   :root {
-    --php-primary: #06C755;
+    --php-primary:       #06C755;
     --php-primary-hover: #05a546;
-    --php-bg-card: #1e293b;
-    --php-text-main: #f1f5f9;
-    --php-text-sub: #94a3b8;
-    --php-border: #334155;
-    --php-danger: #ef4444;
-    --php-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    --php-radius: 12px;
-    --php-bg-main: #0f172a;
-    --php-bg-input: #334155;
-    --php-bg-hover: #475569;
+    --php-bg-card:       #1e293b;
+    --php-text-main:     #f1f5f9;
+    --php-text-sub:      #94a3b8;
+    --php-border:        #334155;
+    --php-danger:        #ef4444;
+    --php-shadow:        0 4px 12px rgba(0,0,0,0.3);
+    --php-radius:        12px;
+    --php-bg-main:       #0f172a;
+    --php-bg-input:      #334155;
+    --php-bg-hover:      #475569;
   }
 
-  body {
+  /* ── Base ── */
+  html, body {
+    background: #0f172a !important;
+    color: #f1f5f9;
+  }
+
+  /* ── Quick Action Buttons (3 ปุ่มทางลัดด้านบน) ── */
+  .php-qa-btn {
+    background: #1e293b !important;
+    color: #f1f5f9;
+  }
+  .php-qa-content h3 { color: #f1f5f9; }
+  .php-qa-content p  { color: #94a3b8; }
+  .php-qa-icon.green { background: #052e16; color: #4ade80; }
+  .php-qa-icon.blue  { background: #0c1a3a; color: #60a5fa; }
+  .php-qa-icon.amber { background: #2d1a00; color: #fbbf24; }
+
+  /* ── Cards ── */
+  .php-card              { background: #1e293b; }
+  .php-card-title        { color: #f1f5f9; }
+  .richmenu-editor-card  { background: #1e293b; border-color: #334155; }
+  .rich-menu-card        { background: #1e293b; border-color: #334155; }
+  .action-settings-card  { background: #1e293b; border-color: #334155; box-shadow: none; }
+  .action-settings-header {
     background: #0f172a;
-    color: #f1f5f9;
+    border-bottom-color: #334155;
+    color: #94a3b8;
   }
 
-  /* Cards */
-  .php-card { background: #1e293b; }
-  .php-qa-btn { background: #1e293b; }
-  .richmenu-editor-card { background: #1e293b; border-color: #334155; }
-  .rich-menu-card { background: #1e293b; border-color: #334155; }
-  .action-settings-card { background: #1e293b; border-color: #334155; box-shadow: none; }
-  .action-settings-header { background: #0f172a; border-bottom-color: #334155; }
-  .action-settings-body { background: #1e293b; }
-
-  /* Inputs */
+  /* ── Inputs ── */
   .php-input-field {
-    background-color: #334155;
-    border-color: #475569;
-    color: #f1f5f9;
+    background-color: #334155 !important;
+    border-color:     #475569 !important;
+    color:            #f1f5f9 !important;
   }
-  .php-input-field::placeholder { color: #64748b; }
+  .php-input-field::placeholder { color: #64748b !important; }
   .php-input-field:focus {
-    background-color: #1e293b;
-    border-color: #64748b;
-    box-shadow: 0 1px 3px 0 rgba(0,0,0,0.3);
+    background-color: #1e293b !important;
+    border-color:     #64748b !important;
   }
 
-  /* Upload Zone */
+  /* ── Upload Zone ── */
   .php-upload-zone {
-    background-color: #1e293b;
-    border-color: #334155;
+    background-color: #1e293b !important;
+    border-color:     #334155 !important;
   }
   .php-upload-zone:hover {
-    background-color: #0f2d1a;
-    border-color: #06C755;
+    background-color: #0f2d1a !important;
+    border-color:     #06C755 !important;
+  }
+  .php-upload-zone-active {
+    background-color: #0f2d1a !important;
+    border-color:     #06C755 !important;
   }
   .php-upload-icon-wrapper {
     background-color: #334155;
     color: #94a3b8;
   }
-  .php-upload-title { color: #f1f5f9; }
+  .php-upload-title    { color: #f1f5f9; }
   .php-upload-subtitle { color: #94a3b8; }
 
-  /* Template Selector */
+  /* ── Template Selector ── */
   .php-template-selector {
-    background-color: #334155;
-    border-color: #475569;
+    background-color: #334155 !important;
+    border-color:     #475569 !important;
   }
   .php-template-selector:hover {
-    background-color: #475569;
-    border-color: #64748b;
+    background-color: #475569 !important;
+    border-color:     #64748b !important;
   }
-  .php-template-name { color: #f1f5f9; }
+  .php-template-name { color: #f1f5f9 !important; }
 
-  /* Canvas */
+  /* ── Template Preview (area grid) ── */
+  .php-template-preview      { background-color: #0f172a; border-color: #334155; }
+  .php-template-area-border  { background-color: #1e293b; border-color: #475569; color: #64748b; }
+  .php-template-card-active .php-template-area-border {
+    border-color: #64748b;
+    background-color: #334155;
+  }
+
+  /* ── Canvas ── */
   .canvas-container { background-color: #0f172a; }
-  .canvas-toolbar { background-color: #1e293b; border-bottom-color: #334155; }
+  .canvas-toolbar {
+    background-color: #1e293b;
+    border-bottom-color: #334155;
+    color: #f1f5f9;
+  }
   .canvas-viewport { background-color: #0f172a; }
 
-  /* Chat Bar */
+  /* ── Area Grid (canvas overlay) ── */
+  .area-grid-item         { border-color: rgba(255,255,255,0.2); }
+  .area-grid-item:hover   { background-color: rgba(6,199,85,0.08); }
+  .area-badge             { background: rgba(0,0,0,0.6); color: #fff; }
+  .area-grid-item.active .area-badge { background-color: #06C755; }
+
+  /* ── Chat Bar ── */
   .php-chatbar {
-    background-color: #1e293b;
-    color: #94a3b8;
-    border-top-color: #334155;
+    background-color: #1e293b !important;
+    color:            #94a3b8 !important;
+    border-top-color: #334155 !important;
   }
 
-  /* Modal */
-  .php-modal-content { background: #1e293b; }
-  .php-modal-header { background: #0f172a; }
-  .php-modal-footer { background: #0f172a; border-top-color: #334155; }
+  /* ── Alert ── */
+  .php-alert-success {
+    background-color: #052e16;
+    color:            #4ade80;
+    border-color:     #166534;
+  }
+
+  /* ── Modal: Audit Log ── */
+  .php-modal-content  { background: #1e293b; }
+  .php-modal-header   { background: #0f172a; color: #f1f5f9; }
+  .php-modal-header h3 { color: #f1f5f9; }
+  .php-modal-close    { color: #64748b; }
+  .php-modal-close:hover { background: #334155; color: #f1f5f9; }
+  .php-modal-footer   { background: #0f172a; border-top-color: #334155; }
   .php-btn-close-modal {
     background: #1e293b;
     border-color: #475569;
     color: #cbd5e1;
   }
-  .php-btn-close-modal:hover { background: #334155; }
+  .php-btn-close-modal:hover { background: #334155; color: #f1f5f9; }
 
-  /* JSON Modal */
+  /* Log items */
+  .php-log-item      { border-bottom-color: #334155; }
+  .php-log-icon      { background: #334155; color: #94a3b8; }
+  .php-log-user      { color: #f1f5f9; }
+  .php-log-time      { color: #64748b; }
+  .php-log-action    { color: #f1f5f9; }
+  .php-log-detail    { color: #94a3b8; }
+
+  /* ── Modal: JSON Viewer ── */
   .php-json-modal-content { background: #1e293b; }
-  .php-json-summary { background: #0f172a; border-bottom-color: #334155; }
+  .php-json-summary  {
+    background:    #0f172a;
+    border-bottom-color: #334155;
+  }
   .php-json-info-row { border-bottom-color: #334155; }
-  .php-json-label { color: #94a3b8; }
-  .php-json-value { color: #f1f5f9; }
+  .php-json-label    { color: #94a3b8; }
+  .php-json-value    { color: #f1f5f9; }
   .php-json-value-mono {
-    background: #334155;
-    color: #cbd5e1;
+    background:   #334155;
+    color:        #cbd5e1;
     border-color: #475569;
   }
 
-  /* Buttons */
-  .php-btn-secondary {
-    background-color: #1e293b;
-    border-color: #334155;
-    color: #94a3b8;
-  }
-  .php-btn-secondary:hover {
-    background-color: #334155;
-    color: #06C755;
-    border-color: #06C755;
-  }
-  .btn-menu-disabled {
-    background: #334155;
-    color: #64748b;
-    border-color: #475569;
-  }
+  /* ── Menu Status / Badges ── */
+  .php-menu-item     { background: #1e293b; border-color: #334155; }
+  .php-menu-id       { background: #334155; color: #94a3b8; }
+  .php-menu-details h3 { color: #f1f5f9; }
+  .php-menu-details p  { color: #94a3b8; }
+  .php-status-active   { background: #052e16; color: #4ade80; }
+  .php-status-inactive { background: #334155; color: #94a3b8; }
+  .php-menu-img-placeholder { color: #475569; }
+
+  /* ── Rich Menu Cards ── */
+  .rich-menu-card h3     { color: #f1f5f9; }
+  .rich-menu-card p      { color: #94a3b8; }
+  .rich-menu-card .font-mono { color: #64748b; }
+
+  /* ── Action Buttons ── */
   .btn-menu-switch {
-    background: #052e16;
-    color: #4ade80;
+    background:   #052e16;
+    color:        #4ade80;
     border-color: #166534;
   }
   .btn-menu-switch:hover { background: #14532d; }
+
   .btn-menu-delete {
-    background: #2d0a0a;
-    color: #f87171;
+    background:   #2d0a0a;
+    color:        #f87171;
     border-color: #7f1d1d;
   }
   .btn-menu-delete:hover { background: #450a0a; }
 
-  /* Quick Action Icons */
-  .php-qa-icon.green { background: #052e16; color: #4ade80; }
-  .php-qa-icon.blue  { background: #0c1a3a; color: #60a5fa; }
-  .php-qa-icon.amber { background: #2d1a00; color: #fbbf24; }
+  .btn-menu-disabled {
+    background:   #334155;
+    color:        #64748b;
+    border-color: #475569;
+  }
 
-  /* Empty State */
+  .php-btn-switch  { background: #0c1a3a; color: #60a5fa; }
+  .php-btn-delete  { background: #2d0a0a; color: #f87171; }
+  .php-btn-disabled { background: #334155; color: #64748b; }
+
+  /* ── Secondary Button / ดูเพิ่มเติม ── */
+  .php-btn-secondary {
+    background-color: #1e293b !important;
+    border-color:     #334155 !important;
+    color:            #94a3b8 !important;
+  }
+  .php-btn-secondary:hover {
+    background-color: #334155 !important;
+    color:            #06C755 !important;
+    border-color:     #06C755 !important;
+  }
+
+  /* ── Empty State ── */
   .php-empty-state {
-    background: #0f172a;
+    background:   #0f172a;
     border-color: #334155;
-    color: #94a3b8;
+    color:        #64748b;
   }
 
-  /* Alert */
-  .php-alert-success {
-    background-color: #052e16;
-    color: #4ade80;
-    border-color: #166534;
-  }
+  /* ── Nav back link ── */
+  .php-btn-back { color: #64748b; }
+  .php-btn-back:hover { color: #06C755; }
 
-  /* Menu items (legacy) */
-  .php-menu-item { background: #1e293b; border-color: #334155; }
-  .php-menu-id { background: #334155; color: #94a3b8; }
-  .php-status-inactive { background: #334155; color: #94a3b8; }
+  /* ── Scrollbar ── */
+  * { scrollbar-color: #475569 #1e293b; }
+  *::-webkit-scrollbar-track  { background: #1e293b; }
+  *::-webkit-scrollbar-thumb  { background: #475569; border-radius: 4px; }
+  *::-webkit-scrollbar-thumb:hover { background: #64748b; }
 }
 
 .php-theme {

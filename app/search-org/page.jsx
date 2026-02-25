@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Sidebar from "../components/sidebar";
-import { Search, Info, Loader2, CheckCircle2, Menu } from "lucide-react";
+import { Loader2, CheckCircle2, Menu } from "lucide-react";
 import "./style.css";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebaseConfig";
@@ -44,7 +44,6 @@ export default function SearchOrgPage() {
       }
       if (!res.ok) throw new Error(data.message || "ไม่สามารถเชื่อมต่อได้");
 
-      // เรียงลำดับตามคะแนนความคล้ายคลึงจากมากไปน้อย (Descending)
       const sortedData = (data.data || []).sort(
         (a, b) =>
           parseFloat(b.similarity_score) - parseFloat(a.similarity_score),
@@ -67,44 +66,39 @@ export default function SearchOrgPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
+    <div className="so-root">
       <Sidebar
         isDesktopSidebarOpen={isDesktopSidebarOpen}
         setIsDesktopSidebarOpen={setIsDesktopSidebarOpen}
       />
 
-      <main
-        className={`transition-all duration-300 pt-16 lg:pt-0 ${isDesktopSidebarOpen ? "lg:pl-72" : "lg:pl-0"}`}
-      >
-        {!isDesktopSidebarOpen && (
-        <div className="hidden lg:flex items-center gap-4 fixed top-8 left-8 z-30">
+      {/* Sidebar toggle — desktop only */}
+      {!isDesktopSidebarOpen && (
+        <div className="so-sidebar-toggle">
           <button
             onClick={() => setIsDesktopSidebarOpen(true)}
-            className="p-2 bg-white rounded-xl shadow-md border border-slate-200"
+            className="so-toggle-btn"
           >
-            <Menu size={24} />
+            <Menu size={22} />
           </button>
         </div>
       )}
 
-      <div className="container-custom py-8 px-4 md:px-6 lg:px-8 max-w-4xl mx-auto">
-          <header className="header-section text-center mb-10">
-            <h1 className="text-2xl md:text-3xl font-semibold text-blue-600 mb-2">
-              ระบบตรวจสอบหน่วยงาน
-            </h1>
-            <p className="text-slate-500">
-              ค้นหาและเปรียบเทียบชื่อที่คล้ายคลึงกันในฐานข้อมูล
-            </p>
+      <main className={`so-main ${isDesktopSidebarOpen ? "so-main--shifted" : ""}`}>
+        <div className="so-wrapper">
+
+          {/* Header */}
+          <header className="so-header">
+            <h1 className="so-title">ระบบตรวจสอบหน่วยงาน</h1>
+            <p className="so-subtitle">ค้นหาและเปรียบเทียบชื่อที่คล้ายคลึงกันในฐานข้อมูล</p>
           </header>
 
-          <div className="search-card bg-white p-6 md:p-8 rounded-2xl shadow-sm mb-8">
-            <form
-              onSubmit={handleSearch}
-              className="flex flex-col sm:flex-row gap-3"
-            >
+          {/* Search Card */}
+          <div className="so-search-card">
+            <form onSubmit={handleSearch} className="so-form">
               <input
                 type="text"
-                className="flex-1 p-4 border-2 border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all"
+                className="so-input"
                 placeholder="พิมพ์ชื่อหน่วยงานที่ต้องการตรวจสอบ..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -113,10 +107,10 @@ export default function SearchOrgPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="px-8 py-4 sm:py-0 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all disabled:bg-slate-300 flex justify-center items-center"
+                className="so-btn-search"
               >
                 {isLoading ? (
-                  <Loader2 className="animate-spin" />
+                  <Loader2 size={20} className="animate-spin" />
                 ) : (
                   "ตรวจสอบชื่อ"
                 )}
@@ -124,38 +118,31 @@ export default function SearchOrgPage() {
             </form>
           </div>
 
-          <div id="resultsArea">
+          {/* Results Area */}
+          <div className="so-results">
+
+            {/* Error */}
             {error && (
-              <div className="text-red-500 text-center p-4 bg-red-50 rounded-xl mb-4">
-                ขออภัย: {error}
-              </div>
+              <div className="so-error">ขออภัย: {error}</div>
             )}
 
+            {/* Legend */}
             {pagination && (
-              <div className="mb-4">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="font-semibold text-slate-700">
-                    พบ {pagination.total_records} รายการที่คล้ายคลึง
-                  </span>
-                </div>
-                <div className="flex gap-4 text-xs text-slate-500 flex-wrap bg-slate-100 p-3 rounded-lg">
-                  <span>คำอธิบาย:</span>
-                  <span>
-                    <span className="text-warning-label">สีส้ม</span>{" "}
-                    ตัวอักษรคล้าย
-                  </span>
-                  <span>
-                    <span className="text-danger-label">สีแดง</span>{" "}
-                    ตัวอักษรที่พิมพ์ผิด
-                  </span>
-                  <span>
-                    <del>ข้อความ</del> หน่วยงานที่ถูกลบ
-                  </span>
+              <div className="so-legend-wrap">
+                <p className="so-result-count">
+                  พบ <strong>{pagination.total_records}</strong> รายการที่คล้ายคลึง
+                </p>
+                <div className="so-legend">
+                  <span className="so-legend-label">คำอธิบาย:</span>
+                  <span><span className="text-warning-label">สีส้ม</span> ตัวอักษรคล้าย</span>
+                  <span><span className="text-danger-label">สีแดง</span> ตัวอักษรที่พิมพ์ผิด</span>
+                  <span><del>ข้อความ</del> หน่วยงานที่ถูกลบ</span>
                 </div>
               </div>
             )}
 
-            <ul className="grid gap-4 list-none p-0">
+            {/* Result List */}
+            <ul className="so-list">
               {results.map((item) => {
                 const scoreInfo = getScoreStyle(item.similarity_score);
                 const isDeleted = !!item.deleted_at;
@@ -163,47 +150,38 @@ export default function SearchOrgPage() {
                 return (
                   <li
                     key={item.id}
-                    className={`result-item bg-white p-5 rounded-xl border border-slate-200 flex flex-col sm:flex-row justify-between items-start gap-4 transition-all hover:shadow-md ${isDeleted ? "is-deleted" : ""}`}
+                    className={`so-item ${isDeleted ? "is-deleted" : ""}`}
                   >
-                    <div className="org-info flex-1">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <div className="so-item-info">
+                      <div className="so-item-name-row">
                         <span
-                          className="org-name text-lg font-medium"
+                          className="org-name"
                           dangerouslySetInnerHTML={{
                             __html: item.highlighted_name || item.name,
                           }}
                         />
                         {item.tag_type && (
                           <span className="badge badge-official">
-                            <CheckCircle2 size={14} className="text-blue-500" />{" "}
-                            บัญชีทางการ
+                            <CheckCircle2 size={12} /> บัญชีทางการ
                           </span>
                         )}
                         {isDeleted && (
                           <span className="badge badge-deleted">
                             🗑 ลบเมื่อ{" "}
-                            {new Date(item.deleted_at).toLocaleDateString(
-                              "th-TH",
-                              {
-                                day: "numeric",
-                                month: "short",
-                                year: "2-digit",
-                              },
-                            )}
+                            {new Date(item.deleted_at).toLocaleDateString("th-TH", {
+                              day: "numeric",
+                              month: "short",
+                              year: "2-digit",
+                            })}
                           </span>
                         )}
                       </div>
-                      <span className="text-sm text-slate-400">
-                        ID: {item.id}
-                      </span>
+                      <span className="so-item-id">ID: {item.id}</span>
                     </div>
-                    <div className="score-container text-left sm:text-right w-full sm:w-auto sm:min-w-[130px] mt-3 sm:mt-0">
-                      <span className="block text-[10px] text-slate-400 uppercase font-bold mb-1">
-                        คะแนนความคล้าย
-                      </span>
-                      <span
-                        className={`score-badge px-3 py-1 rounded-full text-sm font-bold ${scoreInfo.class}`}
-                      >
+
+                    <div className="so-item-score">
+                      <span className="so-score-label">คะแนนความคล้าย</span>
+                      <span className={`score-badge ${scoreInfo.class}`}>
                         {(parseFloat(item.similarity_score) * 100).toFixed(0)}%{" "}
                         {scoreInfo.text}
                       </span>
@@ -213,7 +191,7 @@ export default function SearchOrgPage() {
               })}
 
               {!isLoading && results.length === 0 && !error && (
-                <div className="text-center p-10 text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200">
+                <div className="so-empty">
                   {searchTerm
                     ? "ไม่พบข้อมูลที่ซ้ำกัน คุณสามารถใช้ชื่อนี้ได้"
                     : "กรุณากรอกชื่อหน่วยงานเพื่อเริ่มการค้นหา"}
@@ -221,6 +199,7 @@ export default function SearchOrgPage() {
               )}
             </ul>
           </div>
+
         </div>
       </main>
     </div>
