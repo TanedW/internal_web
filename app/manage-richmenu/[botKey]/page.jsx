@@ -3125,7 +3125,6 @@ export default function RichMenuDashboard() {
                                     fontWeight: 600,
                                   }}
                                 >
-                                  {log.admin_name || log.bot_name || "—"}
                                 </span>
                               </div>
                             </div>
