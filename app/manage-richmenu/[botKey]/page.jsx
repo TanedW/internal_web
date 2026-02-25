@@ -2684,19 +2684,7 @@ export default function RichMenuDashboard() {
                         >
                           ประวัติการใช้งาน
                         </div>
-                        <div
-                          style={{
-                            color: "rgba(255,255,255,0.7)",
-                            fontSize: 10,
-                            fontFamily: "monospace",
-                            marginTop: 1,
-                            maxWidth: "55vw",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                        </div>
+
                       </div>
                     </div>
                     <button
