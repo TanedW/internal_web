@@ -932,14 +932,14 @@ export default function ManageOrgPage() {
                                      <div className="relative mb-4 sm:mb-5">
                                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-[4px] sm:border-[6px] border-white shadow-xl transition-all duration-500 group-hover:scale-105 bg-slate-100 flex items-center justify-center">
                                          {staff.picture_profile ? (
-                                           <img src={staff.picture_profile} className="w-full h-full object-cover" alt={staff.member_name} />
+                                           <img src={staff.picture_profile} className="w-full h-full object-cover" alt={staff.member_firstname} />
                                          ) : (
                                            <UserCircle2 size={40} className="text-slate-300" />
                                          )}
                                      </div>
                                      <div className="absolute bottom-1 right-1 w-5 h-5 sm:w-6 sm:h-6 bg-[#00945e] border-[3px] sm:border-4 border-white rounded-full shadow-lg"></div>
                                      </div>
-                                     <h4 className="font-bold text-base sm:text-lg text-slate-900 mb-2 tracking-tight w-full text-center truncate px-2">{staff.member_name}</h4>
+                                     <h4 className="font-bold text-base sm:text-lg text-slate-900 mb-2 tracking-tight w-full text-center truncate px-2">{staff.member_firstname} {staff.member_lastname}</h4>
                                      
                                      <div className="flex items-center gap-1.5 mb-6 px-4 py-1 bg-[#f1f5f9] rounded-full">
                                          <Shield size={12} className="text-slate-700" strokeWidth={2.5} />
