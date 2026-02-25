@@ -30,12 +30,18 @@ export default function SearchOrgPage() {
     setError(null);
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_PROXY_SEARCH_ORG_API_URL;
       const res = await fetch(
-        `${baseUrl}?search=${encodeURIComponent(searchTerm)}&limit=20&threshold=0.1`,
+        `https://internal-web-api-y4if.vercel.app/src/proxy-search-org/search-org?search=${encodeURIComponent(searchTerm)}&limit=20&threshold=0.1`,
       );
 
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error("Backend returned non-JSON:", text.slice(0, 300));
+        throw new Error("Backend ตอบกลับผิดพลาด — route อาจไม่ถูกต้อง");
+      }
       if (!res.ok) throw new Error(data.message || "ไม่สามารถเชื่อมต่อได้");
 
       // เรียงลำดับตามคะแนนความคล้ายคลึงจากมากไปน้อย (Descending)
