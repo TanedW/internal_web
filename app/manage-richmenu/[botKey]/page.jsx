@@ -464,15 +464,19 @@ export default function RichMenuDashboard() {
         return;
       }
 
-      const currentRes = await fetch(
-        `${API}?action=current&botKey=${botKey}`,
-      );
-      const currentData = await currentRes.json();
+      // เรียก current และ list พร้อมกัน (parallel) แทนที่จะรอทีละอัน
+      const [currentRes, listRes] = await Promise.all([
+        fetch(`${API}?action=current&botKey=${botKey}`),
+        fetch(`${API}?action=list&botKey=${botKey}`),
+      ]);
+
+      const [currentData, listData] = await Promise.all([
+        currentRes.json(),
+        listRes.json(),
+      ]);
+
       const activeId = currentData.currentMenuId || null;
       setCurrentMenuId(activeId);
-
-      const listRes = await fetch(`${API}?action=list&botKey=${botKey}`);
-      const listData = await listRes.json();
 
       if (listData.richmenus && Array.isArray(listData.richmenus)) {
         const sorted = [...listData.richmenus].sort((a, b) => {
