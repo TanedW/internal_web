@@ -196,23 +196,15 @@ export default function RichMenuHome() {
         setBots(botsData);
         setIsRefreshing(false); // ปิด loading indicator เร็วขึ้น
         
-        // โหลดข้อมูลเมนูและรูปภาพทีหลัง (parallel)
+        // โหลด currentMenuId และ imageUrl ของทุกบอทพร้อมกัน
+        // (ไม่ sync ทุกครั้ง — sync เฉพาะตอนกดปุ่ม sync)
         const results = await Promise.all(
           botsData.map(async (bot) => {
             try {
-              // Sync menus (background - ไม่ต้องรอ)
-              fetch(`${API}?action=sync`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ botKey: bot.key, creatorId: "system" }),
-              }).catch(err => console.error(`Sync error for ${bot.key}:`, err));
-
-              // ดึง currentMenuId และ imageUrl
               const menuRes = await fetch(
                 `${API}?action=current&botKey=${encodeURIComponent(bot.key)}`,
               );
               const menuData = await menuRes.json();
-              
               return {
                 botKey: bot.key,
                 currentMenuId: menuData.currentMenuId || null,
