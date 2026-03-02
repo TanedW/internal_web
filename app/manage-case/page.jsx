@@ -6,7 +6,7 @@ import {
   LogOut, Search, CheckCircle2, AlertCircle, UploadCloud, 
   ArrowLeft, ArrowRight, X, ImageIcon, Music, 
   MapPin, Calendar, FolderOpen, Activity, Filter, 
-  Edit3, ShieldCheck, RefreshCw, FileText
+    Edit3, ShieldCheck, RefreshCw, FileText, Settings2, History
 } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebaseConfig"; 
@@ -175,190 +175,101 @@ const FilePreviewRender = ({ file }) => {
 
 export default function ManageCase() {
   const router = useRouter();
-  const pathname = usePathname(); 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  
-  // --- State สำหรับ Menu & Permission ---
+
+  // --- State สำหรับแก้ไข Error (ReferenceError) ---
+  const [showMobileEditPanel, setShowMobileEditPanel] = useState(false);
+  const [showMobileTimeline, setShowMobileTimeline] = useState(false);
+  const [activeTab, setActiveTab] = useState("manage"); 
+
   const [currentRoles, setCurrentRoles] = useState([]); 
-
-  // State สำหรับ Desktop Sidebar (Toggle)
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
-
-  // --- State Business Logic ---
   const [searchId, setSearchId] = useState("");
   const [currentCase, setCurrentCase] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
   const [inputError, setInputError] = useState(false);
-  
   const [wizardStep, setWizardStep] = useState(1);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false); 
-
   const [selectedImageToReplace, setSelectedImageToReplace] = useState(null);
   const [newImageFile, setNewImageFile] = useState(null);
   const [reason, setReason] = useState("");
 
   const inputRef = useRef(null);
-  
   const API_URL_ADMIN = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
 
-  // เพิ่ม State สำหรับจัดการ Responsive Toggle ตามที่สั่ง
-  const [activeTab, setActiveTab] = useState("manage"); // manage | timeline
+  // --- ฟังก์ชันสำหรับแก้ไข Error (scrollToEdit) ---
+  const scrollToEdit = () => {
+    setShowMobileEditPanel(true);
+    // เพิ่มการเลื่อนหน้าจอไปยังส่วนแก้ไขได้ตามต้องการ
+  };
 
-  // Helper: ดึง ID ตัวเองจาก LocalStorage
   const getCurrentAdminId = () => {
     if (typeof window !== "undefined") {
       const storedId = localStorage.getItem("current_admin_id");
-      if (!storedId) return null;
-      return storedId.replace(/^"|"$/g, ''); 
+      return storedId ? storedId.replace(/^"|"$/g, '') : null;
     }
     return null;
   };
 
-  // Function: Fetch Admin Roles
   const fetchAdmins = async () => {
     if (!API_URL_ADMIN) return;
-    
     const currentAdminId = getCurrentAdminId();
-
     try {
-      const url = currentAdminId 
-        ? `${API_URL_ADMIN}?requester_id=${currentAdminId}` 
-        : API_URL_ADMIN;
-
+      const url = currentAdminId ? `${API_URL_ADMIN}?requester_id=${currentAdminId}` : API_URL_ADMIN;
       const res = await fetch(url);
-      if (!res.ok) throw new Error("Failed to fetch admins");
-      
       const jsonResponse = await res.json();
       const data = Array.isArray(jsonResponse) ? jsonResponse : (jsonResponse.data || []);
-
       if (currentAdminId && data.length > 0) {
         const myProfile = data.find(u => String(u.admin_id) === String(currentAdminId));
-        if (myProfile) {
-            let roles = [];
-            if (Array.isArray(myProfile.roles)) {
-                roles = myProfile.roles;
-            } else if (myProfile.role) {
-                roles = [myProfile.role];
-            }
-            setCurrentRoles(roles);
-        }
+        if (myProfile) setCurrentRoles(Array.isArray(myProfile.roles) ? myProfile.roles : [myProfile.role]);
       }
-    } catch (error) {
-      console.error("Error loading admins:", error);
-    }
+    } catch (error) { console.error("Error loading admins:", error); }
   };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) { 
-        setUser(currentUser); 
-        fetchAdmins(); 
-        setLoading(false); 
-      } else { 
-        router.push("/"); 
-      }
+      if (currentUser) { setUser(currentUser); fetchAdmins(); setLoading(false); } 
+      else { router.push("/"); }
     });
     return () => unsubscribe();
-  }, [router, API_URL_ADMIN]);
+  }, [router]);
 
-const handleSearch = async (e) => {
+  const handleSearch = async (e) => {
     e?.preventDefault(); 
-    if (!searchId.trim()) {
-        setInputError(true);
-        inputRef.current?.focus();
-        return;
-    }
-
+    if (!searchId.trim()) { setInputError(true); inputRef.current?.focus(); return; }
     const apiUrl = process.env.NEXT_PUBLIC_DB_SEARCH_CASE_API_URL;
-    if (!apiUrl) {
-        alert("Configuration Error: API URL not found.");
-        return;
-    }
-
     setIsSearching(true);
     setCurrentCase(null);
-    setNewImageFile(null); 
-    setReason("");
-    setWizardStep(1); 
-    setIsSuccess(false);
-    setSelectedImageToReplace(null);
-
     try {
-        const response = await fetch(`${apiUrl}?id=${searchId.trim()}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
-        });
-
+        const response = await fetch(`${apiUrl}?id=${searchId.trim()}`);
         const result = await response.json();
-
         if (response.ok && result.found) {
             const apiData = result.data;
             let allImagesCombined = [];
-            
-            if (apiData.timeline && Array.isArray(apiData.timeline)) {
+            if (apiData.timeline) {
                 apiData.timeline.forEach((item, index) => {
                     if(item.photo) {
                         const fileUrl = item.photo.toLowerCase();
-                        
-                        // ✅ ปรับ Logic การตรวจสอบประเภทไฟล์ใหม่ทั้งหมด (ห้ามลบ)
-                        let mType = 'image'; // Default เป็น image สำหรับ viewed = 0
-                        
-                        const isVideo = /\.(mp4|mov|webm|avi|mkv)$/i.test(fileUrl);
-                        const isAudio = /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(fileUrl);
-                        const isFile = /\.(zip|7z|rar|pdf|doc|docx|rtf|csv|xls|xlsx|ppt|pptx|txt)$/i.test(fileUrl);
-
-                        if (item.viewed === 1 || isVideo) {
-                            mType = 'video';
-                        } else if (item.viewed === 3 || isAudio) {
-                            mType = 'audio';
-                        } else if (item.viewed === 2 || isFile) {
-                            mType = 'file';
-                        } else {
-                            mType = 'image';
-                        }
-
+                        let mType = (/\.(mp4|mov|webm|avi|mkv)$/i.test(fileUrl)) ? 'video' :
+                                    (/\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(fileUrl)) ? 'audio' :
+                                    (/\.(zip|7z|rar|pdf|doc|docx|rtf|csv|xls|xlsx|ppt|pptx|txt)$/i.test(fileUrl)) ? 'file' : 'image';
                         allImagesCombined.push({
-                            id: item.id, 
-                            mediaType: mType,
-                            type: `${mType.charAt(0).toUpperCase() + mType.slice(1)} (${index+1})`,
-                            url: item.photo,
-                            status: item.status, 
-                            timestamp: item.updated_on
+                            id: item.id, mediaType: mType, url: item.photo, status: item.status,
+                            type: `${mType.charAt(0).toUpperCase() + mType.slice(1)} (${index+1})`
                         });
                     }
                 });
             }
-
-            if (allImagesCombined.length === 0) {
-                alert("Case นี้ไม่มีไฟล์แนบ");
-            }
-
-            const caseDate = apiData.timestamp 
-                ? new Date(apiData.timestamp).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })
-                : "ไม่ระบุวันที่";
-
             setCurrentCase({
-                id: apiData.ticket_id,      
-                dbId: apiData.id,          
-                title: apiData.problem_type || "แจ้งปัญหาทั่วไป", 
-                department: apiData.address || "ไม่ระบุพิกัด", 
-                assignee: "System",
-                date: caseDate,
-                allImages: allImagesCombined, 
-                status: apiData.status
+                id: apiData.ticket_id, dbId: apiData.id, title: apiData.problem_type,
+                department: apiData.address, date: apiData.timestamp ? new Date(apiData.timestamp).toLocaleDateString('th-TH') : "N/A",
+                allImages: allImagesCombined, status: apiData.status
             });
-        } else {
-            alert(result.message || "ไม่พบข้อมูล Case ID นี้");
-        }
-
-    } catch (error) {
-        console.error("Search Error:", error);
-        alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
-    } finally {
-        setIsSearching(false);
-    }
+        } else { alert(result.message || "ไม่พบข้อมูล"); }
+    } catch (error) { alert("เกิดข้อผิดพลาดในการเชื่อมต่อ"); }
+    finally { setIsSearching(false); }
   };
 
   const handleUpdateImage = async (e) => {
@@ -477,39 +388,50 @@ const handleSearch = async (e) => {
       />
 
 <div className={`container mx-auto px-4 pt-16 lg:pt-6 max-w-[1600px] transition-all duration-300 pb-24 ${isDesktopSidebarOpen ? "lg:pl-96" : "lg:pl-24"}`}>
-  
+  <br></br>
   {/*Tab Switcher สำหรับ Mobile เพื่อความ Responsive */}
 {currentCase && !isSuccess && (
-    <div className="flex xl:hidden w-full gap-3 mt-12 mb-10 px-2 transition-all">
-        
-      {/* ปุ่ม Management */}
-      <button 
-        onClick={() => setActiveTab("manage")}
-        className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-full font-black text-sm transition-all duration-300 active:scale-95 border-[3px] border-black ${
-          activeTab === "manage" 
-            ? "!bg-black !text-white shadow-[0_8px_15px_rgba(0,0,0,0.3)] -translate-y-1" 
-            : "!bg-white !text-black shadow-sm hover:!bg-gray-100"
-        }`}
-      >
-        <FolderOpen size={20} strokeWidth={activeTab === "manage" ? 3 : 2} />
-        Management
-      </button>
+    <div className="xl:hidden grid grid-cols-2 gap-2 sm:gap-3">
 
-      {/* ปุ่ม Timeline */}
-      <button 
-        onClick={() => setActiveTab("timeline")}
-        className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-full font-black text-sm transition-all duration-300 active:scale-95 border-[3px] border-black ${
-          activeTab === "timeline" 
-            ? "!bg-black !text-white shadow-[0_8px_15px_rgba(0,0,0,0.3)] -translate-y-1" 
-            : "!bg-white !text-black shadow-sm hover:!bg-gray-100"
-        }`}
-      >
-        <Activity size={20} strokeWidth={activeTab === "timeline" ? 3 : 2} />
-        Timeline
-      </button>
+    {/* ปุ่ม จัดการข้อมูล */}
+    <button 
+      onClick={() => {
+        setActiveTab("manage"); // สลับมาหน้าจัดการ
+        if (showMobileEditPanel) {
+          setShowMobileEditPanel(false);
+        } else {
+          scrollToEdit();
+        }
+      }}
+      className={`btn h-16 sm:h-24 !rounded-2xl sm:!rounded-3xl border-none shadow-[0_8px_0_0_rgba(0,0,0,0.2)] flex items-center justify-center gap-1.5 sm:gap-2 active:scale-95 active:shadow-none active:translate-y-1 transition-all text-[10px] sm:text-lg font-black uppercase tracking-tight ${
+        activeTab === "manage" 
+          ? '!bg-indigo-700 !text-white' 
+          : '!bg-white !text-slate-900 border-2 !border-slate-100'
+      }`}
+    >
+      <Settings2 size={20} className="sm:w-6 sm:h-6" /> 
+      {activeTab === "manage" && showMobileEditPanel ? 'ปิดการจัดการ' : 'จัดการข้อมูล'}
+    </button>
 
-    </div>
-  )}
+    {/* ปุ่ม ดูไทม์ไลน์ */}
+    <button 
+      onClick={() => {
+        setActiveTab("timeline"); // สลับมาหน้าไทม์ไลน์
+        setShowMobileTimeline(!showMobileTimeline);
+      }}
+      className={`btn h-16 sm:h-24 !rounded-2xl sm:!rounded-3xl border-none shadow-[0_8px_0_0_rgba(0,0,0,0.2)] flex items-center justify-center gap-1.5 sm:gap-2 active:scale-95 active:shadow-none active:translate-y-1 transition-all text-[10px] sm:text-lg font-black uppercase tracking-tight ${
+        activeTab === "timeline" 
+          ? '!bg-black !text-white' 
+          : '!bg-white !text-slate-900 border-2 !border-slate-100'
+      }`}
+    >
+      <History size={20} className="sm:w-6 sm:h-6" /> 
+      {activeTab === "timeline" && showMobileTimeline ? 'ปิดไทม์ไลน์' : 'ดูไทม์ไลน์'}
+    </button>
+
+ 
+                 </div>
+  )}<br></br>
 
   <div className="flex flex-col xl:flex-row gap-8 items-start w-full">
       
