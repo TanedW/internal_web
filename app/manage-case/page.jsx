@@ -4,19 +4,15 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation"; 
 import { 
   LogOut, Search, CheckCircle2, AlertCircle, UploadCloud, 
-  ArrowLeft, ArrowRight, X, ImageIcon, Music, FileAudio, 
-  MapPin, Calendar, Users ,Mail, Briefcase, LayoutGrid, Menu,
-  // เพิ่ม icon สำหรับไทม์ไลน์
-  Activity, Filter, Edit3, ShieldCheck, RefreshCw, FileText
-} from "lucide-react"; 
-import Link from 'next/link';
-import { onAuthStateChanged, signOut } from "firebase/auth";
+  ArrowLeft, ArrowRight, X, ImageIcon, Music, 
+  MapPin, Calendar, FolderOpen, Activity, Filter, 
+  Edit3, ShieldCheck, RefreshCw, FileText
+} from "lucide-react";
+import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebaseConfig"; 
+import Sidebar from "../components/sidebar";
 
-// ✅ นำเข้า Sidebar จากไฟล์ภายนอกตามที่คุณต้องการ
-import Sidebar from "../components/sidebar"; 
-
-// --- Config: MIME Types ---
+// --- Config: MIME Types (ห้ามลบเด็ดขาด) ---
 const MIME_TYPE_MAP = {
   // Images
   'jpg': 'image/jpeg',
@@ -207,6 +203,9 @@ export default function ManageCase() {
   
   const API_URL_ADMIN = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
 
+  // เพิ่ม State สำหรับจัดการ Responsive Toggle ตามที่สั่ง
+  const [activeTab, setActiveTab] = useState("manage"); // manage | timeline
+
   // Helper: ดึง ID ตัวเองจาก LocalStorage
   const getCurrentAdminId = () => {
     if (typeof window !== "undefined") {
@@ -303,7 +302,7 @@ const handleSearch = async (e) => {
                     if(item.photo) {
                         const fileUrl = item.photo.toLowerCase();
                         
-                        // ✅ ปรับ Logic การตรวจสอบประเภทไฟล์ใหม่ทั้งหมด
+                        // ✅ ปรับ Logic การตรวจสอบประเภทไฟล์ใหม่ทั้งหมด (ห้ามลบ)
                         let mType = 'image'; // Default เป็น image สำหรับ viewed = 0
                         
                         const isVideo = /\.(mp4|mov|webm|avi|mkv)$/i.test(fileUrl);
@@ -413,7 +412,7 @@ const handleSearch = async (e) => {
         const result = await response.json();
 
         if (response.ok && result.photo_link) {
-        // ✅ นำ Logic จาก ManageOrgPage มาใช้ตรงนี้
+        // ✅ นำ Logic จาก ManageOrgPage มาใช้ตรงนี้ (ห้ามลบ)
         // ตัด Domain ออกเพื่อให้เหลือเฉพาะ Path เช่น attachment/case_123/file.jpg
         const relativePath = result.photo_link.replace(STORAGE_BASE_URL, "");
 
@@ -477,77 +476,109 @@ const handleSearch = async (e) => {
         setIsDesktopSidebarOpen={setIsDesktopSidebarOpen} 
       />
 
-      {/* ================= MAIN CONTENT ================= */}
-      <div className={`container mx-auto px-4 pt-24 lg:pt-8 max-w-[1600px] transition-all duration-300 pb-24 ${
-          isDesktopSidebarOpen ? "lg:pl-80" : "lg:pl-8"
-      }`}>
+<div className={`container mx-auto px-4 pt-16 lg:pt-6 max-w-[1600px] transition-all duration-300 pb-24 ${isDesktopSidebarOpen ? "lg:pl-96" : "lg:pl-24"}`}>
+  
+  {/*Tab Switcher สำหรับ Mobile เพื่อความ Responsive */}
+{currentCase && !isSuccess && (
+    <div className="flex xl:hidden w-full gap-3 mt-12 mb-10 px-2 transition-all">
         
-        {/* ================= โครงสร้างแบ่ง 2 คอลัมน์ (เนื้อหาซ้าย ไทม์ไลน์ขวา) ================= */}
-        <div className="flex flex-col xl:flex-row gap-8 items-start w-full">
-            
-            {/* คอลัมน์ซ้าย: เนื้อหาหลักเดิม */}
-            <div className="flex-1 w-full min-w-0">
-                {!currentCase && (
-                    <div className="flex flex-col justify-start relative w-full max-w-2xl mx-auto overflow-hidden rounded-3xl animate-fade-in pt-12 lg:mt-24">
-                        <div className="flex flex-col items-center text-center space-y-5 relative z-10 px-4">
-                            <div className="space-y-2 px-2">
-                                <p className="text-slate-500 dark:text-slate-500 text-sm lg:text-base max-w-md mx-auto leading-relaxed">
-                                    กรอกรหัส Ticket ID เพื่อค้นหาและแก้ไขรูปภาพ<br className="hidden sm:block"/> วิดีโอ หรือไฟล์เสียง (สำหรับ Admin)
-                                </p>
-                            </div>
+      {/* ปุ่ม Management */}
+      <button 
+        onClick={() => setActiveTab("manage")}
+        className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-full font-black text-sm transition-all duration-300 active:scale-95 border-[3px] border-black ${
+          activeTab === "manage" 
+            ? "!bg-black !text-white shadow-[0_8px_15px_rgba(0,0,0,0.3)] -translate-y-1" 
+            : "!bg-white !text-black shadow-sm hover:!bg-gray-100"
+        }`}
+      >
+        <FolderOpen size={20} strokeWidth={activeTab === "manage" ? 3 : 2} />
+        Management
+      </button>
 
-                            <div className="w-full relative max-w-lg mx-auto pb-4">
-                                <form 
-                                    onSubmit={handleSearch} 
-                                    className={`relative group transition-all duration-200 ${inputError ? '-translate-x-1' : 'translate-x-0'}`}
-                                >
-                                    <div className={`relative bg-white dark:bg-white rounded-full shadow-lg border-2 flex items-center p-1.5 lg:p-2 transition-all duration-300 ${inputError ? 'border-red-400 ring-4 ring-red-500/10' : 'border-indigo-50 hover:border-indigo-200 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10'}`}>
-                                        <div className={`pl-4 pr-3 transition-colors ${inputError ? 'text-red-500' : 'text-indigo-600'}`}>
-                                            <Search size={22} className="lg:w-6 lg:h-6" strokeWidth={2.5} />
-                                        </div>
-                                        <input
-                                            ref={inputRef}
-                                            type="text"
-                                            value={searchId}
-                                            onChange={(e) => {
-                                                setSearchId(e.target.value);
-                                                if(inputError) setInputError(false);
-                                            }}
-                                            className={`flex-1 bg-transparent border-none outline-none font-bold placeholder:text-slate-300 placeholder:font-medium h-12 lg:h-14 w-full text-lg ${inputError ? 'text-red-600' : 'text-slate-800'}`}
-                                            placeholder="ระบุ Ticket ID..."
-                                            disabled={isSearching}
-                                        />
-                                        {searchId && !isSearching && (
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setSearchId("")}
-                                                className="p-2 text-slate-300 hover:text-slate-500 hover:bg-slate-50 rounded-full transition-all"
-                                            >
-                                                <X size={18} />
-                                            </button>
-                                        )}
-                                        <button 
-                                            type="submit" 
-                                            disabled={isSearching}
-                                            className={`rounded-full px-6 py-2.5 font-bold text-sm transition-all duration-300 shadow-md transform active:scale-95 flex items-center gap-2 text-white min-w-[100px] justify-center ml-1 ${inputError ? 'bg-red-500 hover:bg-red-600' : 'bg-slate-900 hover:bg-slate-800'}`}
-                                        >
-                                            {isSearching ? <span className="loading loading-spinner loading-xs"></span> : "ค้นหา"}
-                                        </button>
-                                    </div>
-                                </form>
-                                {inputError && (
-                                    <div className="absolute top-full left-0 right-0 mt-3 text-center animate-fade-in z-20">
-                                        <span className="bg-red-50 text-red-600 text-xs font-bold px-4 py-2 rounded-full border border-red-100 shadow-sm inline-flex items-center gap-1">
-                                            <AlertCircle size={14}/> กรุณาระบุ ID
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
+      {/* ปุ่ม Timeline */}
+      <button 
+        onClick={() => setActiveTab("timeline")}
+        className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-full font-black text-sm transition-all duration-300 active:scale-95 border-[3px] border-black ${
+          activeTab === "timeline" 
+            ? "!bg-black !text-white shadow-[0_8px_15px_rgba(0,0,0,0.3)] -translate-y-1" 
+            : "!bg-white !text-black shadow-sm hover:!bg-gray-100"
+        }`}
+      >
+        <Activity size={20} strokeWidth={activeTab === "timeline" ? 3 : 2} />
+        Timeline
+      </button>
 
-                {currentCase && (
+    </div>
+  )}
+
+  <div className="flex flex-col xl:flex-row gap-8 items-start w-full">
+      
+      {/* คอลัมน์ซ้าย: จัดการ Case */}
+      <div className={`flex-1 w-full min-w-0 ${activeTab === "timeline" && currentCase ? "hidden xl:block" : "block"}`}>
+  {!currentCase && (
+    <div className="flex flex-col justify-start w-full max-w-4xl mx-auto pt-2 lg:mt-4 animate-fade-in">
+      
+      {/* HEADER SECTION */}
+      <header className="flex items-center gap-4 mb-8 animate-in fade-in slide-in-from-left-4 duration-700">
+        <div className="w-12 h-12 bg-black rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0">
+          <FolderOpen size={24} strokeWidth={2.5} />
+        </div>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-none mb-1.5 tracking-tight">
+            จัดการ <span className="text-indigo-600">Case</span>
+          </h1>
+          <p className="text-slate-500 font-bold text-xs sm:text-sm">จัดการรูปภาพที่เเจ้งมาใน case นั้นๆ</p>
+        </div>
+      </header>
+
+      {/* SEARCH SECTION */}
+      <div className="w-full">
+        <form 
+          // เปลี่ยนจาก fetchOrgData เป็น handleSearch
+          onSubmit={handleSearch} 
+          className="flex items-center gap-3 w-full"
+        >
+          <div className={`relative flex-1 bg-white rounded-2xl shadow-sm border-2 transition-all flex items-center h-14 sm:h-16 px-5 ${inputError ? 'border-red-400 ring-4 ring-red-500/10' : 'border-slate-100 focus-within:border-indigo-500'}`}>
+            <Search size={22} className={inputError ? 'text-red-500' : 'text-indigo-600'} />
+            <input
+              ref={inputRef}
+              type="text"
+              value={searchId}
+              onChange={(e) => { 
+                setSearchId(e.target.value); 
+                if(inputError) setInputError(false); 
+              }}
+              className="flex-1 bg-transparent border-none outline-none font-bold ml-3 text-slate-800 placeholder:text-slate-300"
+              placeholder="ระบุ Ticket ID..."
+              disabled={isSearching}
+            />
+            {/* เพิ่มปุ่ม X สำหรับล้างค่าเหมือนโค้ดบน (Option) */}
+            {searchId && !isSearching && (
+              <button 
+                type="button" 
+                onClick={() => setSearchId("")}
+                className="p-2 text-slate-300 hover:text-slate-500 transition-all"
+              >
+                <X size={18} />
+              </button>
+            )}
+          </div>
+          
+          <button 
+            type="submit" 
+            disabled={isSearching}
+            className="btn h-12 sm:h-14 px-8 sm:px-10 !bg-black !text-white !font-bold !rounded-2xl hover:!bg-slate-800 border-none shrink-0 transition-all shadow-lg active:scale-95 text-sm sm:text-base flex items-center justify-center min-w-[120px]"
+          >
+            {isSearching ? <span className="loading loading-spinner loading-sm"></span> : "ค้นหา"}
+          </button>
+        </form>
+        {inputError && <p className="text-red-500 text-xs font-bold mt-2 ml-2">กรุณาระบุ TICKET ID ก่อนทำการค้นหา</p>}
+        
+      </div>
+    </div>
+  )}
+
+ {currentCase && (
                 <div className="bg-white dark:bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-100 dark:border-slate-100 p-5 lg:p-10 relative overflow-hidden transition-all duration-300 mb-6 animate-fade-in-up">
                         
                         {!isSuccess && (
@@ -843,73 +874,72 @@ const handleSearch = async (e) => {
                 )}
             </div>
 
-            {/* คอลัมน์ขวา: ไทม์ไลน์ (จะปรากฏเฉพาะเมื่อค้นหาเคสพบ) */}
-            {currentCase && (
-                <div className="hidden xl:block w-full xl:w-[320px] 2xl:w-[400px] shrink-0 sticky top-8 animate-fade-in-right">
-                   <div className="bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden relative w-full">
-                     <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-slate-50 to-white z-0"></div>
-                     <div className="p-4 sm:p-6 pb-4 relative z-10">
-                       <div className="flex items-center justify-between mb-4">
-                         <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 bg-black text-white rounded-xl flex items-center justify-center shadow-md shrink-0">
-                             <Activity size={20} />
-                           </div>
-                           <div>
-                             <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-none mb-1">Activity Log</h3>
-                             <div className="flex items-center gap-1.5 mt-1.5">
-                               <span className="relative flex h-2 w-2">
-                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                               </span>
-                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Case Updates</p>
-                             </div>
-                           </div>
-                         </div>
-                         <button className="w-10 h-10 shrink-0 bg-white border border-slate-200 hover:border-black hover:bg-black hover:text-white rounded-full flex items-center justify-center text-slate-400 transition-all duration-300 shadow-sm active:scale-95">
-                           <Filter size={16} strokeWidth={2.5} />
-                         </button>
-                       </div>
+            {/* คอลัมน์ขวา: ไทม์ไลน์ (Activity Log) - ห้ามตัดเนื้อหาเดิม */}
+           {currentCase && (
+    <div className={`w-full xl:w-[320px] 2xl:w-[400px] shrink-0 xl:sticky xl:top-8 animate-fade-in-right mb-6 xl:mb-0 ${activeTab === "manage" && currentCase ? "hidden xl:block" : "block"}`}>
+       <div className="bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden relative w-full">
+         <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-slate-50 to-white z-0"></div>
+         <div className="p-4 sm:p-6 pb-4 relative z-10">
+           <div className="flex items-center justify-between mb-4">
+             <div className="flex items-center gap-3">
+               <div className="w-10 h-10 bg-black text-white rounded-xl flex items-center justify-center shadow-md shrink-0">
+                 <Activity size={20} />
+               </div>
+               <div>
+                 <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-none mb-1">Activity Log</h3>
+                 <div className="flex items-center gap-1.5 mt-1.5">
+                   <span className="relative flex h-2 w-2">
+                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                   </span>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Case Updates</p>
+                 </div>
+               </div>
+             </div>
+             <button className="w-10 h-10 shrink-0 bg-white border border-slate-200 hover:border-black hover:bg-black hover:text-white rounded-full flex items-center justify-center text-slate-400 transition-all duration-300 shadow-sm active:scale-95">
+               <Filter size={16} strokeWidth={2.5} />
+             </button>
+           </div>
+         </div>
+         <div className="px-4 sm:px-6 pb-6 relative z-10 max-h-[400px] xl:max-h-[500px] overflow-y-auto custom-scrollbar">
+           <div className="absolute left-[31px] sm:left-[39px] top-4 bottom-12 w-[2px] bg-slate-100 z-0 rounded-full"></div>
+           <div className="space-y-4 pt-2">
+             {TIMELINE_DATA.map((item) => {
+               const styles = getTypeStyles(item.type);
+               return (
+                 <div key={item.id} className="relative flex gap-3 sm:gap-4 group z-10">
+                   <div className={`relative w-8 h-8 sm:w-9 sm:h-9 shrink-0 rounded-xl ${styles.bg} ${styles.text} border-2 ${styles.border} flex items-center justify-center transition-all duration-500 group-hover:scale-110 z-20 shadow-sm bg-white`}>
+                     {styles.icon}
+                   </div>
+                   <div className="flex-1 min-w-0 pt-0.5">
+                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-1 gap-1 sm:gap-2">
+                       <h4 className="text-[11px] sm:text-xs font-black text-slate-900 truncate">{item.action}</h4>
+                       <span className="text-[8px] sm:text-[9px] font-bold text-slate-400 whitespace-nowrap bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 w-fit">{item.time}</span>
                      </div>
-                     <div className="px-4 sm:px-6 pb-6 relative z-10 max-h-[500px] overflow-y-auto custom-scrollbar">
-                       <div className="absolute left-[31px] sm:left-[39px] top-4 bottom-12 w-[2px] bg-slate-100 z-0 rounded-full"></div>
-                       <div className="space-y-4 pt-2">
-                         {TIMELINE_DATA.map((item) => {
-                           const styles = getTypeStyles(item.type);
-                           return (
-                             <div key={item.id} className="relative flex gap-3 sm:gap-4 group z-10">
-                               <div className={`relative w-8 h-8 sm:w-9 sm:h-9 shrink-0 rounded-xl ${styles.bg} ${styles.text} border-2 ${styles.border} flex items-center justify-center transition-all duration-500 group-hover:scale-110 z-20 shadow-sm bg-white`}>
-                                 {styles.icon}
-                               </div>
-                               <div className="flex-1 min-w-0 pt-0.5">
-                                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-1 gap-1 sm:gap-2">
-                                   <h4 className="text-[11px] sm:text-xs font-black text-slate-900 truncate">{item.action}</h4>
-                                   <span className="text-[8px] sm:text-[9px] font-bold text-slate-400 whitespace-nowrap bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 w-fit">{item.time}</span>
-                                 </div>
-                                 <div className="bg-slate-50 group-hover:bg-white border border-slate-100 group-hover:border-slate-200 rounded-xl p-2.5 sm:p-3 transition-all duration-300">
-                                   <p className="text-[10px] sm:text-[11px] text-slate-600 font-medium leading-tight break-words">{item.detail}</p>
-                                   <div className="flex items-center gap-1.5 mt-2 opacity-60">
-                                     <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-slate-200 flex items-center justify-center text-[7px] sm:text-[8px] font-bold">{item.user.charAt(0)}</div>
-                                     <span className="text-[8px] sm:text-[9px] font-bold text-slate-500 tracking-tight">{item.user}</span>
-                                   </div>
-                                 </div>
-                               </div>
-                             </div>
-                           );
-                         })}
+                     <div className="bg-slate-50 group-hover:bg-white border border-slate-100 group-hover:border-slate-200 rounded-xl p-2.5 sm:p-3 transition-all duration-300">
+                       <p className="text-[10px] sm:text-[11px] text-slate-600 font-medium leading-tight break-words">{item.detail}</p>
+                       <div className="flex items-center gap-1.5 mt-2 opacity-60">
+                         <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-slate-200 flex items-center justify-center text-[7px] sm:text-[8px] font-bold">{item.user.charAt(0)}</div>
+                         <span className="text-[8px] sm:text-[9px] font-bold text-slate-500 tracking-tight">{item.user}</span>
                        </div>
-                     </div>
-                     <div className="p-4 pt-2 bg-white border-t border-slate-50 relative z-20">
-                       <button className="relative w-full py-2.5 sm:py-3 bg-white hover:bg-slate-50 border border-slate-100 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 active:scale-[0.98] shadow-sm text-slate-900">
-                         View Case History <ArrowRight size={12} strokeWidth={3} />
-                       </button>
                      </div>
                    </div>
-                </div>
-            )}
+                 </div>
+               );
+             })}
+           </div>
+         </div>
+         <div className="p-4 pt-2 bg-white border-t border-slate-50 relative z-20">
+           <button className="relative w-full py-2.5 sm:py-3 bg-white hover:bg-slate-50 border border-slate-100 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 active:scale-[0.98] shadow-sm text-slate-900">
+             View Case History <ArrowRight size={12} strokeWidth={3} />
+           </button>
+         </div>
+       </div>
+    </div>
+)}
         </div>
       </div>
 
-      {/* Global CSS สำหรับการทำอนิเมชั่นเล็ก ๆ น้อย ๆ */}
       <style jsx global>{`
         @keyframes bounceIn { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(1); } } 
         @keyframes slide-in-left { from { transform: translateX(-100%); } to { transform: translateX(0); } } 
