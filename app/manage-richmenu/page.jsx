@@ -35,7 +35,7 @@ function BotCard({ bot, currentMenuId, currentImageUrl, isActive, onDelete }) {
 
   return (
     <Link
-      href={`/manage-richmenu/${bot.id}`}
+      href={`/manage-richmenu/${bot.key}`}
       className="block group cursor-pointer"
     >
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden group-hover:shadow-md transition-all duration-300 group-hover:border-green-300 group-hover:shadow-green-100">
