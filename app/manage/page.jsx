@@ -52,6 +52,18 @@ export default function Manage() {
     { value: "editor_file_search", label: "Admin File Search" },
   ];
 
+  const ROLE_LABEL_MAP = {
+  "editor_manage_user": "Admin Email",
+  "editor_manage_org": "Admin Manage Org",
+  "editor_manage_case": "Admin Case",
+  "editor_manage_menu": "Admin Menu",
+  "editor_manage_flex": "Admin Flex Message",
+  "editor_search_duplicate_org": "Admin Search Org",
+  "editor_file_search": "Admin File Search",
+};
+// ฟังก์ชัน Helper สำหรับดึง Label
+const getRoleLabel = (roleValue) => ROLE_LABEL_MAP[roleValue] || roleValue.replace(/_/g, ' ');
+
   const getCurrentAdminId = () => {
     if (typeof window !== "undefined") {
       const storedId = localStorage.getItem("current_admin_id");
@@ -342,8 +354,8 @@ export default function Manage() {
                                 <span className={`font-bold uppercase tracking-tight !bg-indigo-50 !text-indigo-600 rounded-full border border-indigo-100 truncate ${
                                     isDesktopSidebarOpen ? "text-[9px] px-2 py-0.5" : "text-[10px] px-2.5 py-1"
                                 }`}>
-                                    {userRoles[0].replace(/_/g, ' ')}
-                                </span>
+                                    {getRoleLabel(userRoles[0])}                                
+                              </span>
                             )}
                             {userRoles.length > 1 && (
                                 <button 
@@ -480,7 +492,8 @@ export default function Manage() {
           key={idx} 
           className="!text-indigo-600 font-bold text-xs uppercase tracking-wider !bg-indigo-50 px-4 py-2.5 rounded-2xl border border-indigo-100 shadow-sm whitespace-nowrap"
         >
-          {role.replace(/_/g, ' ')}
+          {/* {role.replace(/_/g, ' ')} */}
+          {getRoleLabel(role)}
         </span>
       ))}
     </div>
