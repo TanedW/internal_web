@@ -7,6 +7,7 @@ import { auth } from "../../firebaseConfig";
 import { 
   Search, 
   Plus, 
+  Pencil,
   Trash2, 
   X, 
   Mail,
@@ -14,7 +15,6 @@ import {
   Check 
 } from "lucide-react";
 
-// ✅ ดึง Sidebar มาจากไฟล์ภายนอก
 import Sidebar from "../components/sidebar"; 
 
 export default function Manage() {
@@ -32,16 +32,16 @@ export default function Manage() {
   const [roleModalData, setRoleModalData] = useState(null);
   const [selectedEmailForMobile, setSelectedEmailForMobile] = useState("");
   const [newEmail, setNewEmail] = useState("");
-  
-  // ✅ เปลี่ยนจาก String เป็น Array เพื่อรองรับการเลือกหลายอัน
   const [newRoles, setNewRoles] = useState([]); 
-  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sidebarKey, setSidebarKey] = useState(0);
 
+  // State สำหรับโหมดแก้ไข
+  const [editingAdmin, setEditingAdmin] = useState(null);
+  const [editEmail, setEditEmail] = useState("");
+
   const API_URL = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
 
-  // รายการ Role ให้เลือก
   const ROLE_OPTIONS = [
     { value: "editor_manage_user", label: "Admin Email" },
     { value: "editor_manage_org", label: "Admin Manage Org" },
@@ -50,33 +50,7 @@ export default function Manage() {
     { value: "editor_manage_flex", label: "Admin Flex Message" },
     { value: "editor_search_duplicate_org", label: "Admin Search Org" },
     { value: "editor_file_search", label: "Admin File Search" },
-
-
-
-
   ];
-
-  // ✅ CSS แก้ไข Autofill และ ซ่อน Scrollbar ใน Modal
-  const customStyles = `
-    input:-webkit-autofill,
-    input:-webkit-autofill:hover, 
-    input:-webkit-autofill:focus, 
-    input:-webkit-autofill:active {
-        -webkit-box-shadow: 0 0 0 30px #f8fafc inset !important;
-        -webkit-text-fill-color: #0f172a !important;
-        border-radius: 1rem !important;
-        transition: background-color 5000s ease-in-out 0s;
-    }
-    /* ซ่อน Scrollbar สำหรับ Chrome, Safari และ Opera */
-    .no-scrollbar::-webkit-scrollbar {
-        display: none;
-    }
-    /* ซ่อน Scrollbar สำหรับ IE, Edge และ Firefox */
-    .no-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-    }
-  `;
 
   const getCurrentAdminId = () => {
     if (typeof window !== "undefined") {
@@ -141,7 +115,6 @@ export default function Manage() {
     setFilteredEmails(results);
   }, [searchTerm, allowedEmails]);
 
-  // ✅ ฟังก์ชันจัดการการเลือก Role
   const toggleRole = (roleValue) => {
     setNewRoles(prev => 
       prev.includes(roleValue) 
@@ -150,31 +123,46 @@ export default function Manage() {
     );
   };
 
-  const handleAddEmail = async (e) => {
+  const openEditModal = (admin) => {
+    setNewRoles([]); 
+    setEditingAdmin(admin.admin_id);
+    setEditEmail(admin.email);
+    const dbRoles = Array.isArray(admin.roles) 
+      ? admin.roles 
+      : (admin.role ? [admin.role] : []);
+    setNewRoles(dbRoles); 
+    document.getElementById('add_admin_modal').showModal();
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!newEmail.trim() || !newEmail.includes("@") || newRoles.length === 0) return;
+    if (!editingAdmin && (!newEmail.trim() || !newEmail.includes("@"))) return;
+    if (newRoles.length === 0) return;
+
     const currentAdminId = getCurrentAdminId();
     setIsSubmitting(true);
     try {
+        const method = editingAdmin ? "PUT" : "POST";
+        const bodyData = editingAdmin 
+            ? { admin_id: editingAdmin, roles: newRoles, current_admin_id: currentAdminId }
+            : { email: newEmail, roles: newRoles, current_admin_id: currentAdminId };
+
         const res = await fetch(API_URL, {
-            method: "POST",
+            method: method,
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                email: newEmail,
-                roles: newRoles, 
-                current_admin_id: currentAdminId 
-            }),
+            body: JSON.stringify(bodyData),
         });
         if (res.ok) {
             setNewEmail("");
             setNewRoles([]); 
+            setEditingAdmin(null);
             fetchAdmins();
             setSidebarKey(prev => prev + 1);
             document.getElementById('add_admin_modal').close();
         } else {
-          const errorData = await res.json();
-          alert(errorData.message || "เกิดข้อผิดพลาดในการเพิ่มข้อมูล");
-      }
+            const errorData = await res.json();
+            alert(errorData.message || "เกิดข้อผิดพลาด");
+        }
     } catch (error) { console.error(error); } 
     finally { setIsSubmitting(false); }
   };
@@ -202,11 +190,12 @@ export default function Manage() {
 
   if (loading) return <div className="min-h-screen flex justify-center items-center"><span className="loading loading-spinner text-primary"></span></div>;
 
-  const isFormValid = newEmail.trim().includes("@") && newRoles.length > 0;
+  const isFormValid = editingAdmin 
+    ? newRoles.length > 0 
+    : (newEmail.trim().includes("@") && newRoles.length > 0);
 
   return (
     <div className="min-h-screen bg-[#F4F6F8] font-sans">
-      <style>{customStyles}</style>
       <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
       <script src="https://cdn.tailwindcss.com"></script>
 
@@ -220,7 +209,7 @@ export default function Manage() {
           isDesktopSidebarOpen ? "lg:pl-72" : "lg:pl-24"
       }`}>
         
-        {/* Header Desktop - ปรับเป็นภาษาไทย */}
+        {/* Desktop Header */}
         <div className="hidden lg:flex justify-between items-center mb-8">
             <div>
                 <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">รายชื่อสมาชิกในทีม</h1>
@@ -240,7 +229,7 @@ export default function Manage() {
             </div>
         </div>
 
-        {/* Header Mobile - ปรับเป็นภาษาไทย */}
+        {/* Mobile Header */}
         <div className="lg:hidden mb-6">
             <h1 className="text-2xl font-bold text-slate-900">รายชื่อผู้ติดต่อ</h1>
             <div className="mt-4 flex gap-3 items-center">
@@ -257,7 +246,12 @@ export default function Manage() {
                       />
                  </div>
                  <button 
-                onClick={() => document.getElementById('add_admin_modal').showModal()}
+                onClick={() => {
+                   setEditingAdmin(null);
+                   setNewEmail("");
+                   setNewRoles([]);
+                   document.getElementById('add_admin_modal').showModal();
+                 }}
                 className="btn btn-primary !text-white min-h-[3rem] h-12 px-4 rounded-xl shadow-md shadow-indigo-200 whitespace-nowrap"
                 >
                 + เพิ่มใหม่
@@ -265,18 +259,23 @@ export default function Manage() {
             </div>
         </div>
 
-        {/* GRID VIEW */}
-        <div className={`grid grid-cols-1 gap-4 ${
+        {/* GRID VIEW - ปรับปรุงเพื่อแก้ปัญหารูปลูกศรและไอคอนจาง */}
+        <div className={`grid grid-cols-1 gap-4 items-start ${
             isDesktopSidebarOpen 
                 ? "md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" 
                 : "md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" 
         }`}>
-            {/* Add Member Card - ปรับเป็นภาษาไทย */}
+            {/* Add Card */}
             <div 
-               className={`hidden lg:flex group relative flex-col items-center justify-center border-2 border-dashed border-indigo-300 !bg-white hover:border-indigo-600 hover:bg-indigo-50 transition-all duration-300 cursor-pointer rounded-3xl shadow-md hover:shadow-xl hover:shadow-indigo-200/50 hover:-translate-y-2 h-full ${
+               className={`hidden lg:flex group relative flex-col items-center justify-center border-2 border-dashed border-indigo-300 !bg-white hover:border-indigo-600 hover:bg-indigo-50 transition-all duration-300 cursor-pointer rounded-3xl shadow-md hover:shadow-xl hover:shadow-indigo-200/50 hover:-translate-y-2 min-h-[180px] ${
                  isDesktopSidebarOpen ? 'p-4' : 'p-6'
                }`}
-               onClick={() => document.getElementById('add_admin_modal').showModal()}
+               onClick={() => {
+                   setEditingAdmin(null);
+                   setNewEmail("");
+                   setNewRoles([]);
+                   document.getElementById('add_admin_modal').showModal();
+               }}
             >
                 <div className={`rounded-full bg-indigo-600 text-white flex items-center justify-center mb-4 shadow-lg shadow-indigo-300 group-hover:scale-110 group-hover:rotate-90 transition-all duration-300 ${
                     isDesktopSidebarOpen ? 'w-12 h-12' : 'w-16 h-16'
@@ -293,21 +292,30 @@ export default function Manage() {
                 const userRoles = item.roles && item.roles.length > 0 ? item.roles : (item.role ? [item.role] : ['member']);
                 return (
                     <div key={item.admin_id} 
-                        className={`relative !bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col items-center text-center justify-center h-full hover:z-30 ${
+                        className={`relative !bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col items-center text-center overflow-hidden min-h-max ${
                             isDesktopSidebarOpen ? "p-4" : "p-6"
                         }`}
                     >
+                        {/* ปุ่ม Pencil และ Trash พร้อมแก้ปัญหาสีจาง */}
                         {canDelete && (
-                             <button 
-                               onClick={() => handleDeleteEmail(item.admin_id)}
-                               className="absolute top-2 right-2 hover:bg-red-50 rounded-full p-2 transition-colors z-10"
-                               title="ลบผู้ใช้งาน"
-                               style={{ color: '#ef4444' }} 
-                             >
-                               <Trash2 size={20} />
-                             </button>
+                            <div className="absolute top-2 right-2 flex gap-1 z-10">
+                                <button 
+                                  onClick={() => openEditModal(item)}
+                                  className="hover:bg-indigo-50 rounded-full p-2 transition-colors"
+                                  title="แก้ไขบทบาท"
+                                >
+                                  <Pencil size={18} style={{ color: '#4f46e5', stroke: '#4f46e5' }} />
+                                </button>
+                               <button 
+                                 onClick={() => handleDeleteEmail(item.admin_id)}
+                                 className="hover:bg-red-50 rounded-full p-2 transition-colors"
+                                 title="ลบผู้ใช้งาน"
+                               >
+                                 <Trash2 size={20} style={{ color: '#ef4444', stroke: '#ef4444' }} />
+                               </button>
+                            </div>
                         )}
-                        <div className={`rounded-full bg-slate-50 mb-3 overflow-hidden ring-2 ring-slate-50 mx-auto ${
+                        <div className={`rounded-full bg-slate-50 mb-3 overflow-hidden ring-2 ring-slate-50 mx-auto flex-shrink-0 ${
                             isDesktopSidebarOpen ? "w-10 h-10 mb-2" : "w-14 h-14 mb-3"
                         }`}>
                             <img 
@@ -318,19 +326,22 @@ export default function Manage() {
                             />
                         </div>
 
-                        <div className="w-full px-1"> 
+                        <div className="w-full px-1 mb-2"> 
                             <div className="tooltip lg:tooltip-bottom w-full before:text-[10px]" data-tip={item.email}>
-                                <h3 className={`font-bold !text-slate-800 truncate whitespace-nowrap overflow-hidden ${
-                                    isDesktopSidebarOpen ? "text-[10px] mb-1" : "text-sm mb-2"
+                                <h3 className={`font-bold !text-slate-800 truncate block w-full overflow-hidden ${
+                                    isDesktopSidebarOpen ? "text-[10px]" : "text-sm"
                                 }`}>
                                     {item.email}
                                 </h3>
                             </div>
                         </div>
                         
-                        <div className="lg:hidden mt-2 w-full px-2 flex flex-nowrap gap-2 justify-center items-center overflow-x-hidden">
+                        {/* Role Badges */}
+                        <div className="flex flex-nowrap gap-1.5 justify-center items-center w-full overflow-x-hidden mt-auto">
                             {userRoles.length > 0 && (
-                                <span className="flex-shrink-0 !text-indigo-600 font-bold text-[9px] uppercase tracking-wider !bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 whitespace-nowrap">
+                                <span className={`font-bold uppercase tracking-tight !bg-indigo-50 !text-indigo-600 rounded-full border border-indigo-100 truncate ${
+                                    isDesktopSidebarOpen ? "text-[9px] px-2 py-0.5" : "text-[10px] px-2.5 py-1"
+                                }`}>
                                     {userRoles[0].replace(/_/g, ' ')}
                                 </span>
                             )}
@@ -341,34 +352,12 @@ export default function Manage() {
                                         setRoleModalData(userRoles);
                                         document.getElementById('role_modal').showModal();
                                     }}
-                                    className="flex-shrink-0 btn btn-xs h-7 min-h-0 !bg-slate-100 border border-slate-200 !text-slate-600 hover:bg-slate-200 rounded-full px-2.5 text-[9px] font-bold tracking-wide uppercase shadow-sm"
+                                    className={`btn btn-xs min-h-0 !bg-slate-100 border border-slate-200 !text-slate-500 hover:bg-slate-200 rounded-full font-bold tracking-tight uppercase shadow-sm ${
+                                      isDesktopSidebarOpen ? "h-5 text-[9px] px-1.5" : "h-7 text-[10px] px-2"
+                                    }`}
                                 >
-                                    +{userRoles.length - 1} เพิ่มเติม
+                                    +{userRoles.length - 1}เพิ่มเติม
                                 </button>
-                            )}
-                        </div>
-
-                        <div className="hidden lg:flex flex-nowrap gap-2 justify-center items-center mt-2 w-full px-1">
-                            {userRoles.length > 0 && (
-                                <span className={`flex-shrink-0 font-bold uppercase tracking-wider !bg-indigo-50 rounded-full border border-indigo-100 !text-indigo-600 whitespace-nowrap ${
-                                    isDesktopSidebarOpen 
-                                        ? "text-[9px] px-2 py-0.5" 
-                                        : "text-[10px] px-3 py-1" 
-                                }`}>
-                                    {userRoles[0].replace(/_/g, ' ')}
-                                </span>
-                            )}
-                            {userRoles.length > 1 && (
-                                <div className="tooltip tooltip-bottom z-50 flex-shrink-0 before:max-w-[15rem] before:content-[attr(data-tip)]" 
-                                     data-tip={userRoles.slice(1).map(r => r.replace(/_/g, ' ')).join(', ')}>
-                                    <span className={`cursor-help !text-slate-500 font-bold tracking-wider !bg-slate-100 rounded-full whitespace-nowrap border border-slate-200 hover:bg-slate-200 transition-colors flex-shrink-0 ${
-                                        isDesktopSidebarOpen 
-                                            ? "text-[9px] px-2 py-0.5" 
-                                            : "text-[10px] px-2.5 py-1"
-                                    }`}>
-                                        +{userRoles.length - 1} เพิ่มเติม
-                                    </span>
-                                </div>
                             )}
                         </div>
                     </div>
@@ -377,38 +366,49 @@ export default function Manage() {
         </div>
       </div>
 
-      {/* --- MODALS --- */}
-      
-      {/* 1. Add Member Modal - ปรับเป็นภาษาไทยและซ่อนแถบเลื่อน */}
+      {/* Main Modal: Add/Edit */}
       <dialog id="add_admin_modal" className="modal modal-bottom sm:modal-middle z-[999]">
-          <div className="modal-box !bg-[#F4F6F8] p-7 rounded-t-[3rem] sm:rounded-[2.5rem] shadow-2xl relative border-none overflow-y-auto no-scrollbar max-h-[90vh]">
+          <div className="modal-box !bg-[#F4F6F8] p-7 rounded-t-[3rem] sm:rounded-[2.5rem] shadow-2xl relative border-none overflow-y-auto max-h-[90vh] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <div className="flex justify-between items-center mb-6 px-2">
-                  <h3 className="font-bold text-xl !text-slate-900">เพิ่มสมาชิก</h3>
+                  <h3 className="font-bold text-xl !text-slate-900">
+                    {editingAdmin ? "แก้ไขบทบาทสมาชิก" : "เพิ่มสมาชิกใหม่"}
+                  </h3>
                   <button 
-                    onClick={() => document.getElementById('add_admin_modal').close()} 
+                    onClick={() => {
+                        setEditingAdmin(null);
+                        setNewEmail("");
+                        setNewRoles([]);
+                        document.getElementById('add_admin_modal').close();
+                    }} 
                     className="absolute top-6 right-6 w-10 h-10 !bg-[#ef4444] !text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all hover:scale-110 z-20 border-4 border-white"
                   >
                       <X size={20} strokeWidth={3} />
                   </button>
               </div>
-              <form onSubmit={handleAddEmail} className="flex flex-col gap-5">
-                  <div className="form-control px-2">
-                      <label className="label !text-slate-900 font-bold">ที่อยู่อีเมล</label>
-                      <label className="input input-bordered h-14 flex items-center gap-2 !bg-white rounded-2xl border-none shadow-[0_4px_15px_rgba(0,0,0,0.03)] focus-within:ring-2 ring-indigo-100 transition-all">
-                          <Mail size={18} className="!text-slate-400" />
-                          <input 
-                            type="email" 
-                            className="grow !text-slate-900 font-bold placeholder:text-slate-300" 
-                            placeholder="mail@site.com" 
-                            value={newEmail} 
-                            onChange={(e) => setNewEmail(e.target.value)} 
-                            required 
-                            autoComplete="off"
-                          />
-                      </label>
-                  </div>
+              <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+                  {!editingAdmin ? (
+                    <div className="form-control px-2">
+                        <label className="label !text-slate-900 font-bold">ที่อยู่อีเมล</label>
+                        <label className="input input-bordered h-14 flex items-center gap-2 !bg-white rounded-2xl border-none shadow-[0_4px_15px_rgba(0,0,0,0.03)] focus-within:ring-2 ring-indigo-100 transition-all">
+                            <Mail size={18} className="!text-slate-400" />
+                            <input 
+                              type="email" 
+                              className="grow !text-slate-900 font-bold placeholder:text-slate-300 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none autofill:shadow-[inset_0_0_0_30px_#f8fafc] autofill:text-slate-900" 
+                              placeholder="mail@site.com" 
+                              value={newEmail} 
+                              onChange={(e) => setNewEmail(e.target.value)} 
+                              required={!editingAdmin}
+                              autoComplete="off"
+                            />
+                        </label>
+                    </div>
+                  ) : (
+                      <div className="px-2">
+                          <p className="text-sm text-slate-500">กำลังแก้ไขบทบาทของ:</p>
+                          <p className="font-bold text-lg text-slate-800 tracking-tight">{editEmail}</p>
+                      </div>
+                  )}
 
-                  {/* ✅ ส่วนเลือก Role สไตล์ Card เป๊ะตามรูป */}
                   <div className="form-control px-2">
                       <label className="label !text-slate-900 font-bold">กำหนดบทบาท</label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
@@ -427,7 +427,6 @@ export default function Manage() {
                                     <span className={`pl-2 text-[12px] font-black uppercase tracking-widest ${isSelected ? "text-indigo-900" : "text-[#475569]"}`}>
                                         {opt.label}
                                     </span>
-                                    
                                     <div className={`
                                         w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300
                                         ${isSelected ? "bg-indigo-600 shadow-lg" : "bg-[#DBE2E9]"}
@@ -444,13 +443,17 @@ export default function Manage() {
                     <button 
                         type="submit" 
                         className={`btn w-full mt-6 h-14 rounded-2xl text-white font-bold border-none transition-all shadow-xl active:scale-95 ${
-                        isFormValid ? "!bg-[#00945e] hover:!bg-[#007a4d]" : "!bg-slate-300 !text-slate-500 cursor-not-allowed"
+                            isFormValid 
+                                ? (editingAdmin ? "!bg-[#4f46e5] hover:!bg-[#4338ca]" : "!bg-[#00945e] hover:!bg-[#007a4d]") 
+                                : "!bg-slate-300 !text-slate-500 cursor-not-allowed"
                         }`} 
                         disabled={isSubmitting || !isFormValid}
                     >
-                            <span className="text-white text-lg tracking-wide">
-                                {isSubmitting ? <span className="loading loading-spinner"></span> : "ยืนยัน"}
-                            </span>
+                        <span className="text-white text-lg tracking-wide">
+                            {isSubmitting 
+                                ? <span className="loading loading-spinner"></span> 
+                                : (editingAdmin ? "บันทึกการแก้ไข" : "ยืนยันการเพิ่ม")}
+                        </span>
                     </button>
                   </div>
               </form>
@@ -458,20 +461,34 @@ export default function Manage() {
           <form method="dialog" className="modal-backdrop bg-slate-900/40 backdrop-blur-sm"><button>close</button></form>
       </dialog>
 
-      {/* 2. Role Modal - ปรับเป็นภาษาไทย */}
+      {/* Secondary Modal: View All Roles */}
       <dialog id="role_modal" className="modal modal-bottom sm:modal-middle z-[9999]">
-          <div className="modal-box !bg-white p-10 rounded-t-[3rem] sm:rounded-[2.5rem] text-center shadow-2xl border-none no-scrollbar">
-              <h3 className="font-bold text-xl !text-slate-900 mb-6">บทบาททั้งหมด</h3>
-              <div className="flex flex-wrap gap-3 justify-center">
-                  {roleModalData && roleModalData.map((role, idx) => (
-                      <span key={idx} className="!text-indigo-600 font-bold text-xs uppercase tracking-wider !bg-indigo-50 px-4 py-2.5 rounded-2xl border border-indigo-100 shadow-sm whitespace-nowrap">
-                          {role.replace(/_/g, ' ')}
-                      </span>
-                  ))}
-              </div>
-          </div>
-          <form method="dialog" className="modal-backdrop bg-slate-900/60 backdrop-blur-sm"><button>close</button></form>
-      </dialog>
+  <div className="modal-box !bg-white p-10 rounded-t-[3rem] sm:rounded-[2.5rem] text-center shadow-2xl border-none relative [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+    
+    {/* ปุ่มกากบาท - ปรับตำแหน่งให้อยู่ในขอบ (inset) เพื่อไม่ให้ล้นขอบ Modal */}
+    <button 
+      onClick={() => document.getElementById('role_modal').close()} 
+      className="absolute top-4 right-4 w-10 h-10 !bg-[#ef4444] !text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all hover:scale-110 z-20 border-4 border-white"
+    >
+      <X size={20} strokeWidth={3} />
+    </button><br></br>
+    
+    <h3 className="font-bold text-xl !text-slate-900 mb-6">บทบาททั้งหมด</h3><br></br>
+    <div className="flex flex-wrap gap-3 justify-center">
+      {roleModalData && roleModalData.map((role, idx) => (
+        <span 
+          key={idx} 
+          className="!text-indigo-600 font-bold text-xs uppercase tracking-wider !bg-indigo-50 px-4 py-2.5 rounded-2xl border border-indigo-100 shadow-sm whitespace-nowrap"
+        >
+          {role.replace(/_/g, ' ')}
+        </span>
+      ))}
+    </div>
+  </div>
+  <form method="dialog" className="modal-backdrop bg-slate-900/60 backdrop-blur-sm">
+    <button>close</button>
+  </form>
+</dialog>
     </div>
   );
 }
