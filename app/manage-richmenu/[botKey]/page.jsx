@@ -1159,7 +1159,7 @@ export default function RichMenuDashboard() {
                   <h3>จัดการ Segments</h3>
                   <p>แบ่งกลุ่ม user ตามจังหวัด/ประเภท</p>
                 </div>
-                <div className="php-qa-icon" style={{ background: "#EDE9FE", color: "#7C3AED" }}>
+                <div className="php-qa-icon" style={{ background: "linear-gradient(135deg,#EDE9FE,#DDD6FE)", color: "#7C3AED", boxShadow: "0 4px 12px rgba(124,58,237,0.2)" }}>
                   <Users size={20} />
                 </div>
               </button>
@@ -3628,72 +3628,138 @@ export default function RichMenuDashboard() {
                   <p className="text-sm mt-1">กดปุ่ม "สร้าง Segment" เพื่อเริ่มต้นแบ่งกลุ่ม user</p>
                 </div>
               ) : (
-                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16, padding: 16 }}>
                   {segments.map((seg) => (
                     <div
                       key={seg.id}
-                      className={`bg-white rounded-2xl border-2 shadow-sm ${seg.is_default ? "border-green-300" : "border-slate-200"}`}
+                      style={{
+                        background: "#fff",
+                        borderRadius: 18,
+                        border: `2px solid ${seg.is_default ? "#86EFAC" : "#E2E8F0"}`,
+                        boxShadow: seg.is_default
+                          ? "0 4px 16px rgba(6,199,85,0.10)"
+                          : "0 2px 8px rgba(0,0,0,0.05)",
+                        overflow: "hidden",
+                        transition: "box-shadow 0.2s",
+                      }}
                     >
-                      {/* Card Header */}
-                      <div className="p-4 flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${seg.is_default ? "bg-green-100" : "bg-violet-100"}`}>
+                      {/* Accent top bar */}
+                      <div style={{
+                        height: 4,
+                        background: seg.is_default
+                          ? "linear-gradient(90deg,#06C755,#34D399)"
+                          : "linear-gradient(90deg,#A78BFA,#818CF8)",
+                        borderRadius: "18px 18px 0 0",
+                      }} />
+
+                      {/* Header */}
+                      <div style={{ padding: "14px 14px 8px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                          {/* Icon */}
+                          <div style={{
+                            width: 38, height: 38,
+                            borderRadius: 12,
+                            background: seg.is_default ? "#DCFCE7" : "#EDE9FE",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            flexShrink: 0,
+                          }}>
                             {seg.is_default
-                              ? <Star size={16} className="text-green-600" />
-                              : <LayoutGrid size={16} className="text-violet-600" />
+                              ? <Star size={16} color="#16A34A" />
+                              : <LayoutGrid size={16} color="#7C3AED" />
                             }
                           </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-bold text-slate-800 text-sm truncate">{seg.name}</span>
+                          {/* Name */}
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                              <span style={{ fontWeight: 700, fontSize: 14, color: "#0F172A" }}>{seg.name}</span>
                               {seg.is_default && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full">Default</span>
+                                <span style={{
+                                  fontSize: 9, fontWeight: 700,
+                                  padding: "2px 7px",
+                                  background: "#DCFCE7", color: "#166534",
+                                  borderRadius: 99,
+                                }}>Default</span>
                               )}
                             </div>
                             {seg.description && (
-                              <p className="text-[10px] text-slate-400 truncate">{seg.description}</p>
+                              <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {seg.description}
+                              </p>
                             )}
                           </div>
                         </div>
-                        <div className="flex gap-1 shrink-0">
+
+                        {/* Edit/Delete buttons */}
+                        <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
                           <button
                             onClick={() => {
                               setSegmentForm({ name: seg.name, description: seg.description || "", is_default: seg.is_default });
                               setSegmentFormModal({ mode: "edit", data: seg });
                             }}
-                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                            style={{ padding: 6, background: "none", border: "none", cursor: "pointer", borderRadius: 8, color: "#94A3B8" }}
+                            onMouseEnter={e => { e.currentTarget.style.background = "#EEF2FF"; e.currentTarget.style.color = "#4F46E5"; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = "#94A3B8"; }}
                           >
                             <Pencil size={13} />
                           </button>
                           <button
                             onClick={() => handleDeleteSegment(seg)}
-                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
+                            style={{ padding: 6, background: "none", border: "none", cursor: "pointer", borderRadius: 8, color: "#94A3B8" }}
+                            onMouseEnter={e => { e.currentTarget.style.background = "#FEF2F2"; e.currentTarget.style.color = "#EF4444"; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = "#94A3B8"; }}
                           >
                             <Trash2 size={13} />
                           </button>
                         </div>
                       </div>
 
-                      {/* Stats */}
-                      <div className="px-4 pb-2 flex items-center gap-3 text-[11px] text-slate-500">
-                        <span className="flex items-center gap-1"><Users size={11} /> {seg.user_count} user</span>
-                        {seg.active_rich_menu_name
-                          ? <span className="flex items-center gap-1 text-green-600 font-medium truncate"><CheckCircle size={11} />{seg.active_rich_menu_name}</span>
-                          : <span className="text-amber-500">ยังไม่ได้ assign เมนู</span>
-                        }
+                      {/* Stats row */}
+                      <div style={{ padding: "4px 14px 12px", display: "flex", alignItems: "center", gap: 12 }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#64748B" }}>
+                          <Users size={11} /> {seg.user_count} user
+                        </span>
+                        {seg.active_rich_menu_name ? (
+                          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#16A34A", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            <CheckCircle size={11} /> {seg.active_rich_menu_name}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 11, color: "#F59E0B", fontWeight: 600 }}>ยังไม่ได้ assign เมนู</span>
+                        )}
                       </div>
 
-                      {/* Buttons */}
-                      <div className="px-4 pb-4 flex gap-2">
+                      {/* Divider */}
+                      <div style={{ height: 1, background: "#F1F5F9", margin: "0 14px" }} />
+
+                      {/* Action buttons */}
+                      <div style={{ padding: "10px 14px", display: "flex", gap: 8 }}>
                         <button
                           onClick={() => { setAssignSelectedMenuId(seg.active_rich_menu_id || ""); setAssignMenuModal(seg); }}
-                          className="flex-1 flex items-center justify-center gap-1 py-2 bg-slate-900 hover:bg-violet-700 text-white text-[11px] font-bold rounded-xl transition-colors"
+                          style={{
+                            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                            padding: "8px 0",
+                            background: "#0F172A", color: "#fff",
+                            border: "none", borderRadius: 10,
+                            fontSize: 11, fontWeight: 700,
+                            cursor: "pointer", fontFamily: "inherit",
+                            transition: "background 0.18s",
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = "#7C3AED"}
+                          onMouseLeave={e => e.currentTarget.style.background = "#0F172A"}
                         >
                           <ArrowRightLeft size={12} /> Assign เมนู
                         </button>
                         <button
                           onClick={() => { setUsersModal(seg); fetchSegmentUsers(seg.id); }}
-                          className="flex-1 flex items-center justify-center gap-1 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 text-[11px] font-bold rounded-xl transition-colors"
+                          style={{
+                            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                            padding: "8px 0",
+                            background: "#F8FAFC", color: "#475569",
+                            border: "1.5px solid #E2E8F0", borderRadius: 10,
+                            fontSize: 11, fontWeight: 700,
+                            cursor: "pointer", fontFamily: "inherit",
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background = "#F1F5F9"; e.currentTarget.style.borderColor = "#CBD5E1"; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = "#F8FAFC"; e.currentTarget.style.borderColor = "#E2E8F0"; }}
                         >
                           <Users size={12} /> จัดการ User
                         </button>
