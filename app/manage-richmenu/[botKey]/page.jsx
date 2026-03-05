@@ -3635,7 +3635,7 @@ export default function RichMenuDashboard() {
                       style={{
                         background: "#fff",
                         borderRadius: 18,
-                        border: `2px solid ${seg.is_default ? "#86EFAC" : "#E2E8F0"}`,
+                        border: `2px solid ${seg.is_default ? "#22C55E" : "#94A3B8"}`,
                         boxShadow: seg.is_default
                           ? "0 4px 16px rgba(6,199,85,0.10)"
                           : "0 2px 8px rgba(0,0,0,0.05)",
