@@ -20,6 +20,7 @@ import {
   ArrowRightLeft,
   History,
   User,
+  Users,
   Type,
   Zap,
   Globe,
@@ -27,7 +28,13 @@ import {
   Link as LinkIcon,
   Image as ImageIcon,
   Check,
+  CheckCircle,
   MousePointer2,
+  Star,
+  Pencil,
+  Trash2,
+  Loader2,
+  Plus,
 } from "lucide-react";
 import "../richmenu-dashboard.css";
 
@@ -165,6 +172,21 @@ export default function RichMenuDashboard() {
   // --- ✅ New State: JSON Viewer Modal ---
   const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
   const [selectedJsonData, setSelectedJsonData] = useState(null);
+
+  // --- ✅ Segment State ---
+  const [segments, setSegments] = useState([]);
+  const [segmentFormModal, setSegmentFormModal] = useState(null); // null | { mode:'create'|'edit', data? }
+  const [assignMenuModal, setAssignMenuModal] = useState(null);   // null | segment object
+  const [usersModal, setUsersModal] = useState(null);             // null | segment object
+  const [segmentUsers, setSegmentUsers] = useState([]);
+  const [segmentUsersLoading, setSegmentUsersLoading] = useState(false);
+  const [newUserId, setNewUserId] = useState("");
+  const [newUserDisplayName, setNewUserDisplayName] = useState("");
+  const [addingUser, setAddingUser] = useState(false);
+  const [segmentForm, setSegmentForm] = useState({ name: "", description: "", is_default: false });
+  const [savingSegment, setSavingSegment] = useState(false);
+  const [assigningMenu, setAssigningMenu] = useState(false);
+  const [assignSelectedMenuId, setAssignSelectedMenuId] = useState("");
 
   // --- ✅ Flow Builder State ---
   const [flowSteps, setFlowSteps] = useState([]); // [{id, stateName, nextStateName, eventType, msgType, postbackData, actions:[]}]
@@ -464,7 +486,6 @@ export default function RichMenuDashboard() {
         return;
       }
 
-      // เรียก current และ list พร้อมกัน (parallel) แทนที่จะรอทีละอัน
       const [currentRes, listRes] = await Promise.all([
         fetch(`${API}?action=current&botKey=${botKey}`),
         fetch(`${API}?action=list&botKey=${botKey}`),
@@ -486,9 +507,143 @@ export default function RichMenuDashboard() {
         });
         setMenus(sorted);
       }
+
+      // โหลด segments ด้วย
+      fetchSegments();
     } catch (error) {
       console.error("Error:", error);
     }
+  }
+
+  async function fetchSegments() {
+    try {
+      const res = await fetch(`${API}?action=list_segments&botKey=${encodeURIComponent(botKey)}`);
+      const data = await res.json();
+      setSegments(data.segments || []);
+    } catch (err) {
+      console.error("[fetchSegments]", err);
+    }
+  }
+
+  async function fetchSegmentUsers(segmentId) {
+    setSegmentUsersLoading(true);
+    try {
+      const res = await fetch(`${API}?action=segment_detail&botKey=${encodeURIComponent(botKey)}&segmentId=${segmentId}`);
+      const data = await res.json();
+      setSegmentUsers(data.users || []);
+    } catch { setSegmentUsers([]); }
+    finally { setSegmentUsersLoading(false); }
+  }
+
+  async function handleSaveSegment() {
+    if (!segmentForm.name.trim()) return;
+    setSavingSegment(true);
+    try {
+      const isEdit = segmentFormModal?.mode === "edit";
+      const body = isEdit
+        ? { segmentId: segmentFormModal.data.id, ...segmentForm, adminEmail: user?.email }
+        : { botKey: decodeURIComponent(botKey), ...segmentForm, adminEmail: user?.email };
+      const res = await fetch(`${API}?action=${isEdit ? "update_segment" : "create_segment"}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSegmentFormModal(null);
+        setSegmentForm({ name: "", description: "", is_default: false });
+        fetchSegments();
+      } else {
+        await Swal.fire({ icon: "error", title: "เกิดข้อผิดพลาด", text: data.error });
+      }
+    } finally { setSavingSegment(false); }
+  }
+
+  async function handleDeleteSegment(segment) {
+    const confirm = await Swal.fire({
+      title: `ลบ Segment "${segment.name}"?`,
+      text: "Segment จะถูกซ่อน แต่ข้อมูล user ยังคงอยู่",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      confirmButtonText: "ลบ",
+      cancelButtonText: "ยกเลิก",
+    });
+    if (!confirm.isConfirmed) return;
+    await fetch(`${API}?action=delete_segment`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ segmentId: segment.id, adminEmail: user?.email }),
+    });
+    fetchSegments();
+  }
+
+  async function handleAssignSegmentMenu() {
+    if (!assignSelectedMenuId || !assignMenuModal) return;
+    setAssigningMenu(true);
+    try {
+      const menu = menus.find((m) => m.richMenuId === assignSelectedMenuId);
+      const res = await fetch(`${API}?action=assign_segment_menu`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          segmentId: assignMenuModal.id,
+          richMenuId: assignSelectedMenuId,
+          richMenuName: menu?.name || assignSelectedMenuId,
+          botKey: decodeURIComponent(botKey),
+          adminEmail: user?.email,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAssignMenuModal(null);
+        setAssignSelectedMenuId("");
+        await Swal.fire({ icon: "success", title: "สำเร็จ!", text: data.message, timer: 1500, showConfirmButton: false });
+        fetchSegments();
+      } else {
+        await Swal.fire({ icon: "error", title: "เกิดข้อผิดพลาด", text: data.error });
+      }
+    } finally { setAssigningMenu(false); }
+  }
+
+  async function handleAddSegmentUser() {
+    if (!newUserId.trim() || !usersModal) return;
+    setAddingUser(true);
+    try {
+      const res = await fetch(`${API}?action=add_segment_users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          segmentId: usersModal.id,
+          botKey: decodeURIComponent(botKey),
+          users: [{ lineUserId: newUserId.trim(), displayName: newUserDisplayName.trim() || null }],
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNewUserId("");
+        setNewUserDisplayName("");
+        fetchSegmentUsers(usersModal.id);
+      }
+    } finally { setAddingUser(false); }
+  }
+
+  async function handleRemoveSegmentUser(lineUserId) {
+    const confirm = await Swal.fire({
+      title: "ลบ user ออกจาก segment?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      confirmButtonText: "ลบ",
+      cancelButtonText: "ยกเลิก",
+    });
+    if (!confirm.isConfirmed) return;
+    await fetch(`${API}?action=remove_segment_user`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ segmentId: usersModal.id, botKey: decodeURIComponent(botKey), lineUserId }),
+    });
+    fetchSegmentUsers(usersModal.id);
   }
 
   // --- Drag & Drop ---
@@ -995,6 +1150,17 @@ export default function RichMenuDashboard() {
                 </div>
                 <div className="php-qa-icon amber">
                   <History size={20} />
+                </div>
+              </button>
+
+              {/* ปุ่ม 4: Segments */}
+              <button onClick={() => document.getElementById("segment-section")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="php-qa-btn">
+                <div className="php-qa-content">
+                  <h3>จัดการ Segments</h3>
+                  <p>แบ่งกลุ่ม user ตามจังหวัด/ประเภท</p>
+                </div>
+                <div className="php-qa-icon" style={{ background: "#EDE9FE", color: "#7C3AED" }}>
+                  <Users size={20} />
                 </div>
               </button>
             </div>
@@ -3437,9 +3603,298 @@ export default function RichMenuDashboard() {
                 </div>
               )}
             </section>
+
+            {/* ==================== SEGMENT SECTION ==================== */}
+            <section id="segment-section" className="php-card">
+              <div className="php-card-header flex justify-between items-center">
+                <h2 className="php-card-title flex items-center gap-2">
+                  <Users size={18} /> จัดการ Segments
+                </h2>
+                <button
+                  onClick={() => {
+                    setSegmentForm({ name: "", description: "", is_default: false });
+                    setSegmentFormModal({ mode: "create" });
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-bold"
+                >
+                  <Plus size={14} /> สร้าง Segment
+                </button>
+              </div>
+
+              {segments.length === 0 ? (
+                <div className="py-12 text-center text-slate-400">
+                  <Users size={32} className="mx-auto mb-3 opacity-30" />
+                  <p className="font-bold">ยังไม่มี Segment</p>
+                  <p className="text-sm mt-1">กดปุ่ม "สร้าง Segment" เพื่อเริ่มต้นแบ่งกลุ่ม user</p>
+                </div>
+              ) : (
+                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {segments.map((seg) => (
+                    <div
+                      key={seg.id}
+                      className={`bg-white rounded-2xl border-2 shadow-sm ${seg.is_default ? "border-green-300" : "border-slate-200"}`}
+                    >
+                      {/* Card Header */}
+                      <div className="p-4 flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${seg.is_default ? "bg-green-100" : "bg-violet-100"}`}>
+                            {seg.is_default
+                              ? <Star size={16} className="text-green-600" />
+                              : <LayoutGrid size={16} className="text-violet-600" />
+                            }
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-slate-800 text-sm truncate">{seg.name}</span>
+                              {seg.is_default && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full">Default</span>
+                              )}
+                            </div>
+                            {seg.description && (
+                              <p className="text-[10px] text-slate-400 truncate">{seg.description}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <button
+                            onClick={() => {
+                              setSegmentForm({ name: seg.name, description: seg.description || "", is_default: seg.is_default });
+                              setSegmentFormModal({ mode: "edit", data: seg });
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSegment(seg)}
+                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Stats */}
+                      <div className="px-4 pb-2 flex items-center gap-3 text-[11px] text-slate-500">
+                        <span className="flex items-center gap-1"><Users size={11} /> {seg.user_count} user</span>
+                        {seg.active_rich_menu_name
+                          ? <span className="flex items-center gap-1 text-green-600 font-medium truncate"><CheckCircle size={11} />{seg.active_rich_menu_name}</span>
+                          : <span className="text-amber-500">ยังไม่ได้ assign เมนู</span>
+                        }
+                      </div>
+
+                      {/* Buttons */}
+                      <div className="px-4 pb-4 flex gap-2">
+                        <button
+                          onClick={() => { setAssignSelectedMenuId(seg.active_rich_menu_id || ""); setAssignMenuModal(seg); }}
+                          className="flex-1 flex items-center justify-center gap-1 py-2 bg-slate-900 hover:bg-violet-700 text-white text-[11px] font-bold rounded-xl transition-colors"
+                        >
+                          <ArrowRightLeft size={12} /> Assign เมนู
+                        </button>
+                        <button
+                          onClick={() => { setUsersModal(seg); fetchSegmentUsers(seg.id); }}
+                          className="flex-1 flex items-center justify-center gap-1 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 text-[11px] font-bold rounded-xl transition-colors"
+                        >
+                          <Users size={12} /> จัดการ User
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
           </div>
         </div>
       </div>
+
+      {/* ==================== SEGMENT FORM MODAL ==================== */}
+      {segmentFormModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setSegmentFormModal(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+              <h3 className="font-bold text-slate-800">{segmentFormModal.mode === "edit" ? "แก้ไข Segment" : "สร้าง Segment ใหม่"}</h3>
+              <button onClick={() => setSegmentFormModal(null)}><X size={20} className="text-slate-400" /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-600 block mb-1">ชื่อ Segment *</label>
+                <input
+                  value={segmentForm.name}
+                  onChange={(e) => setSegmentForm({ ...segmentForm, name: e.target.value })}
+                  placeholder="เช่น กรุงเทพ, เชียงใหม่, VIP"
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-violet-400"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-600 block mb-1">คำอธิบาย</label>
+                <input
+                  value={segmentForm.description}
+                  onChange={(e) => setSegmentForm({ ...segmentForm, description: e.target.value })}
+                  placeholder="อธิบายกลุ่มนี้..."
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-violet-400"
+                />
+              </div>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={segmentForm.is_default}
+                  onChange={(e) => setSegmentForm({ ...segmentForm, is_default: e.target.checked })}
+                  className="w-4 h-4 accent-green-500"
+                />
+                <div>
+                  <div className="text-sm font-bold text-slate-700">ตั้งเป็น Default Segment</div>
+                  <div className="text-xs text-slate-400">เมนูของ segment นี้จะเป็น LINE default menu</div>
+                </div>
+              </label>
+            </div>
+            <div className="px-6 pb-6 flex gap-3">
+              <button onClick={() => setSegmentFormModal(null)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600">ยกเลิก</button>
+              <button
+                onClick={handleSaveSegment}
+                disabled={!segmentForm.name.trim() || savingSegment}
+                className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:bg-slate-200 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2"
+              >
+                {savingSegment ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={15} />}
+                {savingSegment ? "กำลังบันทึก..." : "บันทึก"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== ASSIGN MENU MODAL ==================== */}
+      {assignMenuModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setAssignMenuModal(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh] overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
+              <div>
+                <h3 className="font-bold text-slate-800">Assign เมนูให้ Segment</h3>
+                <p className="text-xs text-slate-500 mt-0.5">{assignMenuModal.name}</p>
+              </div>
+              <button onClick={() => setAssignMenuModal(null)}><X size={20} className="text-slate-400" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {menus.length === 0 && (
+                <p className="text-center text-sm text-slate-400 py-8">ไม่มีเมนูในระบบ กรุณาอัปโหลดเมนูก่อน</p>
+              )}
+              {menus.map((menu) => {
+                const isSelected = menu.richMenuId === assignSelectedMenuId;
+                const isCurrent = menu.richMenuId === assignMenuModal.active_rich_menu_id;
+                return (
+                  <button
+                    key={menu.richMenuId}
+                    onClick={() => setAssignSelectedMenuId(menu.richMenuId)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${isSelected ? "border-violet-400 bg-violet-50" : "border-slate-200 hover:border-slate-300"}`}
+                  >
+                    <div className="w-16 h-6 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
+                      {menu.image_url && <img src={menu.image_url} alt="" className="w-full h-full object-cover" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-slate-800 truncate">{menu.name}</span>
+                        {isCurrent && <span className="text-[9px] px-1.5 py-0.5 bg-green-100 text-green-700 font-bold rounded-full">ใช้อยู่</span>}
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-mono truncate">{menu.richMenuId}</p>
+                    </div>
+                    {isSelected && <CheckCircle size={16} className="text-violet-500 shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="px-6 pb-6 pt-4 border-t border-slate-100 flex gap-3 shrink-0">
+              <button onClick={() => setAssignMenuModal(null)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600">ยกเลิก</button>
+              <button
+                onClick={handleAssignSegmentMenu}
+                disabled={!assignSelectedMenuId || assigningMenu}
+                className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:bg-slate-200 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2"
+              >
+                {assigningMenu ? <Loader2 size={15} className="animate-spin" /> : <ArrowRightLeft size={15} />}
+                {assigningMenu ? "กำลัง Assign..." : "Assign เมนูนี้"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== MANAGE USERS MODAL ==================== */}
+      {usersModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setUsersModal(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh] overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
+              <div>
+                <h3 className="font-bold text-slate-800">จัดการ Users</h3>
+                <p className="text-xs text-slate-500">{usersModal.name} — {segmentUsers.length} user</p>
+              </div>
+              <button onClick={() => setUsersModal(null)}><X size={20} className="text-slate-400" /></button>
+            </div>
+
+            {/* Add user input */}
+            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
+              <p className="text-xs font-bold text-slate-600 mb-2">เพิ่ม User</p>
+              <div className="flex gap-2">
+                <input
+                  value={newUserId}
+                  onChange={(e) => setNewUserId(e.target.value)}
+                  placeholder="LINE userId (Uxxxxxxxxxx)"
+                  className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-violet-400 font-mono"
+                />
+                <input
+                  value={newUserDisplayName}
+                  onChange={(e) => setNewUserDisplayName(e.target.value)}
+                  placeholder="ชื่อ (ไม่บังคับ)"
+                  className="w-28 px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-violet-400"
+                />
+                <button
+                  onClick={handleAddSegmentUser}
+                  disabled={!newUserId.trim() || addingUser}
+                  className="px-3 py-2 bg-violet-600 hover:bg-violet-700 disabled:bg-slate-200 text-white rounded-xl text-xs font-bold flex items-center gap-1"
+                >
+                  {addingUser ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                  เพิ่ม
+                </button>
+              </div>
+            </div>
+
+            {/* User list */}
+            <div className="flex-1 overflow-y-auto">
+              {segmentUsersLoading ? (
+                <div className="flex justify-center items-center py-12"><Loader2 className="animate-spin text-violet-500" /></div>
+              ) : segmentUsers.length === 0 ? (
+                <div className="text-center py-12 text-slate-400 text-sm">ยังไม่มี user ใน segment นี้</div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {segmentUsers.map((u) => (
+                    <div key={u.id} className="px-6 py-3 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-slate-700 truncate">
+                          {u.display_name || <span className="text-slate-400 italic text-xs">ไม่ทราบชื่อ</span>}
+                        </div>
+                        <div className="text-[10px] font-mono text-slate-400 truncate">{u.line_user_id}</div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">{u.source}</span>
+                        <button
+                          onClick={() => handleRemoveSegmentUser(u.line_user_id)}
+                          className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-slate-100 shrink-0">
+              <button onClick={() => setUsersModal(null)} className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold">ปิด</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
