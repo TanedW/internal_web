@@ -3723,7 +3723,9 @@ export default function RichMenuDashboard() {
                   value={segmentForm.name}
                   onChange={(e) => setSegmentForm({ ...segmentForm, name: e.target.value })}
                   placeholder="เช่น กรุงเทพ, เชียงใหม่, VIP"
-                  className="w-full px-3 py-2.5 border-2 border-slate-300 rounded-xl text-sm outline-none focus:border-violet-500 focus:bg-violet-50/30"
+                  style={{ border: "1.5px solid #CBD5E1", borderRadius: 12, padding: "10px 12px", fontSize: 14, width: "100%", outline: "none", boxSizing: "border-box" }}
+                  onFocus={(e) => e.target.style.borderColor = "#7C3AED"}
+                  onBlur={(e) => e.target.style.borderColor = "#CBD5E1"}
                 />
               </div>
               <div>
@@ -3732,7 +3734,9 @@ export default function RichMenuDashboard() {
                   value={segmentForm.description}
                   onChange={(e) => setSegmentForm({ ...segmentForm, description: e.target.value })}
                   placeholder="อธิบายกลุ่มนี้..."
-                  className="w-full px-3 py-2.5 border-2 border-slate-300 rounded-xl text-sm outline-none focus:border-violet-500 focus:bg-violet-50/30"
+                  style={{ border: "1.5px solid #CBD5E1", borderRadius: 12, padding: "10px 12px", fontSize: 14, width: "100%", outline: "none", boxSizing: "border-box" }}
+                  onFocus={(e) => e.target.style.borderColor = "#7C3AED"}
+                  onBlur={(e) => e.target.style.borderColor = "#CBD5E1"}
                 />
               </div>
               <label className="flex items-center gap-3 cursor-pointer">
@@ -3740,7 +3744,7 @@ export default function RichMenuDashboard() {
                   type="checkbox"
                   checked={segmentForm.is_default}
                   onChange={(e) => setSegmentForm({ ...segmentForm, is_default: e.target.checked })}
-                  className="w-5 h-5 accent-green-500 border-2 border-slate-400 rounded cursor-pointer shrink-0"
+                  style={{ width: 18, height: 18, accentColor: "#22C55E", cursor: "pointer", flexShrink: 0 }}
                 />
                 <div>
                   <div className="text-sm font-bold text-slate-700">ตั้งเป็น Default Segment</div>
@@ -3749,7 +3753,7 @@ export default function RichMenuDashboard() {
               </label>
             </div>
             <div className="px-6 pb-6 flex gap-3">
-              <button onClick={() => setSegmentFormModal(null)} className="flex-1 py-2.5 border-2 border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50">ยกเลิก</button>
+              <button onClick={() => setSegmentFormModal(null)} style={{ flex: 1, padding: "10px 0", border: "1.5px solid #CBD5E1", borderRadius: 12, fontSize: 14, fontWeight: 700, color: "#475569", background: "white", cursor: "pointer" }}>ยกเลิก</button>
               <button
                 onClick={handleSaveSegment}
                 disabled={!segmentForm.name.trim() || savingSegment}
@@ -3839,13 +3843,17 @@ export default function RichMenuDashboard() {
                   value={newUserId}
                   onChange={(e) => setNewUserId(e.target.value)}
                   placeholder="LINE userId (Uxxxxxxxxxx)"
-                  className="flex-1 px-3 py-2 border-2 border-slate-300 rounded-xl text-xs outline-none focus:border-violet-500 font-mono"
+                  style={{ flex: 1, border: "1.5px solid #CBD5E1", borderRadius: 10, padding: "7px 10px", fontSize: 11, outline: "none", fontFamily: "monospace", minWidth: 0 }}
+                  onFocus={(e) => e.target.style.borderColor = "#7C3AED"}
+                  onBlur={(e) => e.target.style.borderColor = "#CBD5E1"}
                 />
                 <input
                   value={newUserDisplayName}
                   onChange={(e) => setNewUserDisplayName(e.target.value)}
                   placeholder="ชื่อ (ไม่บังคับ)"
-                  className="w-28 px-3 py-2 border-2 border-slate-300 rounded-xl text-xs outline-none focus:border-violet-500"
+                  style={{ width: 100, border: "1.5px solid #CBD5E1", borderRadius: 10, padding: "7px 10px", fontSize: 11, outline: "none" }}
+                  onFocus={(e) => e.target.style.borderColor = "#7C3AED"}
+                  onBlur={(e) => e.target.style.borderColor = "#CBD5E1"}
                 />
                 <button
                   onClick={handleAddSegmentUser}
