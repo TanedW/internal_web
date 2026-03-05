@@ -279,26 +279,42 @@ const getRoleLabel = (roleValue) => ROLE_LABEL_MAP[roleValue] || roleValue.repla
         }`}>
             {/* Add Card */}
             <div 
-               className={`hidden lg:flex group relative flex-col items-center justify-center border-2 border-dashed border-indigo-300 !bg-white hover:border-indigo-600 hover:bg-indigo-50 transition-all duration-300 cursor-pointer rounded-3xl shadow-md hover:shadow-xl hover:shadow-indigo-200/50 hover:-translate-y-2 min-h-[180px] ${
-                 isDesktopSidebarOpen ? 'p-4' : 'p-6'
-               }`}
-               onClick={() => {
-                   setEditingAdmin(null);
-                   setNewEmail("");
-                   setNewRoles([]);
-                   document.getElementById('add_admin_modal').showModal();
-               }}
-            >
-                <div className={`rounded-full bg-indigo-600 text-white flex items-center justify-center mb-4 shadow-lg shadow-indigo-300 group-hover:scale-110 group-hover:rotate-90 transition-all duration-300 ${
-                    isDesktopSidebarOpen ? 'w-12 h-12' : 'w-16 h-16'
-                }`}>
-                    <Plus size={isDesktopSidebarOpen ? 24 : 32} strokeWidth={3} />
-                </div>
-                <h3 className={`text-indigo-900 font-bold group-hover:text-indigo-700 transition-colors ${
-                    isDesktopSidebarOpen ? 'text-base' : 'text-lg'
-                }`}>เพิ่มสมาชิก</h3>
-                <p className="text-indigo-500/80 text-xs mt-1 text-center font-medium">คลิกเพื่อเชิญผู้ดูแลระบบใหม่</p>
-            </div>
+  className={`hidden lg:flex group relative flex-col items-center justify-center border-2 border-dashed border-indigo-300 !bg-white hover:border-indigo-600 hover:bg-indigo-50 transition-all duration-300 cursor-pointer rounded-3xl shadow-sm hover:shadow-md hover:-translate-y-1 h-full min-h-[140px] ${
+    isDesktopSidebarOpen ? 'p-4' : 'p-6'
+  }`}
+  onClick={() => {
+    setEditingAdmin(null);
+    setNewEmail("");
+    setNewRoles([]);
+    document.getElementById('add_admin_modal').showModal();
+  }}
+>
+  {/* ส่วนวงกลมไอคอน ปรับขนาดให้เท่ากับรูป Avatar ของ Card อื่น */}
+  <div className={`rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100 group-hover:scale-110 group-hover:rotate-90 transition-all duration-300 flex-shrink-0 ${
+    isDesktopSidebarOpen ? 'w-10 h-10 mb-2' : 'w-14 h-14 mb-3'
+  }`}>
+    <Plus size={isDesktopSidebarOpen ? 20 : 28} strokeWidth={3} />
+  </div>
+
+  {/* ส่วนข้อความ ปรับขนาด Font ให้เท่ากับชื่อ Email ใน Card อื่น */}
+  <div className="w-full text-center px-1">
+    <h3 className={`font-bold text-indigo-900 group-hover:text-indigo-700 transition-colors ${
+      isDesktopSidebarOpen ? 'text-[16px]' : 'text-sm'
+    }`}>
+      เพิ่มสมาชิก
+    </h3>
+    <p className="text-indigo-400 text-[12px] mt-0.5 font-medium opacity-80">
+      เชิญผู้ดูแลระบบใหม่
+    </p>
+  </div>
+
+  {/* Dummy spacer เพื่อให้ Content บาลานซ์เหมือน Card สมาชิกที่มี Role อยู่ด้านล่าง */}
+  <div className="mt-auto w-full opacity-0 select-none">
+    <div className={isDesktopSidebarOpen ? "text-[9px] py-0.5" : "text-[10px] py-1"}>
+      spacer
+    </div>
+  </div>
+</div>
 
             {filteredEmails.map((item) => {
                 const userRoles = item.roles && item.roles.length > 0 ? item.roles : (item.role ? [item.role] : ['member']);
