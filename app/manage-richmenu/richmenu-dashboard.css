@@ -1,950 +1,816 @@
-@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
-@keyframes slide-in-left {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
-}
-.animate-slide-in-left {
-  animation: slide-in-left 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
+/* ============================================================
+   TOKENS
+   ============================================================ */
 :root {
-  --php-primary: #06C755;
-  --php-primary-hover: #05a546;
-  --php-bg-card: #FFFFFF;
-  --php-text-main: #2C3E50;
-  --php-text-sub: #7F8C8D;
-  --php-border: #E8ECEF;
-  --php-danger: #E74C3C;
-  --php-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  --php-radius: 12px;
-  --php-bg-main: #F4F6F8;
-  --php-bg-input: #f8fafc;
-  --php-bg-hover: #f1f5f9;
+  --c-green:        #06C755;
+  --c-green-dark:   #059a42;
+  --c-green-soft:   #e8fdf0;
+  --c-blue:         #3B82F6;
+  --c-blue-soft:    #EFF6FF;
+  --c-amber:        #F59E0B;
+  --c-amber-soft:   #FFFBEB;
+  --c-red:          #EF4444;
+  --c-red-soft:     #FEF2F2;
+  --c-violet:       #7C3AED;
+  --c-violet-soft:  #F5F3FF;
+
+  --ink-1:  #0F172A;
+  --ink-2:  #334155;
+  --ink-3:  #64748B;
+  --ink-4:  #94A3B8;
+  --ink-5:  #CBD5E1;
+
+  --bg-page:  #F1F5F9;
+  --bg-card:  #FFFFFF;
+  --bg-muted: #F8FAFC;
+
+  --border:   #E2E8F0;
+  --border-2: #CBD5E1;
+
+  --radius-sm:  8px;
+  --radius-md:  14px;
+  --radius-lg:  20px;
+  --radius-xl:  28px;
+
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
+  --shadow-lg: 0 20px 48px rgba(0,0,0,0.12);
+
+  --font: 'Noto Sans Thai', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  /* legacy compat */
+  --php-primary: var(--c-green);
+  --php-primary-hover: var(--c-green-dark);
+  --php-bg-card: var(--bg-card);
+  --php-text-main: var(--ink-1);
+  --php-text-sub: var(--ink-3);
+  --php-border: var(--border);
+  --php-danger: var(--c-red);
+  --php-shadow: var(--shadow-sm);
+  --php-radius: var(--radius-md);
+  --php-bg-main: var(--bg-page);
+  --php-bg-input: var(--bg-muted);
+  --php-bg-hover: #F1F5F9;
 }
+
+/* ============================================================
+   RESET / BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
 
 .php-theme {
-  font-family: 'Sarabun', sans-serif;
-  color: var(--php-text-main);
+  font-family: var(--font);
+  color: var(--ink-1);
+  background: var(--bg-page);
+  -webkit-font-smoothing: antialiased;
 }
 
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes slide-in-left {
+  from { transform: translateX(-20px); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+@keyframes fade-in-up {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(6,199,85,0.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(6,199,85,0);  }
+}
+
+.animate-slide-in-left { animation: slide-in-left 0.35s cubic-bezier(0.16,1,0.3,1) both; }
+.animate-fade-in-up    { animation: fade-in-up 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+.animate-fade-in       { animation: fade-in 0.3s ease both; }
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
 .php-container {
-  max-width: 800px;
+  max-width: 860px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 16px;
+}
+@media (min-width: 768px) {
+  .php-container { padding: 24px 28px; }
 }
 
-/* ALERTS */
-.php-alert {
-  padding: 12px 16px;
-  border-radius: 8px;
+/* ============================================================
+   CARD
+   ============================================================ */
+.php-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
   margin-bottom: 20px;
+  padding: 20px;
+  overflow: hidden;
+}
+@media (min-width: 768px) {
+  .php-card { padding: 28px; margin-bottom: 28px; }
+}
+
+.php-card-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 14px;
-  font-weight: 500;
-  animation: fadeIn 0.3s ease;
+  justify-content: space-between;
+  margin-bottom: 20px;
 }
-.php-alert-success { background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-.php-alert-error { 
-  display: none !important; /* ซ่อนไม่ให้แสดง */
+.php-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink-1);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+@media (min-width: 768px) {
+  .php-card-title { font-size: 18px; }
 }
 
-/* CARDS */
-.php-card {
-  background: var(--php-bg-card);
-  border-radius: var(--php-radius);
-  box-shadow: var(--php-shadow);
-  margin-bottom: 24px;
-  border: 1px solid var(--php-border);
-  overflow: hidden;
-  padding: 24px;
+/* ============================================================
+   NAV BAR
+   ============================================================ */
+.php-nav-bar {
+  margin-bottom: 20px;
 }
-.php-card-header { margin-bottom: 20px; }
-.php-card-title { font-size: 18px; font-weight: 600; color: var(--php-text-main); margin: 0; }
-
-/* NAV BAR */
-.php-nav-bar { margin-bottom: 20px; }
 .php-btn-back {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--php-text-sub);
+  color: var(--ink-3);
   text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-  transition: color 0.2s;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 50px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+  box-shadow: var(--shadow-xs);
 }
-.php-btn-back:hover { color: var(--php-primary); }
+.php-btn-back:hover {
+  color: var(--c-green);
+  border-color: var(--c-green);
+  background: var(--c-green-soft);
+  transform: translateX(-2px);
+}
 
-/* --- NEW: QUICK ACTIONS (ปุ่มทางลัด 3 ปุ่ม) --- */
+/* ============================================================
+   QUICK ACTIONS GRID
+   ============================================================ */
 .php-qa-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-  margin-bottom: 24px;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+@media (min-width: 640px) {
+  .php-qa-grid { grid-template-columns: repeat(4, 1fr); gap: 12px; }
 }
 @media (min-width: 768px) {
-  .php-qa-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
+  .php-qa-grid { gap: 16px; margin-bottom: 28px; }
 }
+
 .php-qa-btn {
-  background: #FFFFFF;
-  border: 1px solid var(--php-border);
-  border-radius: var(--php-radius);
-  padding: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 12px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: var(--php-shadow);
+  transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow: var(--shadow-xs);
   text-align: left;
   width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+.php-qa-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 60%, rgba(255,255,255,0.5));
+  pointer-events: none;
 }
 .php-qa-btn:hover {
   transform: translateY(-3px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  border-color: var(--php-primary);
+  box-shadow: var(--shadow-md);
+  border-color: transparent;
 }
+@media (min-width: 640px) {
+  .php-qa-btn {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 16px;
+  }
+}
+
 .php-qa-content h3 {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
-  color: var(--php-text-main);
-  margin: 0 0 4px 0;
+  color: var(--ink-1);
+  margin: 0 0 2px 0;
+  line-height: 1.3;
 }
 .php-qa-content p {
-  font-size: 12px;
-  color: var(--php-text-sub);
+  font-size: 11px;
+  color: var(--ink-3);
   margin: 0;
+  line-height: 1.4;
 }
+@media (min-width: 768px) {
+  .php-qa-content h3 { font-size: 14px; }
+}
+
 .php-qa-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
   flex-shrink: 0;
 }
-.php-qa-icon.green { background: #ecfdf5; color: #059669; }
-.php-qa-icon.blue { background: #eff6ff; color: #2563eb; }
-.php-qa-icon.amber { background: #fffbeb; color: #d97706; }
+.php-qa-icon.green { background: var(--c-green-soft); color: var(--c-green-dark); }
+.php-qa-icon.blue  { background: var(--c-blue-soft);  color: var(--c-blue); }
+.php-qa-icon.amber { background: var(--c-amber-soft); color: var(--c-amber); }
 
-/* --- NEW: AUDIT LOG MODAL --- */
+/* ============================================================
+   ALERTS
+   ============================================================ */
+.php-alert {
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  animation: fade-in-up 0.3s ease;
+}
+.php-alert-success { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
+.php-alert-error   { display: none !important; }
+
+/* ============================================================
+   MODALS
+   ============================================================ */
 .php-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
-  backdrop-filter: blur(4px);
+  background: rgba(15,23,42,0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: 100;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  padding: 16px;
-  animation: fadeIn 0.2s ease;
+  padding: 0;
+  animation: fade-in 0.2s ease;
 }
+@media (min-width: 640px) {
+  .php-modal-overlay {
+    align-items: center;
+    padding: 20px;
+  }
+}
+
 .php-modal-content {
-  background: white;
-  border-radius: 16px;
+  background: var(--bg-card);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   width: 100%;
-  max-width: 500px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  max-width: 520px;
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  max-height: 80vh;
+  max-height: 90vh;
+  animation: fade-in-up 0.3s cubic-bezier(0.16,1,0.3,1) both;
 }
+@media (min-width: 640px) {
+  .php-modal-content {
+    border-radius: var(--radius-xl);
+    max-height: 85vh;
+  }
+}
+
 .php-modal-header {
-  padding: 16px;
-  border-bottom: 1px solid var(--php-border);
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f8fafc;
-}
-.php-modal-header h3 { margin: 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-.php-modal-close { background: none; border: none; cursor: pointer; color: #94a3b8; padding: 4px; border-radius: 50%; }
-.php-modal-close:hover { background: #e2e8f0; color: #475569; }
-.php-modal-body { overflow-y: auto; padding: 0; }
-.php-log-item { padding: 16px; border-bottom: 1px solid var(--php-border); display: flex; gap: 12px; }
-.php-log-item:last-child { border-bottom: none; }
-.php-log-icon { width: 36px; height: 36px; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 14px; flex-shrink: 0;}
-.php-log-info { flex: 1; }
-.php-log-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
-.php-log-user { font-weight: 700; font-size: 13px; color: var(--php-text-main); }
-.php-log-time { font-size: 11px; color: #94a3b8; }
-.php-log-action { font-size: 12px; font-weight: 600; color: var(--php-text-main); }
-.php-log-detail { font-size: 12px; color: var(--php-text-sub); margin-top: 2px; }
-.php-modal-footer { padding: 12px; background: #f8fafc; border-top: 1px solid var(--php-border); }
-.php-btn-close-modal { width: 100%; padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-weight: 600; color: #475569; cursor: pointer; transition: all 0.2s; }
-.php-btn-close-modal:hover { background: #f1f5f9; }
-
-/* Other Existing Styles */
-.php-upload-header { display: flex; justify-content: space-between; align-items: center; }
-.php-upload-zone-active { border-color: var(--php-primary) !important; background-color: #f0fdf4 !important; }
-.php-menu-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-.php-menu-item { background: white; border: 1px solid var(--php-border); border-radius: var(--php-radius); overflow: hidden; position: relative; transition: transform 0.2s; }
-.php-menu-item:hover { transform: translateY(-4px); box-shadow: var(--php-shadow); }
-.php-menu-item.active { border: 2px solid var(--php-primary); }
-.php-menu-img-container { position: relative; padding-top: 67.44%; background: #f8fafc; border-bottom: 1px solid var(--php-border); }
-.php-menu-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
-.php-menu-img-placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #cbd5e1; font-size: 32px; }
-.php-menu-status { padding: 16px; display: flex; justify-content: space-between; align-items: flex-start; }
-.php-menu-details h3 { margin: 0 0 4px 0; font-size: 15px; font-weight: 600; }
-.php-menu-details p { margin: 0 0 8px 0; font-size: 13px; color: var(--php-text-sub); }
-.php-menu-id { font-size: 10px; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #64748b; font-family: monospace; display: inline-block; }
-.php-status-badge { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 20px; text-transform: uppercase; }
-.php-status-active { background: #d1fae5; color: #047857; }
-.php-status-inactive { background: #f1f5f9; color: #64748b; }
-.php-menu-actions { padding: 0 16px 16px 16px; display: flex; gap: 8px; }
-.php-btn-action { flex: 1; padding: 8px; border-radius: 8px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s; }
-.php-btn-switch { background: #eff6ff; color: #2563eb; }
-.php-btn-switch:hover { background: #dbeafe; }
-.php-btn-delete { background: #fef2f2; color: #dc2626; }
-.php-btn-delete:hover { background: #fee2e2; }
-.php-btn-disabled { background: #f0fdf4; color: #16a34a; cursor: default; }
-.php-btn-secondary { width: 100%; padding: 12px; background: white; border: 1px solid var(--php-border); border-radius: var(--php-radius); color: var(--php-text-sub); font-weight: 600; cursor: pointer; margin-top: 16px; }
-.php-btn-secondary:hover { background: #f8fafc; color: var(--php-text-main); }
-.php-empty-state { text-align: center; padding: 40px; color: var(--php-text-sub); background: #f8fafc; border-radius: var(--php-radius); border: 2px dashed var(--php-border); }
-
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-/* --- Gray Minimal Input Styling --- */
-.php-input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.php-input-field {
-  width: 100%;
-  padding: 10px 14px;
-  background-color: #f8fafc; /* พื้นหลังเทาอ่อนมาก (slate-50) */
-  border: 1px solid #94a3b8;   /* ขอบเทา (slate-400) - เข้มขึ้นให้มองเห็นชัด */
-  border-radius: 8px;
-  font-size: 14px;
-  color: #334155;             /* ตัวอักษรเทาเข้ม (slate-700) */
-  transition: all 0.2s ease-in-out;
-  outline: none;
-}
-
-.php-input-field::placeholder {
-  color: #94a3b8;
-}
-
-/* เมื่อคลิก: เปลี่ยนขอบเป็นสีเทาที่เข้มขึ้นเล็กน้อย และเพิ่มเงาบางๆ */
-.php-input-field:focus {
-  background-color: #ffffff;
-  border-color: #cbd5e1;      /* เทา slate-300 */
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-}
-
-/* เมื่อเอาเมาส์วาง */
-.php-input-field:hover:not(:focus) {
-  border-color: #cbd5e1;
-}
-
-/* --- Template Area Preview --- */
-.php-template-preview {
-  position: relative;
-  aspect-ratio: 2500 / 1686; /* สัดส่วนมาตรฐานของ Rich Menu */
-  background-color: #f1f5f9; /* slate-100 */
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid #e2e8f0;
-}
-
-.php-template-area-border {
-  position: absolute;
-  background-color: #ffffff; /* พื้นหลังช่อง */
-  border: 1px solid #cbd5e1;  /* เส้นขอบสีเทา (slate-300) */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: bold;
-  color: #94a3b8; /* สีตัวอักษร ID ช่อง */
-  transition: all 0.2s;
-}
-
-/* เอฟเฟกต์เมื่อเลือก Template นั้นอยู่ */
-.php-template-card-active .php-template-area-border {
-  border-color: #94a3b8;
-  background-color: #f8fafc;
-}
-
-/* --- Canvas Preview Area (Right Side) --- */
-.canvas-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow: hidden;
-  background-color: #f1f5f9; /* slate-100 */
-}
-
-.canvas-toolbar {
-  height: 56px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 16px;
+  background: var(--bg-card);
   flex-shrink: 0;
-  z-index: 20;
 }
-
-.canvas-viewport {
-  flex: 1;
+.php-modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background-color: #e2e8f0; /* slate-200/50 */
+  gap: 8px;
+  color: var(--ink-1);
 }
-/* เส้นกรอบแบ่งช่อง Area บน Canvas */
-.area-grid-item {
-  position: absolute; /* สำคัญมาก: เพื่อให้เกาะตาม % ของ div พ่อ */
-  box-sizing: border-box;
+.php-modal-close {
+  background: var(--bg-muted);
+  border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
-  z-index: 10;
-  border: 1px solid rgba(255, 255, 255, 0.3); /* เส้นขอบบางๆ สีขาว */
-}
-
-.area-grid-item:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  border-color: #94a3b8;
-}
-
-/* สถานะเมื่อถูกเลือก (ยังคงสีเขียวไว้เฉพาะจุดที่คลิกเพื่อให้ User ทราบ) */
-.area-grid-item.active {
-  z-index: 20;
-  border: 2px solid #06C755; /* กลับมาเป็นสีเขียวเฉพาะตอนเลือกเพื่อให้รู้ว่าแก้ช่องไหน */
-  background-color: rgba(6, 199, 85, 0.1);
-}
-
-/* ป้ายชื่อ A, B, C ในหน้า Preview */
-.area-badge {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  width: 24px;
-  height: 24px;
+  color: var(--ink-3);
+  padding: 0;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
-  font-weight: bold;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  background-color: rgba(255, 255, 255, 0.9);
-  color: #64748b;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.php-modal-close:hover {
+  background: var(--border);
+  color: var(--ink-1);
+}
+.php-modal-body { overflow-y: auto; flex: 1; }
+.php-modal-footer {
+  padding: 14px 20px;
+  background: var(--bg-muted);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
+/* Log items */
+.php-log-item {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 12px;
+  transition: background 0.15s;
+}
+.php-log-item:hover { background: var(--bg-muted); }
+.php-log-item:last-child { border-bottom: none; }
+.php-log-icon {
+  width: 36px; height: 36px;
+  background: var(--bg-muted);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-3); font-size: 14px; flex-shrink: 0;
+}
+.php-log-info { flex: 1; }
+.php-log-top { display: flex; justify-content: space-between; margin-bottom: 3px; }
+.php-log-user { font-weight: 700; font-size: 13px; color: var(--ink-1); }
+.php-log-time { font-size: 11px; color: var(--ink-4); }
+.php-log-action { font-size: 12px; font-weight: 600; color: var(--ink-1); }
+.php-log-detail { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+
+.php-btn-close-modal {
+  width: 100%; padding: 12px;
+  background: var(--c-green);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 14px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font);
+}
+.php-btn-close-modal:hover { background: var(--c-green-dark); }
+
+/* ============================================================
+   INPUTS
+   ============================================================ */
+.php-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.php-input-field {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--bg-muted);
+  border: 1.5px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: var(--font);
+  color: var(--ink-1);
+  transition: all 0.18s ease;
+  outline: none;
+}
+.php-input-field::placeholder { color: var(--ink-4); }
+.php-input-field:hover:not(:focus) { border-color: #94A3B8; }
+.php-input-field:focus {
+  background: #fff;
+  border-color: var(--c-green);
+  box-shadow: 0 0 0 3px rgba(6,199,85,0.12);
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.php-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 20px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-2);
+  border-radius: 50px;
+  color: var(--ink-3);
+  font-weight: 600;
+  font-size: 12px;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.php-btn-secondary:hover {
+  color: var(--c-green);
+  border-color: var(--c-green);
+  background: var(--c-green-soft);
+}
+
+.php-btn-action {
+  flex: 1; padding: 8px 6px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: 12px; font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  gap: 5px;
+  transition: all 0.18s;
+}
+.php-btn-switch { background: #EFF6FF; color: #2563EB; }
+.php-btn-switch:hover { background: #DBEAFE; }
+.php-btn-delete { background: var(--c-red-soft); color: var(--c-red); }
+.php-btn-delete:hover { background: #FEE2E2; }
+.php-btn-disabled { background: var(--c-green-soft); color: #15803D; cursor: default; }
+
+/* ============================================================
+   UPLOAD SECTION
+   ============================================================ */
+.php-upload-header { display: flex; justify-content: space-between; align-items: center; }
+.php-upload-zone-active { border-color: var(--c-green) !important; background: var(--c-green-soft) !important; }
+
+.php-upload-zone {
+  position: relative;
+  width: 100%; padding: 20px 16px;
+  background: var(--bg-muted);
+  border: 2px dashed var(--border-2);
+  border-radius: var(--radius-md);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 10px;
+  transition: all 0.25s;
+  cursor: pointer;
+}
+.php-upload-zone:hover {
+  border-color: var(--c-green);
+  background: var(--c-green-soft);
+}
+.php-upload-icon-wrapper {
+  width: 44px; height: 44px;
+  background: var(--bg-card);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow-sm);
+  color: var(--ink-3);
+  transition: transform 0.2s;
+}
+.php-upload-zone:hover .php-upload-icon-wrapper {
+  transform: translateY(-2px);
+  color: var(--c-green);
+}
+.php-upload-text { text-align: center; }
+.php-upload-title { font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.php-upload-subtitle { font-size: 11px; color: var(--ink-4); font-weight: 500; }
+
+/* ============================================================
+   TEMPLATE SELECTOR
+   ============================================================ */
+.php-template-selector {
+  width: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 14px;
+  background: var(--bg-muted);
+  border: 1.5px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.php-template-selector:hover {
+  border-color: #94A3B8;
+  background: var(--bg-card);
+}
+.php-template-name {
+  font-weight: 600;
+  color: var(--ink-2);
+  font-size: 13px;
+  text-align: left;
+}
+
+.php-template-preview {
+  position: relative;
+  aspect-ratio: 2500 / 1686;
+  background: #F1F5F9;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.php-template-area-border {
+  position: absolute;
+  background: #fff;
+  border: 1px solid var(--border-2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: var(--ink-4);
+  transition: all 0.2s;
+}
+.php-template-card-active .php-template-area-border {
+  border-color: #94A3B8;
+  background: var(--bg-muted);
+}
+
+/* ============================================================
+   CANVAS / PREVIEW
+   ============================================================ */
+.canvas-container {
+  flex: 1;
+  display: flex; flex-direction: column;
+  position: relative; overflow: hidden;
+  background: #E2E8F0;
+  border-radius: var(--radius-md);
+}
+.canvas-toolbar {
+  height: 52px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+.canvas-viewport {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #E2E8F0 0%, #CBD5E1 100%);
+}
+
+/* Area Grid */
 .area-grid-item {
   position: absolute;
   cursor: pointer;
-  transition: all 0.2s ease;
-  /* เพิ่มส่วนนี้เพื่อจัดกึ่งกลาง */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px dashed rgba(255, 255, 255, 0.4);
+  transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px dashed rgba(255,255,255,0.45);
 }
-
+.area-grid-item:hover { background: rgba(0,0,0,0.06); }
+.area-grid-item.active {
+  border: 2px solid var(--c-green);
+  background: rgba(6,199,85,0.13);
+  z-index: 10;
+}
 .area-badge {
-  /* ลบ position: absolute ออก เพื่อให้มันไหลตาม Flex ของตัวแม่ */
-  background: rgba(0, 0, 0, 0.4);
-  color: white;
-  font-size: 14px; /* ปรับขนาดให้ชัดขึ้นเมื่ออยู่ตรงกลาง */
-  font-weight: bold;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%; /* ทำเป็นวงกลมเพื่อให้ดูเป็นระเบียบ */
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  font-size: 11px; font-weight: 700;
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
   pointer-events: none;
+  backdrop-filter: blur(4px);
 }
-
-/* ส่วนไอคอน Check ให้แยกไปอยู่ที่มุมเหมือนเดิมเพื่อไม่ให้ซ้อนกัน */
+.area-grid-item.active .area-badge { background: var(--c-green); }
 .has-action-icon {
   position: absolute;
-  bottom: 4px;
-  right: 4px;
-  background: #06C755;
-  color: white;
+  bottom: 5px; right: 5px;
+  background: var(--c-green);
+  color: #fff;
   padding: 2px;
   border-radius: 50%;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-.area-grid-item.active .area-badge {
-  background-color: #06C755;
-  color: #ffffff;
-}
-
-/* ปรับปรุง Card หลักให้คุมสัดส่วนได้แม่นยำ */
-.richmenu-editor-card {
-  width: 100%;
-  max-width: 760px; /* ล็อคความกว้างสูงสุดไว้ที่ 760px ตามที่คุณต้องการ */
-  background: white;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-/* ปรับแต่ง Chat Bar ให้ดูเหมือน LINE จริงมากขึ้น */
+/* Chat Bar */
 .php-chatbar {
   width: 100%;
-  background-color: #f8f8f8;
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-top: 1px solid #e2e8f0;
-  /* กำหนดความสูงให้สัมพันธ์กับความสูงรวมที่ต้องการ */
-  height: 45px; 
-  cursor: default;
+  background: #F8F8F8;
+  color: #64748B;
+  font-size: 11px; font-weight: 500;
+  display: flex; align-items: center; justify-content: center;
+  border-top: 1px solid var(--border);
+  height: 40px;
   user-select: none;
 }
 
-/* --- Template Selector Button (Gray Style) --- */
-.php-template-selector {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px;
-  background-color: #f8fafc; /* slate-50 */
-  border: 1px solid #e2e8f0;   /* slate-200 */
-  border-radius: 10px;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.php-template-selector:hover {
-  background-color: #f1f5f9; /* slate-100 */
-  border-color: #cbd5e1;      /* slate-300 */
-}
-
-.php-template-name {
-  text-align: left;
-  font-weight: 600;
-  color: #334155; /* slate-700 */
-  font-size: 14px;
-}
-
-/* --- Modern Upload Dropzone --- */
-.php-upload-zone {
-  position: relative;
-  width: 100%;
-  padding: 24px;
-  background-color: #f8fafc; /* slate-50 */
-  border: 2px dashed #e2e8f0;   /* slate-200 */
-  border-radius: 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.php-upload-zone:hover {
-  background-color: #f1f5f9; /* slate-100 */
-  border-color: #cbd5e1;      /* slate-300 */
-}
-
-.php-upload-icon-wrapper {
-  width: 48px;
-  height: 48px;
-  background-color: #ffffff;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  color: #64748b; /* slate-500 */
-  transition: transform 0.2s ease;
-}
-
-.php-upload-zone:hover .php-upload-icon-wrapper {
-  transform: translateY(-2px);
-  color: #334155;
-}
-
-.php-upload-text {
-  text-align: center;
-}
-
-.php-upload-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #334155;
-}
-
-.php-upload-subtitle {
-  font-size: 11px;
-  color: #64748b;
-  font-weight: 500;
-}
-
-.php-upload-zone:hover {
-  border-color: #06C755; /* เปลี่ยนเป็นสีเขียว LINE เวลา Hover */
-  background-color: #f0fdf4;
-}
-
-/* กรอบด้านนอกของ Action Settings */
-.action-settings-card {
-  margin-top: 1.5rem;
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0; /* สีเทาอ่อน slate-200 */
-  border-radius: 0.75rem;     /* ความมน rounded-xl */
-  overflow: hidden;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-}
-
-/* หัวข้อสีเทาอ่อนด้านบน */
-.action-settings-header {
-  padding: 1rem;
-  background-color: #f8fafc; /* สี slate-50 */
-  border-bottom: 1px solid #f1f5f9;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* ส่วนเนื้อหาภายใน */
-.action-settings-body {
-  padding: 1.25rem;
-}
-
-/* กรอบมือถือ */
+/* Mobile Frame */
 .mobile-frame {
-  width: 320px; /* ขนาดจำลองหน้าจอมือถือ */
-  height: 600px;
-  background: #1a1a1a;
-  border: 8px solid #333;
+  width: 280px; height: 560px;
+  background: var(--bg-muted);
+  border: 10px solid #111827;
   border-radius: 36px;
-  margin: 0 auto;
   position: relative;
-  overflow: hidden;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
-  display: flex;
-  flex-direction: column;
-}
-
-/* ส่วนหัวหน้าจอ LINE (จำลอง) */
-.mobile-status-bar {
-  height: 40px;
-  background: #2c3e50;
-  width: 100%;
-}
-
-/* พื้นที่แชทว่างๆ */
-.chat-space {
-  flex-grow: 1;
-  background: #8cabd9; /* สีพื้นหลังแชท LINE */
-}
-
-/* ส่วน Rich Menu ที่จะอยู่ด้านล่างสุด */
-.richmenu-preview-container {
-  width: 100%;
-  background: #fff;
-  line-height: 0;
-  border-top: 1px solid #ddd;
-}
-
-.richmenu-preview-image {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
-.mobile-frame {
-  width: 340px; /* ปรับขนาดให้พอดีหน้าจอ Dashboard */
-  height: 680px;
-  background: #f8fafc;
-  border: 12px solid #1a1a1a; /* ขอบมือถือสีดำ */
-  border-radius: 40px;        /* ความโค้งของมุมมือถือ */
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-}
-
-/* ปรับแต่ง Grid Item ให้ดูเนียนขึ้นในพรีวิว */
-.area-grid-item {
-  position: absolute;
-  border: 1px dashed rgba(255, 255, 255, 0.5);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.area-grid-item:hover {
-  background-color: rgba(6, 199, 85, 0.1);
-}
-
-.area-grid-item.active {
-  border: 2px solid #06C755;
-  background-color: rgba(6, 199, 85, 0.15);
-  z-index: 10;
-}
-
-.area-badge {
-  background: rgba(0, 0, 0, 0.5);
-  color: white;
-  font-size: 10px;
-  padding: 2px 4px;
-  border-radius: 4px;
-  position: absolute;
-  top: 4px;
-  left: 4px;
-}
-
-/* ค้นหาและแก้ไขคลาส .mobile-frame */
-.mobile-frame {
-  width: 280px;        /* ปรับลดลงจาก 340px */
-  height: 560px;       /* ปรับลดความสูงให้สมส่วน (Ratio ประมาณ 1:2) */
-  background: #f8fafc;
-  border: 10px solid #1a1a1a; /* ลดขนาดขอบลงนิดหน่อย */
-  border-radius: 32px;        /* ปรับความโค้งให้รับกับขนาดที่เล็กลง */
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.2);
-  margin: 0 auto;             /* จัดกึ่งกลาง */
+  display: flex; flex-direction: column;
+  box-shadow: 0 28px 56px -12px rgba(0,0,0,0.35);
   overflow: hidden;
 }
 
-/* ปรับส่วนหัวให้เล็กลงตาม */
-.mobile-frame .p-4 {
-  padding: 0.75rem !important; /* ลด padding ของ status bar */
+/* ============================================================
+   RICH MENU CARDS
+   ============================================================ */
+.php-menu-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+@media (min-width: 480px) {
+  .php-menu-list { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 768px) {
+  .php-menu-list { grid-template-columns: repeat(3, 1fr); }
 }
 
-/* ปรับขนาดตัวอักษรใน Chat Bar ให้เล็กลง */
-.php-chatbar {
-  padding: 0.5rem 0 !important;
-  font-size: 0.75rem !important;
-}
-
-/* ลดความสูงของช่อง Input */
-.php-input-field {
-  padding: 0.5rem 0.75rem !important; /* ลดจากปกติ */
-  font-size: 0.875rem;
-}
-
-/* ลดช่องว่างในปุ่มเลือก Template */
-.php-template-selector {
-  padding: 0.5rem 0.75rem !important;
-}
-
-/* ปรับ Upload Zone ให้กะทัดรัด */
-.php-upload-zone {
-  padding: 1rem !important;
-  min-height: auto !important;
-}
-
-/* ลด Margin ของการตั้งค่า Action */
-.action-settings-card {
-  margin-top: 0.75rem !important;
-}
-
-.action-settings-body {
-  padding: 0.75rem !important;
-}
-
-/* Card Container */
 .rich-menu-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1);
 }
-
 .rich-menu-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-2);
 }
-
 .rich-menu-card.active-border {
-  border-color: #06C755;
-  box-shadow: 0 0 0 1px #06C755;
+  border-color: var(--c-green);
+  box-shadow: 0 0 0 3px rgba(6,199,85,0.15);
 }
 
-/* Menu Action Buttons */
 .btn-menu-switch, .btn-menu-delete, .btn-menu-disabled {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 4px;
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: 8px;
-  transition: all 0.2s;
-}
-
-.btn-menu-switch {
-  background: #f0fdf4;
-  color: #166534;
-  border: 1px solid #bbf7d0;
-}
-
-.btn-menu-switch:hover {
-  background: #dcfce7;
-}
-
-.btn-menu-delete {
-  background: #fef2f2;
-  color: #991b1b;
-  border: 1px solid #fee2e2;
-}
-
-.btn-menu-delete:hover {
-  background: #fee2e2;
-}
-
-.btn-menu-disabled {
-  background: #f8fafc;
-  color: #94a3b8;
-  border: 1px solid #e2e8f0;
-  width: 100%;
-  cursor: not-allowed;
-}
-/* --- ส่วนปุ่ม ดูเพิ่มเติม (อัปเดตใหม่) --- */
-.php-btn-secondary {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin: 0 auto;
-  
-  /* ขนาดที่เล็กลง */
-  padding: 6px 16px;
-  font-size: 11px;
-  max-width: 140px; 
-  
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  color: #64748b;
-  border-radius: 20px; /* ทรง Capsule */
-  font-weight: 500;
-  transition: all 0.2s ease;
+  display: flex; align-items: center; justify-content: center;
+  gap: 5px; padding: 8px 4px;
+  font-size: 11px; font-weight: 700;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
   cursor: pointer;
+  transition: all 0.18s;
+}
+.btn-menu-switch {
+  background: var(--c-green-soft);
+  color: #166534;
+  border: 1.5px solid #BBF7D0;
+}
+.btn-menu-switch:hover { background: #DCFCE7; }
+.btn-menu-delete {
+  background: var(--c-red-soft);
+  color: #991B1B;
+  border: 1.5px solid #FEE2E2;
+}
+.btn-menu-delete:hover { background: #FEE2E2; }
+.btn-menu-disabled {
+  background: var(--bg-muted);
+  color: var(--ink-4);
+  border: 1.5px solid var(--border);
+  width: 100%; cursor: not-allowed;
 }
 
-.php-btn-secondary:hover {
-  background-color: #f1f5f9;
-  color: #06C755;
-  border-color: #06C755;
-  transform: translateY(-1px);
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+.php-empty-state {
+  text-align: center; padding: 48px 24px;
+  color: var(--ink-3);
+  background: var(--bg-muted);
+  border-radius: var(--radius-md);
+  border: 2px dashed var(--border-2);
 }
 
-/* เพิ่ม Effect ให้ปุ่มบันทึกดูมีมิติ */
-.bg-\[\#06C755\]:not(:disabled) {
-  background: linear-gradient(135deg, #06C755 0%, #05b04b 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.bg-\[\#06C755\]:not(:disabled):active {
-  transform: translateY(1px);
-  filter: brightness(0.9);
-}
-
-/* 1. บังคับสีปุ่มกดยืนยันให้เป็นสีเขียวตลอดเวลา */
-.swal2-container .swal2-styled.swal2-confirm {
-    background-color: #06C755 !important;
-    color: #ffffff !important;
-    opacity: 1 !important; /* ป้องกันปุ่มจาง */
-    box-shadow: none !important;
-}
-
-/* 2. บังคับสีปุ่มยกเลิกให้เป็นสีแดงตลอดเวลา (แก้จากเขียวในรูปให้เป็นแดง) */
-.swal2-container .swal2-styled.swal2-cancel {
-    background-color: #d33 !important; /* สีแดงมาตรฐาน */
-    color: #ffffff !important;
-    opacity: 1 !important; /* ป้องกันปุ่มจาง */
-    box-shadow: none !important;
-}
-
-/* 3. ล้างสถานะ Hover ที่อาจทำให้สีเพี้ยน */
-.swal2-container .swal2-actions button:hover {
-    opacity: 0.9 !important; /* ให้เข้มขึ้นหรือจางลงนิดเดียวเวลาชี้ */
-}
-
-/* 4. แก้ปัญหาปุ่มเป็นสีขาวในสถานะปกติ */
-.swal2-container .swal2-actions button {
-    display: inline-block !important;
-    visibility: visible !important;
-}
-
-/* ซ่อนปุ่ม deny (No button) ของ SweetAlert2 อย่างสมบูรณ์ */
-.swal2-deny,
-button.swal2-deny {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-
-/* ==================== JSON Viewer Modal ==================== */
+/* ============================================================
+   JSON MODAL
+   ============================================================ */
 .php-json-modal-content {
-  background: white;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 700px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  width: 100%; max-width: 700px;
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  display: flex; flex-direction: column;
   max-height: 85vh;
 }
-
-/* ส่วนแสดงข้อมูลสรุปด้านบน */
 .php-json-summary {
-  padding: 16px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 16px 20px;
+  background: var(--bg-muted);
+  border-bottom: 1px solid var(--border);
 }
-
 .php-json-info-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: flex; justify-content: space-between; align-items: center;
   padding: 8px 0;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border);
 }
-
-.php-json-info-row:last-child {
-  border-bottom: none;
-}
-
-.php-json-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #64748b;
-}
-
-.php-json-value {
-  font-size: 13px;
-  font-weight: 500;
-  color: #1e293b;
-}
-
+.php-json-info-row:last-child { border-bottom: none; }
+.php-json-label { font-size: 12px; font-weight: 600; color: var(--ink-3); }
+.php-json-value { font-size: 13px; font-weight: 500; color: var(--ink-1); }
 .php-json-value-mono {
-  font-size: 11px;
-  font-family: 'Courier New', monospace;
-  background: #fff;
-  padding: 4px 8px;
-  border-radius: 4px;
-  color: #475569;
-  border: 1px solid #e2e8f0;
+  font-size: 11px; font-family: var(--font-mono);
+  background: var(--bg-card); padding: 3px 8px;
+  border-radius: 6px; color: var(--ink-2);
+  border: 1px solid var(--border);
 }
-
-/* Header ของ JSON Code Block */
 .php-json-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: flex; justify-content: space-between; align-items: center;
   padding: 12px 16px;
-  background: #1e293b;
+  background: #1E293B;
   border-bottom: 1px solid #334155;
 }
-
 .php-json-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #94a3b8;
-  font-family: 'Courier New', monospace;
+  font-size: 12px; font-weight: 600;
+  color: #94A3B8; font-family: var(--font-mono);
 }
-
 .php-copy-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: flex; align-items: center; gap: 6px;
   padding: 6px 12px;
-  background: #334155;
-  color: #cbd5e1;
+  background: #334155; color: #CBD5E1;
   border: 1px solid #475569;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
+  border-radius: 6px; font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s;
 }
-
-.php-copy-btn:hover {
-  background: #475569;
-  color: #f1f5f9;
-}
-
-/* JSON Code Block */
+.php-copy-btn:hover { background: #475569; color: #F1F5F9; }
 .php-json-code {
-  background: #0f172a;
-  color: #e2e8f0;
-  padding: 20px;
-  margin: 0;
-  overflow-x: auto;
-  font-family: 'Courier New', Consolas, monospace;
-  font-size: 12px;
-  line-height: 1.6;
-  max-height: 400px;
-  white-space: pre-wrap;
-  word-wrap: break-word;
+  background: #0F172A; color: #E2E8F0;
+  padding: 20px; margin: 0; overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 12px; line-height: 1.7;
+  max-height: 420px; white-space: pre-wrap; word-wrap: break-word;
+}
+.php-json-code::-webkit-scrollbar { width: 6px; height: 6px; }
+.php-json-code::-webkit-scrollbar-track { background: #1E293B; }
+.php-json-code::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+
+/* ============================================================
+   ACTION SETTINGS CARD
+   ============================================================ */
+.action-settings-card {
+  margin-top: 16px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-xs);
+}
+.action-settings-header {
+  padding: 12px 16px;
+  background: var(--bg-muted);
+  border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.action-settings-body { padding: 16px; }
+
+/* ============================================================
+   SWEETALERT OVERRIDES
+   ============================================================ */
+.swal2-container .swal2-styled.swal2-confirm {
+  background-color: var(--c-green) !important;
+  color: #fff !important; opacity: 1 !important; box-shadow: none !important;
+  font-family: var(--font) !important;
+}
+.swal2-container .swal2-styled.swal2-cancel {
+  background-color: #dc2626 !important;
+  color: #fff !important; opacity: 1 !important; box-shadow: none !important;
+  font-family: var(--font) !important;
+}
+.swal2-container .swal2-styled.swal2-deny {
+  display: none !important;
+}
+.swal2-container .swal2-popup {
+  border-radius: var(--radius-lg) !important;
+  font-family: var(--font) !important;
 }
 
-/* Scrollbar สำหรับ JSON Code */
-.php-json-code::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.php-json-code::-webkit-scrollbar-track {
-  background: #1e293b;
-}
-
-.php-json-code::-webkit-scrollbar-thumb {
-  background: #475569;
-  border-radius: 4px;
-}
-
-.php-json-code::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
-}
-
-/* Responsive สำหรับ Mobile */
+/* ============================================================
+   RESPONSIVE COMPACTS
+   ============================================================ */
 @media (max-width: 640px) {
-  .php-json-modal-content {
-    max-width: 95vw;
-    max-height: 90vh;
-  }
-  
-  .php-json-code {
-    font-size: 11px;
-    padding: 12px;
-  }
-  
-  .php-json-summary {
-    padding: 12px;
-  }
-  
-  .php-json-info-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
+  .php-card { border-radius: var(--radius-md); padding: 16px; }
+  .php-json-modal-content { max-height: 92vh; border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
+  .php-json-code { font-size: 11px; padding: 14px; }
+  .mobile-frame { width: 240px; height: 480px; border-width: 8px; border-radius: 28px; }
 }
