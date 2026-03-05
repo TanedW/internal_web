@@ -3635,7 +3635,7 @@ export default function RichMenuDashboard() {
                       style={{
                         background: "#fff",
                         borderRadius: 18,
-                        border: `2px solid ${seg.is_default ? "#22C55E" : "#94A3B8"}`,
+                        border: `2px solid ${seg.is_default ? "#86EFAC" : "#E2E8F0"}`,
                         boxShadow: seg.is_default
                           ? "0 4px 16px rgba(6,199,85,0.10)"
                           : "0 2px 8px rgba(0,0,0,0.05)",
@@ -3819,7 +3819,6 @@ export default function RichMenuDashboard() {
               </label>
             </div>
             <div className="px-6 pb-6 flex gap-3">
-              <button onClick={() => setSegmentFormModal(null)} className="php-btn-secondary flex-1">ยกเลิก</button>
               <button
                 onClick={handleSaveSegment}
                 disabled={!segmentForm.name.trim() || savingSegment}
@@ -3827,6 +3826,14 @@ export default function RichMenuDashboard() {
               >
                 {savingSegment ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={15} />}
                 {savingSegment ? "กำลังบันทึก..." : "บันทึก"}
+              </button>
+              <button
+                onClick={() => setSegmentFormModal(null)}
+                style={{ flex: 1, padding: "10px 0", background: "#F1F5F9", border: "1.5px solid #CBD5E1", borderRadius: 12, fontSize: 14, fontWeight: 700, color: "#475569", cursor: "pointer", fontFamily: "inherit" }}
+                onMouseEnter={e => { e.currentTarget.style.background = "#E2E8F0"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "#F1F5F9"; }}
+              >
+                ยกเลิก
               </button>
             </div>
           </div>
