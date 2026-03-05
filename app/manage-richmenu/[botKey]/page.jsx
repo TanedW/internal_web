@@ -3719,25 +3719,25 @@ export default function RichMenuDashboard() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="text-xs font-bold text-slate-600 block mb-1">ชื่อ Segment *</label>
-                <input
-                  value={segmentForm.name}
-                  onChange={(e) => setSegmentForm({ ...segmentForm, name: e.target.value })}
-                  placeholder="เช่น กรุงเทพ, เชียงใหม่, VIP"
-                  style={{ border: "1.5px solid #CBD5E1", borderRadius: 12, padding: "10px 12px", fontSize: 14, width: "100%", outline: "none", boxSizing: "border-box" }}
-                  onFocus={(e) => e.target.style.borderColor = "#7C3AED"}
-                  onBlur={(e) => e.target.style.borderColor = "#CBD5E1"}
-                />
+                <div className="php-input-group">
+                  <input
+                    value={segmentForm.name}
+                    onChange={(e) => setSegmentForm({ ...segmentForm, name: e.target.value })}
+                    placeholder="เช่น กรุงเทพ, เชียงใหม่, VIP"
+                    className="php-input-field"
+                  />
+                </div>
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-600 block mb-1">คำอธิบาย</label>
-                <input
-                  value={segmentForm.description}
-                  onChange={(e) => setSegmentForm({ ...segmentForm, description: e.target.value })}
-                  placeholder="อธิบายกลุ่มนี้..."
-                  style={{ border: "1.5px solid #CBD5E1", borderRadius: 12, padding: "10px 12px", fontSize: 14, width: "100%", outline: "none", boxSizing: "border-box" }}
-                  onFocus={(e) => e.target.style.borderColor = "#7C3AED"}
-                  onBlur={(e) => e.target.style.borderColor = "#CBD5E1"}
-                />
+                <div className="php-input-group">
+                  <input
+                    value={segmentForm.description}
+                    onChange={(e) => setSegmentForm({ ...segmentForm, description: e.target.value })}
+                    placeholder="อธิบายกลุ่มนี้..."
+                    className="php-input-field"
+                  />
+                </div>
               </div>
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
@@ -3753,7 +3753,7 @@ export default function RichMenuDashboard() {
               </label>
             </div>
             <div className="px-6 pb-6 flex gap-3">
-              <button onClick={() => setSegmentFormModal(null)} style={{ flex: 1, padding: "10px 0", border: "1.5px solid #CBD5E1", borderRadius: 12, fontSize: 14, fontWeight: 700, color: "#475569", background: "white", cursor: "pointer" }}>ยกเลิก</button>
+              <button onClick={() => setSegmentFormModal(null)} className="php-btn-secondary flex-1">ยกเลิก</button>
               <button
                 onClick={handleSaveSegment}
                 disabled={!segmentForm.name.trim() || savingSegment}
@@ -3843,17 +3843,15 @@ export default function RichMenuDashboard() {
                   value={newUserId}
                   onChange={(e) => setNewUserId(e.target.value)}
                   placeholder="LINE userId (Uxxxxxxxxxx)"
-                  style={{ flex: 1, border: "1.5px solid #CBD5E1", borderRadius: 10, padding: "7px 10px", fontSize: 11, outline: "none", fontFamily: "monospace", minWidth: 0 }}
-                  onFocus={(e) => e.target.style.borderColor = "#7C3AED"}
-                  onBlur={(e) => e.target.style.borderColor = "#CBD5E1"}
+                  className="php-input-field flex-1"
+                  style={{ fontFamily: "monospace", fontSize: 11 }}
                 />
                 <input
                   value={newUserDisplayName}
                   onChange={(e) => setNewUserDisplayName(e.target.value)}
                   placeholder="ชื่อ (ไม่บังคับ)"
-                  style={{ width: 100, border: "1.5px solid #CBD5E1", borderRadius: 10, padding: "7px 10px", fontSize: 11, outline: "none" }}
-                  onFocus={(e) => e.target.style.borderColor = "#7C3AED"}
-                  onBlur={(e) => e.target.style.borderColor = "#CBD5E1"}
+                  className="php-input-field"
+                  style={{ width: 100, fontSize: 11 }}
                 />
                 <button
                   onClick={handleAddSegmentUser}
