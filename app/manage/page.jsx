@@ -53,16 +53,16 @@ export default function Manage() {
   ];
 
   const ROLE_LABEL_MAP = {
-  "editor_manage_user": "Admin Email",
-  "editor_manage_org": "Admin Manage Org",
-  "editor_manage_case": "Admin Case",
-  "editor_manage_menu": "Admin Menu",
-  "editor_manage_flex": "Admin Flex Message",
-  "editor_search_duplicate_org": "Admin Search Org",
-  "editor_file_search": "Admin File Search",
-};
-// ฟังก์ชัน Helper สำหรับดึง Label
-const getRoleLabel = (roleValue) => ROLE_LABEL_MAP[roleValue] || roleValue.replace(/_/g, ' ');
+    "editor_manage_user": "Admin Email",
+    "editor_manage_org": "Admin Manage Org",
+    "editor_manage_case": "Admin Case",
+    "editor_manage_menu": "Admin Menu",
+    "editor_manage_flex": "Admin Flex Message",
+    "editor_search_duplicate_org": "Admin Search Org",
+    "editor_file_search": "Admin File Search",
+  };
+
+  const getRoleLabel = (roleValue) => ROLE_LABEL_MAP[roleValue] || roleValue.replace(/_/g, ' ');
 
   const getCurrentAdminId = () => {
     if (typeof window !== "undefined") {
@@ -104,6 +104,8 @@ const getRoleLabel = (roleValue) => ROLE_LABEL_MAP[roleValue] || roleValue.repla
       }
     } catch (error) {
       console.error("Error loading admins:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -112,7 +114,6 @@ const getRoleLabel = (roleValue) => ROLE_LABEL_MAP[roleValue] || roleValue.repla
       if (currentUser) {
         setUser(currentUser);
         fetchAdmins(); 
-        setLoading(false);
       } else {
         router.push("/");
       }
@@ -200,8 +201,6 @@ const getRoleLabel = (roleValue) => ROLE_LABEL_MAP[roleValue] || roleValue.repla
     }
   };
 
-  if (loading) return <div className="min-h-screen flex justify-center items-center"><span className="loading loading-spinner text-primary"></span></div>;
-
   const isFormValid = editingAdmin 
     ? newRoles.length > 0 
     : (newEmail.trim().includes("@") && newRoles.length > 0);
@@ -211,6 +210,7 @@ const getRoleLabel = (roleValue) => ROLE_LABEL_MAP[roleValue] || roleValue.repla
       <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
       <script src="https://cdn.tailwindcss.com"></script>
 
+      {/* Sidebar อยู่นอกเงื่อนไข Loading เพื่อให้ปุ่ม Toggle ทำงานได้ปกติ */}
       <Sidebar 
         key={sidebarKey}
         isDesktopSidebarOpen={isDesktopSidebarOpen} 
@@ -224,7 +224,7 @@ const getRoleLabel = (roleValue) => ROLE_LABEL_MAP[roleValue] || roleValue.repla
         {/* Desktop Header */}
         <div className="hidden lg:flex justify-between items-center mb-8">
             <div>
-                <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">รายชื่อสมาชิกในทีม</h1>
+                <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">รายชื่อสมาชิกในทีม</h1>
                 <p className="text-slate-400 mt-1 font-medium">จัดการสมาชิกในทีมและกำหนดสิทธิ์การใช้งาน</p>
             </div>
             <div className="relative w-72 group">
@@ -271,126 +271,121 @@ const getRoleLabel = (roleValue) => ROLE_LABEL_MAP[roleValue] || roleValue.repla
             </div>
         </div>
 
-        {/* GRID VIEW - ปรับปรุงเพื่อแก้ปัญหารูปลูกศรและไอคอนจาง */}
+        {/* GRID VIEW */}
         <div className={`grid grid-cols-1 gap-4 items-start ${
             isDesktopSidebarOpen 
                 ? "md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" 
                 : "md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" 
         }`}>
-            {/* Add Card */}
+            {/* Add Card - ปุ่มเพิ่มสมาชิกแสดงไว้เหมือนเดิมเสมอเพื่อให้โครงสร้าง Layout คงที่ */}
             <div 
-  className={`hidden lg:flex group relative flex-col items-center justify-center border-2 border-dashed border-indigo-300 !bg-white hover:border-indigo-600 hover:bg-indigo-50 transition-all duration-300 cursor-pointer rounded-3xl shadow-sm hover:shadow-md hover:-translate-y-1 h-full min-h-[140px] ${
-    isDesktopSidebarOpen ? 'p-4' : 'p-6'
-  }`}
-  onClick={() => {
-    setEditingAdmin(null);
-    setNewEmail("");
-    setNewRoles([]);
-    document.getElementById('add_admin_modal').showModal();
-  }}
->
-  {/* ส่วนวงกลมไอคอน ปรับขนาดให้เท่ากับรูป Avatar ของ Card อื่น */}
-  <div className={`rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100 group-hover:scale-110 group-hover:rotate-90 transition-all duration-300 flex-shrink-0 ${
-    isDesktopSidebarOpen ? 'w-10 h-10 mb-2' : 'w-14 h-14 mb-3'
-  }`}>
-    <Plus size={isDesktopSidebarOpen ? 20 : 28} strokeWidth={3} />
-  </div>
+              className={`hidden lg:flex group relative flex-col items-center justify-center border-2 border-dashed border-indigo-300 !bg-white hover:border-indigo-600 hover:bg-indigo-50 transition-all duration-300 cursor-pointer rounded-3xl shadow-sm hover:shadow-md hover:-translate-y-1 h-full min-h-[140px] ${
+                isDesktopSidebarOpen ? 'p-4' : 'p-6'
+              }`}
+              onClick={() => {
+                setEditingAdmin(null);
+                setNewEmail("");
+                setNewRoles([]);
+                document.getElementById('add_admin_modal').showModal();
+              }}
+            >
+              <div className={`rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100 group-hover:scale-110 group-hover:rotate-90 transition-all duration-300 flex-shrink-0 ${
+                isDesktopSidebarOpen ? 'w-10 h-10 mb-2' : 'w-14 h-14 mb-3'
+              }`}>
+                <Plus size={isDesktopSidebarOpen ? 20 : 28} strokeWidth={3} />
+              </div>
+              <div className="w-full text-center px-1">
+                <h3 className={`font-bold text-indigo-900 group-hover:text-indigo-700 transition-colors ${
+                  isDesktopSidebarOpen ? 'text-[16px]' : 'text-sm'
+                }`}>
+                  เพิ่มสมาชิก
+                </h3>
+                <p className="text-indigo-400 text-[12px] mt-0.5 font-medium opacity-80">
+                  เชิญผู้ดูแลระบบใหม่
+                </p>
+              </div>
+            </div>
 
-  {/* ส่วนข้อความ ปรับขนาด Font ให้เท่ากับชื่อ Email ใน Card อื่น */}
-  <div className="w-full text-center px-1">
-    <h3 className={`font-bold text-indigo-900 group-hover:text-indigo-700 transition-colors ${
-      isDesktopSidebarOpen ? 'text-[16px]' : 'text-sm'
-    }`}>
-      เพิ่มสมาชิก
-    </h3>
-    <p className="text-indigo-400 text-[12px] mt-0.5 font-medium opacity-80">
-      เชิญผู้ดูแลระบบใหม่
-    </p>
-  </div>
+            {/* ส่วนแสดงรายชื่อสมาชิก: ถ้ายังโหลดอยู่ให้ขึ้น Spinner เฉพาะในจุดนี้ */}
+            {loading ? (
+              <div className="flex items-center justify-center h-full min-h-[140px]">
+                <span className="loading loading-spinner loading-lg text-indigo-600 scale-150"></span>
+              </div>
+            ) : (
+              filteredEmails.map((item) => {
+                  const userRoles = item.roles && item.roles.length > 0 ? item.roles : (item.role ? [item.role] : ['member']);
+                  return (
+                      <div key={item.admin_id} 
+                          className={`relative !bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col items-center text-center overflow-hidden min-h-max ${
+                              isDesktopSidebarOpen ? "p-4" : "p-6"
+                          }`}
+                      >
+                          {canDelete && (
+                              <div className="absolute top-2 right-2 flex gap-1 z-10">
+                                  <button 
+                                    onClick={() => openEditModal(item)}
+                                    className="hover:bg-indigo-50 rounded-full p-2 transition-colors"
+                                    title="แก้ไขบทบาท"
+                                  >
+                                    <Pencil size={18} style={{ color: '#4f46e5', stroke: '#4f46e5' }} />
+                                  </button>
+                                 <button 
+                                   onClick={() => handleDeleteEmail(item.admin_id)}
+                                   className="hover:bg-red-50 rounded-full p-2 transition-colors"
+                                   title="ลบผู้ใช้งาน"
+                                 >
+                                   <Trash2 size={20} style={{ color: '#ef4444', stroke: '#ef4444' }} />
+                                 </button>
+                              </div>
+                          )}
+                          <div className={`rounded-full bg-slate-50 mb-3 overflow-hidden ring-2 ring-slate-50 mx-auto flex-shrink-0 ${
+                              isDesktopSidebarOpen ? "w-10 h-10 mb-2" : "w-14 h-14 mb-3"
+                          }`}>
+                              <img 
+                                  src={item.profile_url || getAvatarUrl(item.email)} 
+                                  alt="Avatar" 
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = getAvatarUrl(item.email); }}
+                              />
+                          </div>
 
-  {/* Dummy spacer เพื่อให้ Content บาลานซ์เหมือน Card สมาชิกที่มี Role อยู่ด้านล่าง */}
-  <div className="mt-auto w-full opacity-0 select-none">
-    <div className={isDesktopSidebarOpen ? "text-[9px] py-0.5" : "text-[10px] py-1"}>
-      spacer
-    </div>
-  </div>
-</div>
-
-            {filteredEmails.map((item) => {
-                const userRoles = item.roles && item.roles.length > 0 ? item.roles : (item.role ? [item.role] : ['member']);
-                return (
-                    <div key={item.admin_id} 
-                        className={`relative !bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col items-center text-center overflow-hidden min-h-max ${
-                            isDesktopSidebarOpen ? "p-4" : "p-6"
-                        }`}
-                    >
-                        {/* ปุ่ม Pencil และ Trash พร้อมแก้ปัญหาสีจาง */}
-                        {canDelete && (
-                            <div className="absolute top-2 right-2 flex gap-1 z-10">
-                                <button 
-                                  onClick={() => openEditModal(item)}
-                                  className="hover:bg-indigo-50 rounded-full p-2 transition-colors"
-                                  title="แก้ไขบทบาท"
-                                >
-                                  <Pencil size={18} style={{ color: '#4f46e5', stroke: '#4f46e5' }} />
-                                </button>
-                               <button 
-                                 onClick={() => handleDeleteEmail(item.admin_id)}
-                                 className="hover:bg-red-50 rounded-full p-2 transition-colors"
-                                 title="ลบผู้ใช้งาน"
-                               >
-                                 <Trash2 size={20} style={{ color: '#ef4444', stroke: '#ef4444' }} />
-                               </button>
-                            </div>
-                        )}
-                        <div className={`rounded-full bg-slate-50 mb-3 overflow-hidden ring-2 ring-slate-50 mx-auto flex-shrink-0 ${
-                            isDesktopSidebarOpen ? "w-10 h-10 mb-2" : "w-14 h-14 mb-3"
-                        }`}>
-                            <img 
-                                src={item.profile_url || getAvatarUrl(item.email)} 
-                                alt="Avatar" 
-                                className="w-full h-full object-cover"
-                                onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = getAvatarUrl(item.email); }}
-                            />
-                        </div>
-
-                        <div className="w-full px-1 mb-2"> 
-                            <div className="tooltip lg:tooltip-bottom w-full before:text-[10px]" data-tip={item.email}>
-                                <h3 className={`font-bold !text-slate-800 truncate block w-full overflow-hidden ${
-                                    isDesktopSidebarOpen ? "text-[10px]" : "text-sm"
-                                }`}>
-                                    {item.email}
-                                </h3>
-                            </div>
-                        </div>
-                        
-                        {/* Role Badges */}
-                        <div className="flex flex-nowrap gap-1.5 justify-center items-center w-full overflow-x-hidden mt-auto">
-                            {userRoles.length > 0 && (
-                                <span className={`font-bold uppercase tracking-tight !bg-indigo-50 !text-indigo-600 rounded-full border border-indigo-100 truncate ${
-                                    isDesktopSidebarOpen ? "text-[9px] px-2 py-0.5" : "text-[10px] px-2.5 py-1"
-                                }`}>
-                                    {getRoleLabel(userRoles[0])}                                
-                              </span>
-                            )}
-                            {userRoles.length > 1 && (
-                                <button 
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setRoleModalData(userRoles);
-                                        document.getElementById('role_modal').showModal();
-                                    }}
-                                    className={`btn btn-xs min-h-0 !bg-slate-100 border border-slate-200 !text-slate-500 hover:bg-slate-200 rounded-full font-bold tracking-tight uppercase shadow-sm ${
-                                      isDesktopSidebarOpen ? "h-5 text-[9px] px-1.5" : "h-7 text-[10px] px-2"
-                                    }`}
-                                >
-                                    +{userRoles.length - 1}เพิ่มเติม
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                );
-            })}
+                          <div className="w-full px-1 mb-2"> 
+                              <div className="tooltip lg:tooltip-bottom w-full before:text-[10px]" data-tip={item.email}>
+                                  <h3 className={`font-bold !text-slate-800 truncate block w-full overflow-hidden ${
+                                      isDesktopSidebarOpen ? "text-[10px]" : "text-sm"
+                                  }`}>
+                                      {item.email}
+                                  </h3>
+                              </div>
+                          </div>
+                          
+                          <div className="flex flex-nowrap gap-1.5 justify-center items-center w-full overflow-x-hidden mt-auto">
+                              {userRoles.length > 0 && (
+                                  <span className={`font-bold uppercase tracking-tight !bg-indigo-50 !text-indigo-600 rounded-full border border-indigo-100 truncate ${
+                                      isDesktopSidebarOpen ? "text-[9px] px-2 py-0.5" : "text-[10px] px-2.5 py-1"
+                                  }`}>
+                                      {getRoleLabel(userRoles[0])}                                
+                                </span>
+                              )}
+                              {userRoles.length > 1 && (
+                                  <button 
+                                      onClick={(e) => {
+                                          e.stopPropagation();
+                                          setRoleModalData(userRoles);
+                                          document.getElementById('role_modal').showModal();
+                                      }}
+                                      className={`btn btn-xs min-h-0 !bg-slate-100 border border-slate-200 !text-slate-500 hover:bg-slate-200 rounded-full font-bold tracking-tight uppercase shadow-sm ${
+                                        isDesktopSidebarOpen ? "h-5 text-[9px] px-1.5" : "h-7 text-[10px] px-2"
+                                      }`}
+                                  >
+                                      +{userRoles.length - 1}เพิ่มเติม
+                                  </button>
+                              )}
+                          </div>
+                      </div>
+                  );
+              })
+            )}
         </div>
       </div>
 
@@ -491,33 +486,30 @@ const getRoleLabel = (roleValue) => ROLE_LABEL_MAP[roleValue] || roleValue.repla
 
       {/* Secondary Modal: View All Roles */}
       <dialog id="role_modal" className="modal modal-bottom sm:modal-middle z-[9999]">
-  <div className="modal-box !bg-white p-10 rounded-t-[3rem] sm:rounded-[2.5rem] text-center shadow-2xl border-none relative [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-    
-    {/* ปุ่มกากบาท - ปรับตำแหน่งให้อยู่ในขอบ (inset) เพื่อไม่ให้ล้นขอบ Modal */}
-    <button 
-      onClick={() => document.getElementById('role_modal').close()} 
-      className="absolute top-4 right-4 w-10 h-10 !bg-[#ef4444] !text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all hover:scale-110 z-20 border-4 border-white"
-    >
-      <X size={20} strokeWidth={3} />
-    </button><br></br>
-    
-    <h3 className="font-bold text-xl !text-slate-900 mb-6">บทบาททั้งหมด</h3><br></br>
-    <div className="flex flex-wrap gap-3 justify-center">
-      {roleModalData && roleModalData.map((role, idx) => (
-        <span 
-          key={idx} 
-          className="!text-indigo-600 font-bold text-xs uppercase tracking-wider !bg-indigo-50 px-4 py-2.5 rounded-2xl border border-indigo-100 shadow-sm whitespace-nowrap"
-        >
-          {/* {role.replace(/_/g, ' ')} */}
-          {getRoleLabel(role)}
-        </span>
-      ))}
-    </div>
-  </div>
-  <form method="dialog" className="modal-backdrop bg-slate-900/60 backdrop-blur-sm">
-    <button>close</button>
-  </form>
-</dialog>
+          <div className="modal-box !bg-white p-10 rounded-t-[3rem] sm:rounded-[2.5rem] text-center shadow-2xl border-none relative [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <button 
+              onClick={() => document.getElementById('role_modal').close()} 
+              className="absolute top-4 right-4 w-10 h-10 !bg-[#ef4444] !text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all hover:scale-110 z-20 border-4 border-white"
+            >
+              <X size={20} strokeWidth={3} />
+            </button><br></br>
+            
+            <h3 className="font-bold text-xl !text-slate-900 mb-6">บทบาททั้งหมด</h3><br></br>
+            <div className="flex flex-wrap gap-3 justify-center">
+              {roleModalData && roleModalData.map((role, idx) => (
+                <span 
+                  key={idx} 
+                  className="!text-indigo-600 font-bold text-xs uppercase tracking-wider !bg-indigo-50 px-4 py-2.5 rounded-2xl border border-indigo-100 shadow-sm whitespace-nowrap"
+                >
+                  {getRoleLabel(role)}
+                </span>
+              ))}
+            </div>
+          </div>
+          <form method="dialog" className="modal-backdrop bg-slate-900/60 backdrop-blur-sm">
+            <button>close</button>
+          </form>
+      </dialog>
     </div>
   );
 }

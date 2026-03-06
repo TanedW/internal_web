@@ -250,27 +250,61 @@ export default function Sidebar({
       `}} />
 
       {/* MOBILE NAVBAR */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 force-light z-40 px-5 flex items-center border-b border-slate-100 shadow-sm">
-        <button
-          onClick={() => setIsMobileMenuOpen(true)}
-          className="p-2 !bg-white !text-black rounded-xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)] hover:bg-slate-50 transition-all !border-none"
-        >
-          <Menu className="w-6 h-6" strokeWidth={2.5} />
-        </button>
-        <span className="ml-4 font-bold text-slate-800 text-sm">Admin Portal</span>
-      </div>
-
-      {/* MOBILE SIDEBAR DRAW (คงเดิม) */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 force-light z-40 px-4 flex items-center border-b border-slate-100 shadow-sm bg-white">
+  <button
+    onClick={() => setIsMobileMenuOpen(true)}
+    className="btn btn-square btn-ghost p-0 min-h-0 h-10 w-10 hover:bg-slate-100 transition-all duration-300"
+    aria-label="open sidebar"
+  >
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      viewBox="0 0 24 24" 
+      strokeLinejoin="round" 
+      strokeLinecap="round" 
+      strokeWidth="2" 
+      fill="none" 
+      stroke="currentColor" 
+      className="inline-block size-6 transition-transform duration-300"
+      style={{ color: '#1e293b' }}
+    >
+      <path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"></path>
+      <path d="M9 4v16"></path>
+      <path d="M14 10l2 2l-2 2"></path>
+    </svg>
+  </button>
+  
+  {/* ขยับ margin-left เล็กน้อยให้ดูสมดุล */}
+  <span className="ml-2 font-bold text-slate-800 text-[15px]">Admin Portal</span>
+</div>
+{/* MOBILE SIDEBAR DRAW (คงเดิม) */}
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
           <div className="relative w-[280px] h-full force-light shadow-2xl flex flex-col p-8 rounded-r-[2rem] animate-in slide-in-from-left duration-300 overflow-y-auto no-scrollbar">
-            <button
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="absolute top-6 right-6 p-1.5 bg-slate-50 text-slate-400 rounded-full border border-slate-100"
-            >
-              <X size={18} style={{ color: '#000000' }} strokeWidth={3} />
-            </button>
+         <div className={`flex justify-end mb-2 ${isDesktopSidebarOpen ? "justify-end" : "justify-center"}`}>
+        <button
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="btn btn-sm btn-circle btn-ghost hover:bg-slate-100"
+          aria-label="close sidebar"
+        >
+          <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        viewBox="0 0 24 24" 
+        strokeLinejoin="round" 
+        strokeLinecap="round" 
+        strokeWidth="2" 
+        fill="none" 
+        stroke="currentColor" 
+        className={`inline-block size-6 transition-transform duration-300 ${!isDesktopSidebarOpen ? 'rotate-180' : ''}`}
+        style={{ color: '#1e293b' }}
+      >
+        <path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"></path>
+        <path d="M9 4v16"></path>
+        <path d="M14 10l2 2l-2 2"></path>
+      </svg>
+           
+        </button>
+      </div>
             {isLoading ? (
               <div className="mt-8">
                 <SidebarSkeleton />
@@ -332,29 +366,29 @@ export default function Sidebar({
         className={`hidden lg:flex fixed top-4 bottom-4 left-4 force-light rounded-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] border border-slate-100 flex-col py-10 z-50 transition-all duration-300 ease-in-out no-scrollbar ${isDesktopSidebarOpen ? "w-72 px-8" : "w-20 px-2"}`}
       >
         {/* ปุ่มลูกศรหดเข้า-ขยายออก แทนปุ่มกากบาท */}
-        <button
-  onClick={() => setIsDesktopSidebarOpen(!isDesktopSidebarOpen)}
-  className={`absolute top-6 ${isDesktopSidebarOpen ? 'right-6' : 'right-1/2 translate-x-1/2'} 
-    btn btn-square btn-ghost hover:bg-slate-100 transition-all duration-300`}
-  aria-label="toggle sidebar"
->
-  {/* Sidebar toggle icon (SVG ที่คุณให้มา) */}
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    viewBox="0 0 24 24" 
-    strokeLinejoin="round" 
-    strokeLinecap="round" 
-    strokeWidth="2" 
-    fill="none" 
-    stroke="currentColor" 
-    className={`inline-block size-6 transition-transform duration-300 ${!isDesktopSidebarOpen ? 'rotate-180' : ''}`}
-    style={{ color: '#1e293b' }}
-  >
-    <path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"></path>
-    <path d="M9 4v16"></path>
-    <path d="M14 10l2 2l-2 2"></path>
-  </svg>
-</button><br></br><br></br>
+       <div className={`flex items-center mb-6 ${isDesktopSidebarOpen ? "justify-end" : "justify-center"}`}>
+    <button
+      onClick={() => setIsDesktopSidebarOpen(!isDesktopSidebarOpen)}
+      className="btn btn-square btn-ghost hover:bg-slate-100 transition-all duration-300"
+      aria-label="toggle sidebar"
+    >
+      <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        viewBox="0 0 24 24" 
+        strokeLinejoin="round" 
+        strokeLinecap="round" 
+        strokeWidth="2" 
+        fill="none" 
+        stroke="currentColor" 
+        className={`inline-block size-6 transition-transform duration-300 ${!isDesktopSidebarOpen ? 'rotate-180' : ''}`}
+        style={{ color: '#1e293b' }}
+      >
+        <path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"></path>
+        <path d="M9 4v16"></path>
+        <path d="M14 10l2 2l-2 2"></path>
+      </svg>
+    </button>
+  </div>
 
         {isLoading ? (
           <SidebarSkeleton />
