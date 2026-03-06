@@ -272,8 +272,7 @@ export default function Sidebar({
       <path d="M14 10l2 2l-2 2"></path>
     </svg>
   </button>
-  
-  {/* ขยับ margin-left เล็กน้อยให้ดูสมดุล */}
+
   <span className="ml-2 font-bold text-slate-800 text-[15px]">Admin Portal</span>
 </div>
 {/* MOBILE SIDEBAR DRAW (คงเดิม) */}
@@ -281,13 +280,11 @@ export default function Sidebar({
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
           <div className="relative w-[280px] h-full force-light shadow-2xl flex flex-col p-8 rounded-r-[2rem] animate-in slide-in-from-left duration-300 overflow-y-auto no-scrollbar">
-         <div className={`flex justify-end mb-2 ${isDesktopSidebarOpen ? "justify-end" : "justify-center"}`}>
-        <button
-          onClick={() => setIsMobileMenuOpen(false)}
-          className="btn btn-sm btn-circle btn-ghost hover:bg-slate-100"
-          aria-label="close sidebar"
-        >
-          <svg 
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="absolute top-6 right-6 p-1.5 bg-slate-50 text-slate-400 rounded-full border border-slate-100"
+            >
+             <svg 
         xmlns="http://www.w3.org/2000/svg" 
         viewBox="0 0 24 24" 
         strokeLinejoin="round" 
@@ -302,9 +299,7 @@ export default function Sidebar({
         <path d="M9 4v16"></path>
         <path d="M14 10l2 2l-2 2"></path>
       </svg>
-           
-        </button>
-      </div>
+            </button>
             {isLoading ? (
               <div className="mt-8">
                 <SidebarSkeleton />
@@ -360,6 +355,7 @@ export default function Sidebar({
           </div>
         </div>
       )}
+
 
       {/* DESKTOP SIDEBAR - ปรับเป็น Mini Sidebar */}
       <aside
