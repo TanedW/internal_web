@@ -452,51 +452,54 @@ export default function ManageCase() {
           <p className="text-slate-500 font-bold text-xs sm:text-sm">จัดการรูปภาพที่เเจ้งมาใน case นั้นๆ</p>
         </div>
       </header>
-
-      {/* SEARCH SECTION */}
-      <div className="w-full">
-        <form 
-          // เปลี่ยนจาก fetchOrgData เป็น handleSearch
-          onSubmit={handleSearch} 
-          className="flex items-center gap-3 w-full"
+{/* SEARCH SECTION */}
+<div className="w-full px-4 sm:px-0"> 
+  <form 
+    onSubmit={handleSearch} 
+    className="flex flex-col sm:flex-row items-stretch gap-3 w-full"
+  >
+    {/* กล่อง Input */}
+    <div className={`relative w-full sm:flex-1 bg-white rounded-2xl shadow-sm border-2 transition-all flex items-center h-14 sm:h-16 px-5 ${
+      inputError ? 'border-red-400 ring-4 ring-red-500/10' : 'border-slate-100 focus-within:border-indigo-500'
+    }`}>
+      <Search size={22} className={`shrink-0 ${inputError ? 'text-red-500' : 'text-indigo-600'}`} />
+      <input
+        ref={inputRef}
+        type="text"
+        value={searchId}
+        onChange={(e) => { 
+          setSearchId(e.target.value); 
+          if(inputError) setInputError(false); 
+        }}
+        className="flex-1 bg-transparent border-none outline-none font-bold ml-3 text-slate-800 placeholder:text-slate-300 text-sm sm:text-base"
+        placeholder="ระบุ Ticket ID..."
+        disabled={isSearching}
+      />
+      {searchId && !isSearching && (
+        <button 
+          type="button" 
+          onClick={() => setSearchId("")}
+          className="p-2 text-slate-300 hover:text-slate-500 shrink-0"
         >
-          <div className={`relative flex-1 bg-white rounded-2xl shadow-sm border-2 transition-all flex items-center h-14 sm:h-16 px-5 ${inputError ? 'border-red-400 ring-4 ring-red-500/10' : 'border-slate-100 focus-within:border-indigo-500'}`}>
-            <Search size={22} className={inputError ? 'text-red-500' : 'text-indigo-600'} />
-            <input
-              ref={inputRef}
-              type="text"
-              value={searchId}
-              onChange={(e) => { 
-                setSearchId(e.target.value); 
-                if(inputError) setInputError(false); 
-              }}
-              className="flex-1 bg-transparent border-none outline-none font-bold ml-3 text-slate-800 placeholder:text-slate-300"
-              placeholder="ระบุ Ticket ID..."
-              disabled={isSearching}
-            />
-            {/* เพิ่มปุ่ม X สำหรับล้างค่าเหมือนโค้ดบน (Option) */}
-            {searchId && !isSearching && (
-              <button 
-                type="button" 
-                onClick={() => setSearchId("")}
-                className="p-2 text-slate-300 hover:text-slate-500 transition-all"
-              >
-                <X size={18} />
-              </button>
-            )}
-          </div>
-          
-          <button 
-            type="submit" 
-            disabled={isSearching}
-            className="btn h-12 sm:h-14 px-8 sm:px-10 !bg-black !text-white !font-bold !rounded-2xl hover:!bg-slate-800 border-none shrink-0 transition-all shadow-lg active:scale-95 text-sm sm:text-base flex items-center justify-center min-w-[120px]"
-          >
-            {isSearching ? <span className="loading loading-spinner loading-sm"></span> : "ค้นหา"}
-          </button>
-        </form>
-        {inputError && <p className="text-red-500 text-xs font-bold mt-2 ml-2">กรุณาระบุ TICKET ID ก่อนทำการค้นหา</p>}
-        
-      </div>
+          <X size={18} />
+        </button>
+      )}
+    </div>
+    
+    {/* ปุ่มกด  */}
+    <button 
+      type="submit" 
+      disabled={isSearching}
+      className="btn w-full sm:w-auto !h-[60px] !sm:h-[70px] px-10 !bg-black !text-white !font-bold !rounded-2xl hover:!bg-slate-800 border-none shrink-0 transition-all shadow-lg active:scale-95 text-xl flex items-center justify-center min-w-[140px]"
+    >
+      {isSearching ? <span className="loading loading-spinner loading-sm"></span> : "ค้นหา"}
+    </button>
+  </form>
+
+  {inputError && (
+    <p className="text-red-500 text-xs font-bold mt-2 ml-2">⚠️ กรุณาระบุ TICKET ID ก่อนทำการค้นหา</p>
+  )}
+</div>
     </div>
   )}
 
