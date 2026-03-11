@@ -83,11 +83,28 @@ export default function Sidebar({
   const getAvatarUrl = (seed) =>
     `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed || "Admin")}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
 
-  useEffect(() => {
+useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        await fetchAdminProfile(); 
+        
+        // --- ส่วนที่ปรับปรุงใหม่ ---
+        // ตรวจสอบว่ามีข้อมูลใน Session หรือยัง
+        const sessionData = sessionStorage.getItem("active_sidebar_data");
+        
+        if (sessionData) {
+          // หากมีข้อมูลใน Cache ให้ดึงมาแสดงทันที
+          const cachedData = JSON.parse(sessionData);
+          setAdminData(cachedData);
+          setCurrentRoles(cachedData.roles || []);
+          setIsLoading(false); // ปิด Loading ทันที UI จะไม่กระพริบ
+          
+          // (Optional) โหลดข้อมูลใหม่เงียบๆ เบื้องหลังเพื่ออัปเดตให้เป็นปัจจุบัน
+          refreshAdminProfileInBackground(); 
+        } else {
+          // หากไม่มีข้อมูลใน Cache เลย (เช่น เข้าหน้าเว็บครั้งแรกหลัง Login) ค่อยเรียก API
+          await fetchAdminProfile(); 
+        }
       } else {
         setIsLoading(false);
       }
@@ -116,17 +133,47 @@ export default function Sidebar({
       const json = await res.json();
       const data = Array.isArray(json) ? json : json.data || [];
       const myProfile = data.find((u) => String(u.admin_id) === String(adminId));
+      
       if (myProfile) {
+        const roles = Array.isArray(myProfile.roles) ? myProfile.roles : [myProfile.role || "guest"];
         setAdminData(myProfile);
-        setCurrentRoles(Array.isArray(myProfile.roles) ? myProfile.roles : [myProfile.role || "guest"]);
+        setCurrentRoles(roles);
+
+        // บันทึกลง sessionStorage เพื่อให้หน้าถัดไปดึงไปใช้ได้ทันที
+        sessionStorage.setItem("active_sidebar_data", JSON.stringify({
+          ...myProfile,
+          roles: roles
+        }));
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error fetching profile:", error);
     } finally {
       setIsLoading(false); 
     }
   };
 
+  // ฟังก์ชันเสริมสำหรับ Update ข้อมูลเงียบๆ (ไม่ต้องโชว์ Skeleton)
+const refreshAdminProfileInBackground = async () => {
+    const adminId = localStorage.getItem("current_admin_id")?.replace(/^"|"$/g, "");
+    if (!adminId || !API_URL_ADMIN) return;
+    try {
+      const res = await fetch(`${API_URL_ADMIN}?requester_id=${adminId}`, { credentials: 'include' });
+      const json = await res.json();
+      const data = Array.isArray(json) ? json : json.data || [];
+      const myProfile = data.find((u) => String(u.admin_id) === String(adminId));
+      
+      if (myProfile) {
+        const roles = Array.isArray(myProfile.roles) ? myProfile.roles : [myProfile.role || "guest"];
+        // อัปเดต Cache
+        sessionStorage.setItem("active_sidebar_data", JSON.stringify({ ...myProfile, roles }));
+        // อัปเดต State โดยไม่ผ่าน Loading เพื่อให้ชื่อและรูปเปลี่ยนนิ่งๆ
+        setAdminData(myProfile);
+        setCurrentRoles(roles);
+      }
+    } catch (e) { /* ไม่แสดง error ต่อหน้าผู้ใช้ */ }
+  };
+
+ // 3. ปรับ handleLogout ให้เคลียร์ sessionStorage
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -136,6 +183,11 @@ export default function Sidebar({
       deleteCookie("access_token");
       deleteCookie("user_email");
       deleteCookie("user_role");
+      
+      // ลบข้อมูลเฉพาะกิจ
+      sessionStorage.removeItem("active_sidebar_data");
+      
+      // localStorage.clear() ยังเก็บไว้ตามที่คุณต้องการ
       localStorage.clear(); 
       router.push("/");
     } catch (error) {
@@ -215,7 +267,7 @@ export default function Sidebar({
       {isDesktopSidebarOpen && (
         <div className="animate-in fade-in duration-300">
           <br></br>
-          <h2 className="text-sm font-bold mt-4 px-2 break-words w-full" style={{ color: '#1e293b' }}>
+          <h2 className="text-sm font-bold font-sans mt-4 px-2 break-words w-full" style={{ color: '#1e293b' }}>
             {adminData?.name || user?.displayName || "Admin User"}
           </h2>
           <SidebarRoleDisplay />
