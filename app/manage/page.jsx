@@ -42,17 +42,22 @@ export default function Manage() {
 
   const API_URL = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
 
+  // --- UI Logic: Role Configuration ---
   const ROLE_OPTIONS = [
-    { value: "editor_manage_user", label: "Admin Email" },
-    { value: "editor_manage_org", label: "Admin Manage Org" },
-    { value: "editor_manage_case", label: "Admin Case" },
-    { value: "editor_manage_menu", label: "Admin Menu" },
-    { value: "editor_manage_flex", label: "Admin Flex Message" },
-    { value: "editor_search_duplicate_org", label: "Admin Search Org" },
-    { value: "editor_file_search", label: "Admin File Search" },
+    { value: "admin", label: "Super Admin", desc: "ดูแลระบบทั้งหมด" },
+    { value: "editor", label: "System Editor", desc: "แก้ไขข้อมูลทั่วไป" },
+    { value: "editor_manage_user", label: "Admin Email", desc: "จัดการสิทธิ์สมาชิก" },
+    { value: "editor_manage_org", label: "Admin Manage Org", desc: "จัดการข้อมูลองค์กร" },
+    { value: "editor_manage_case", label: "Admin Case", desc: "จัดการเคส/ปัญหา" },
+    { value: "editor_manage_menu", label: "Admin Menu", desc: "ตั้งค่าเมนู LINE" },
+    { value: "editor_manage_flex", label: "Admin Flex Message", desc: "จัดการข้อความ Flex" },
+    { value: "editor_search_duplicate_org", label: "Admin Search Org", desc: "ค้นหาข้อมูลซ้ำ" },
+    { value: "editor_file_search", label: "Admin File Search", desc: "ค้นหาไฟล์ในระบบ" },
   ];
 
   const ROLE_LABEL_MAP = {
+    "admin": "Super Admin",
+    "editor": "System Editor",
     "editor_manage_user": "Admin Email",
     "editor_manage_org": "Admin Manage Org",
     "editor_manage_case": "Admin Case",
@@ -60,6 +65,36 @@ export default function Manage() {
     "editor_manage_flex": "Admin Flex Message",
     "editor_search_duplicate_org": "Admin Search Org",
     "editor_file_search": "Admin File Search",
+  };
+
+  // ฟังก์ชันกำหนดสีตามกลุ่ม Role (ม่วง=สิทธิ์สูง, เขียว=จัดการข้อมูล, ฟ้า=เครื่องมือ/ค้นหา)
+  const getRoleStyles = (roleValue) => {
+    const role = roleValue.toLowerCase();
+    if (role === 'admin' || role.includes('user')) {
+      return {
+        bg: "bg-purple-50",
+        text: "text-purple-600",
+        border: "border-purple-100",
+        ring: "ring-purple-500",
+        solid: "bg-purple-600"
+      };
+    } else if (role.includes('org') || role.includes('case') || role === 'editor') {
+      return {
+        bg: "bg-emerald-50",
+        text: "text-emerald-600",
+        border: "border-emerald-100",
+        ring: "ring-emerald-500",
+        solid: "bg-emerald-600"
+      };
+    } else {
+      return {
+        bg: "bg-sky-50",
+        text: "text-sky-600",
+        border: "border-sky-100",
+        ring: "ring-sky-500",
+        solid: "bg-sky-600"
+      };
+    }
   };
 
   const getRoleLabel = (roleValue) => ROLE_LABEL_MAP[roleValue] || roleValue.replace(/_/g, ' ');
@@ -210,7 +245,6 @@ export default function Manage() {
       <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css" rel="stylesheet" type="text/css" />
       <script src="https://cdn.tailwindcss.com"></script>
 
-      {/* Sidebar อยู่นอกเงื่อนไข Loading เพื่อให้ปุ่ม Toggle ทำงานได้ปกติ */}
       <Sidebar 
         key={sidebarKey}
         isDesktopSidebarOpen={isDesktopSidebarOpen} 
@@ -277,7 +311,6 @@ export default function Manage() {
                 ? "md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" 
                 : "md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" 
         }`}>
-            {/* Add Card - ปุ่มเพิ่มสมาชิกแสดงไว้เหมือนเดิมเสมอเพื่อให้โครงสร้าง Layout คงที่ */}
             <div 
               className={`hidden lg:flex group relative flex-col items-center justify-center border-2 border-dashed border-indigo-300 !bg-white hover:border-indigo-600 hover:bg-indigo-50 transition-all duration-300 cursor-pointer rounded-3xl shadow-sm hover:shadow-md hover:-translate-y-1 h-full min-h-[140px] ${
                 isDesktopSidebarOpen ? 'p-4' : 'p-6'
@@ -306,7 +339,6 @@ export default function Manage() {
               </div>
             </div>
 
-            {/* ส่วนแสดงรายชื่อสมาชิก: ถ้ายังโหลดอยู่ให้ขึ้น Spinner เฉพาะในจุดนี้ */}
             {loading ? (
               <div className="flex items-center justify-center h-full min-h-[140px]">
                 <span className="loading loading-spinner loading-lg text-indigo-600 scale-150"></span>
@@ -314,6 +346,9 @@ export default function Manage() {
             ) : (
               filteredEmails.map((item) => {
                   const userRoles = item.roles && item.roles.length > 0 ? item.roles : (item.role ? [item.role] : ['member']);
+                  // ดึง Style ของ Role แรกมาใช้แสดงผล
+                  const mainRoleStyle = getRoleStyles(userRoles[0]);
+                  
                   return (
                       <div key={item.admin_id} 
                           className={`relative !bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col items-center text-center overflow-hidden min-h-max ${
@@ -330,12 +365,12 @@ export default function Manage() {
                                     <Pencil size={18} style={{ color: '#4f46e5', stroke: '#4f46e5' }} />
                                   </button>
                                  <button 
-                                   onClick={() => handleDeleteEmail(item.admin_id)}
-                                   className="hover:bg-red-50 rounded-full p-2 transition-colors"
-                                   title="ลบผู้ใช้งาน"
-                                 >
-                                   <Trash2 size={20} style={{ color: '#ef4444', stroke: '#ef4444' }} />
-                                 </button>
+                                    onClick={() => handleDeleteEmail(item.admin_id)}
+                                    className="hover:bg-red-50 rounded-full p-2 transition-colors"
+                                    title="ลบผู้ใช้งาน"
+                                  >
+                                    <Trash2 size={20} style={{ color: '#ef4444', stroke: '#ef4444' }} />
+                                  </button>
                               </div>
                           )}
                           <div className={`rounded-full bg-slate-50 mb-3 overflow-hidden ring-2 ring-slate-50 mx-auto flex-shrink-0 ${
@@ -361,7 +396,7 @@ export default function Manage() {
                           
                           <div className="flex flex-nowrap gap-1.5 justify-center items-center w-full overflow-x-hidden mt-auto">
                               {userRoles.length > 0 && (
-                                  <span className={`font-bold uppercase tracking-tight !bg-indigo-50 !text-indigo-600 rounded-full border border-indigo-100 truncate ${
+                                  <span className={`font-bold uppercase tracking-tight rounded-full border truncate ${mainRoleStyle.bg} ${mainRoleStyle.text} ${mainRoleStyle.border} ${
                                       isDesktopSidebarOpen ? "text-[9px] px-2 py-0.5" : "text-[10px] px-2.5 py-1"
                                   }`}>
                                       {getRoleLabel(userRoles[0])}                                
@@ -378,7 +413,7 @@ export default function Manage() {
                                         isDesktopSidebarOpen ? "h-5 text-[9px] px-1.5" : "h-7 text-[10px] px-2"
                                       }`}
                                   >
-                                      +{userRoles.length - 1}เพิ่มเติม
+                                      +{userRoles.length - 1}
                                   </button>
                               )}
                           </div>
@@ -433,28 +468,35 @@ export default function Manage() {
                   )}
 
                   <div className="form-control px-2">
-                      <label className="label !text-slate-900 font-bold">กำหนดบทบาท</label>
+                      <label className="label !text-slate-900 font-bold">กำหนดบทบาท <span className="text-xs font-normal text-slate-400 ml-2">(เลือกได้มากกว่า 1)</span></label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
                         {ROLE_OPTIONS.map((opt) => {
                             const isSelected = newRoles.includes(opt.value);
+                            const style = getRoleStyles(opt.value);
+                            
                             return (
                                 <div 
                                     key={opt.value}
                                     onClick={() => toggleRole(opt.value)}
                                     className={`
-                                        flex items-center justify-between p-5 rounded-[2rem] transition-all duration-300 cursor-pointer
-                                        bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]
-                                        ${isSelected ? "ring-2 ring-indigo-500 scale-[1.02]" : "ring-0"}
+                                        flex items-center justify-between p-4 rounded-[1.5rem] transition-all duration-300 cursor-pointer border-2
+                                        bg-white hover:shadow-lg
+                                        ${isSelected ? `${style.ring} ${style.border} scale-[1.02]` : "border-transparent shadow-sm"}
                                     `}
                                 >
-                                    <span className={`pl-2 text-[12px] font-black uppercase tracking-widest ${isSelected ? "text-indigo-900" : "text-[#475569]"}`}>
-                                        {opt.label}
-                                    </span>
+                                    <div className="flex flex-col pl-2">
+                                        <span className={`text-[11px] font-black uppercase tracking-widest ${isSelected ? style.text : "text-[#475569]"}`}>
+                                            {opt.label}
+                                        </span>
+                                        <span className="text-[10px] text-slate-400 font-medium">
+                                            {opt.desc}
+                                        </span>
+                                    </div>
                                     <div className={`
-                                        w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300
-                                        ${isSelected ? "bg-indigo-600 shadow-lg" : "bg-[#DBE2E9]"}
+                                        w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 flex-shrink-0
+                                        ${isSelected ? `${style.solid} shadow-lg` : "bg-[#DBE2E9]"}
                                     `}>
-                                        {isSelected && <Check size={16} strokeWidth={4} className="text-white" />}
+                                        {isSelected && <Check size={14} strokeWidth={4} className="text-white" />}
                                     </div>
                                 </div>
                             );
@@ -492,18 +534,21 @@ export default function Manage() {
               className="absolute top-4 right-4 w-10 h-10 !bg-[#ef4444] !text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all hover:scale-110 z-20 border-4 border-white"
             >
               <X size={20} strokeWidth={3} />
-            </button><br></br>
+            </button>
             
-            <h3 className="font-bold text-xl !text-slate-900 mb-6">บทบาททั้งหมด</h3><br></br>
+            <h3 className="font-bold text-xl !text-slate-900 mb-6 mt-4">บทบาททั้งหมด</h3>
             <div className="flex flex-wrap gap-3 justify-center">
-              {roleModalData && roleModalData.map((role, idx) => (
-                <span 
-                  key={idx} 
-                  className="!text-indigo-600 font-bold text-xs uppercase tracking-wider !bg-indigo-50 px-4 py-2.5 rounded-2xl border border-indigo-100 shadow-sm whitespace-nowrap"
-                >
-                  {getRoleLabel(role)}
-                </span>
-              ))}
+              {roleModalData && roleModalData.map((role, idx) => {
+                const style = getRoleStyles(role);
+                return (
+                  <span 
+                    key={idx} 
+                    className={`font-bold text-xs uppercase tracking-wider px-4 py-2.5 rounded-2xl border shadow-sm whitespace-nowrap ${style.bg} ${style.text} ${style.border}`}
+                  >
+                    {getRoleLabel(role)}
+                  </span>
+                );
+              })}
             </div>
           </div>
           <form method="dialog" className="modal-backdrop bg-slate-900/60 backdrop-blur-sm">

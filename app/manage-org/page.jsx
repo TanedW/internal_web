@@ -715,9 +715,12 @@ export default function ManageOrgPage() {
                                   ) : (
                                     <ImageIcon size={32} className="text-slate-400" />
                                   )}
-                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center text-white text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-center px-2">
-                                      Manage Photo
-                                  </div>
+                                   
+                                    {/* Edit Badge  */}
+                                    <div className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2.5 py-1.5 bg-black/80 backdrop-blur-md text-white rounded-xl shadow-lg border border-white/20 z-20">
+                                        <PencilLine size={12} className="sm:w-3.5 sm:h-3.5" strokeWidth={3} />
+                                        <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest leading-none">แก้ไข</span>
+                                    </div>
                               </div>
                              {showPhotoActionMenu && (
                                 <div className="bubble-menu-container absolute bottom-full left-1/2 -translate-x-1/2 mb-4 sm:mb-6 z-[110] w-[180px] sm:w-[210px] bg-white rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 p-1.5 sm:p-2 bubble-arrow-tip shadow-2xl">
@@ -725,7 +728,7 @@ export default function ManageOrgPage() {
                                     <button 
                                       onClick={() => { 
                                         setGalleryMode('logo');
-                                        setCurrentPhotoIndex(0); // ให้รูปที่ 1 เป็นรูปปัจจุบันเสมอ
+                                        setCurrentPhotoIndex(0); 
                                         setShowQrModal(true); 
                                         setShowPhotoActionMenu(false); 
                                       }}
