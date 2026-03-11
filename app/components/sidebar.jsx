@@ -100,10 +100,16 @@ useEffect(() => {
     handleNavigation();
   }, [pathname]);
 
+  const isFetching = React.useRef(false); // เพิ่มไว้ด้านบน
+
   const fetchAdminProfile = async () => {
+    if (isFetching.current) return; // ถ้ากำลังเรียกอยู่ ให้หยุด
+    isFetching.current = true;
     const adminId = localStorage.getItem("current_admin_id")?.replace(/^"|"$/g, "");
     if (!adminId || !API_URL_ADMIN) {
       setIsLoading(false);
+      isFetching.current = false;
+
       return;
     }
     try {
