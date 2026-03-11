@@ -261,14 +261,14 @@ export default function Manage() {
                 <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">รายชื่อสมาชิกในทีม</h1>
                 <p className="text-slate-400 mt-1 font-medium">จัดการสมาชิกในทีมและกำหนดสิทธิ์การใช้งาน</p>
             </div>
-            <div className="relative w-72 group">
+             <div className="relative w-72 group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <Search className="h-5 w-5 text-gray-400 transition-colors" />
                   </div>
                   <input 
                     type="text" 
                     placeholder="ค้นหาสมาชิก..." 
-                    className="input !bg-white !text-slate-900 w-full h-12 !pl-12 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100 rounded-2xl shadow-sm border border-slate-100 placeholder:text-slate-300"
+                    className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm font-medium text-sm"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
