@@ -59,26 +59,6 @@ export default function Sidebar({
     }
   };
 
-  const handleMouseEnter = (path) => {
-    const email = localStorage.getItem("user_email");
-    const adminId = localStorage.getItem("current_admin_id")?.replace(/^"|"$/g, "");
-    
-    if (email && process.env.NEXT_PUBLIC_GET_USER_ROLES_API_URL) {
-      prefetchData(`${process.env.NEXT_PUBLIC_GET_USER_ROLES_API_URL}?email=${email}`);
-    }
-
-    const targetPaths = [
-      "/manage-org", 
-      "/manage-case", 
-      "/manage-flex-message",
-      "/manage-richmenu",
-      "/search-org"
-    ];
-
-    if (targetPaths.includes(path) && adminId && API_URL_ADMIN) {
-      prefetchData(`${API_URL_ADMIN}?requester_id=${adminId}`);
-    }
-  };
 
   const getAvatarUrl = (seed) =>
     `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed || "Admin")}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
@@ -360,31 +340,31 @@ const refreshAdminProfileInBackground = async () => {
               <div className="flex flex-col h-full animate-in fade-in duration-500">
                 <SidebarHeader />
                 <nav className="flex flex-col gap-1.5 flex-1 mt-6 overflow-y-auto no-scrollbar">
-                  <Link href="/manage" className={getMenuClass("/manage")} onClick={() => setIsMobileMenuOpen(false)} onMouseEnter={() => handleMouseEnter("/manage")}>
+                  <Link href="/manage" className={getMenuClass("/manage")} onClick={() => setIsMobileMenuOpen(false)} >
                     <Mail size={20} /> <span className="text-[15px] font-bold">จัดการ Email</span>
                   </Link>
                   {hasAccess(["admin", "editor", "editor_manage_case"]) && (
-                    <Link href="/manage-case" className={getMenuClass("/manage-case")} onClick={() => setIsMobileMenuOpen(false)} onMouseEnter={() => handleMouseEnter("/manage-case")}>
+                    <Link href="/manage-case" className={getMenuClass("/manage-case")} onClick={() => setIsMobileMenuOpen(false)} >
                       <Briefcase size={20} /> <span className="text-[15px] font-bold">จัดการ Case</span>
                     </Link>
                   )}
                   {hasAccess(["admin", "editor", "editor_manage_menu"]) && (
-                    <Link href="/manage-richmenu" className={getMenuClass("/manage-richmenu")} onClick={() => setIsMobileMenuOpen(false)} onMouseEnter={() => handleMouseEnter("/manage-richmenu")}>
+                    <Link href="/manage-richmenu" className={getMenuClass("/manage-richmenu")} onClick={() => setIsMobileMenuOpen(false)} >
                       <LayoutGrid size={20} /> <span className="text-[15px] font-bold">จัดการ Menu</span>
                     </Link>
                   )}
                   {hasAccess(["admin", "editor", "editor_manage_org_info", "editor_manage_org"]) && (
-                    <Link href="/manage-org" className={getMenuClass("/manage-org")} onClick={() => setIsMobileMenuOpen(false)} onMouseEnter={() => handleMouseEnter("/manage-org")}>
+                    <Link href="/manage-org" className={getMenuClass("/manage-org")} onClick={() => setIsMobileMenuOpen(false)} >
                       <Users size={20} /> <span className="text-[15px] font-bold">จัดการ ORG</span>
                     </Link>
                   )}
                   {hasAccess(["admin", "editor", "editor_manage_flex"]) && (
-                    <Link href="/manage-flex-message" className={getMenuClass("/manage-flex-message")} onClick={() => setIsMobileMenuOpen(false)} onMouseEnter={() => handleMouseEnter("/manage-flex-message")}>
+                    <Link href="/manage-flex-message" className={getMenuClass("/manage-flex-message")} onClick={() => setIsMobileMenuOpen(false)} >
                       <MessageSquareCode size={20} /> <span className="text-[15px] font-bold">จัดการ Flex Message</span>
                     </Link>
                   )}
                   {hasAccess(["admin", "editor", "editor_search_duplicate_org"]) && (
-                    <Link href="/search-org" className={getMenuClass("/search-org")} onClick={() => setIsMobileMenuOpen(false)} onMouseEnter={() => handleMouseEnter("/search-org")}>
+                    <Link href="/search-org" className={getMenuClass("/search-org")} onClick={() => setIsMobileMenuOpen(false)} >
                       <Search size={20} /> <span className="text-[15px] font-bold">ค้นหาหน่วยงานซ้ำ</span>
                     </Link>
                   )}
@@ -445,41 +425,41 @@ const refreshAdminProfileInBackground = async () => {
             <SidebarHeader />
 
             <nav className="flex flex-col gap-1.5 flex-1 mt-4 overflow-y-auto no-scrollbar">
-              <Link href="/manage" className={getMenuClass("/manage")} onMouseEnter={() => handleMouseEnter("/manage")}>
+              <Link href="/manage" className={getMenuClass("/manage")} >
                 <Mail size={20} className="shrink-0" />
                 {isDesktopSidebarOpen && <span className="font-bold text-[15px] whitespace-nowrap">จัดการ Email</span>}
               </Link>
 
               {hasAccess(["admin", "editor", "editor_manage_case"]) && (
-                <Link href="/manage-case" className={getMenuClass("/manage-case")} onMouseEnter={() => handleMouseEnter("/manage-case")}>
+                <Link href="/manage-case" className={getMenuClass("/manage-case")} >
                   <Briefcase size={20} className="shrink-0" />
                   {isDesktopSidebarOpen && <span className="font-bold text-[15px] whitespace-nowrap">จัดการ Case</span>}
                 </Link>
               )}
 
               {hasAccess(["admin", "editor", "editor_manage_menu"]) && (
-                <Link href="/manage-richmenu" className={getMenuClass("/manage-richmenu")} onMouseEnter={() => handleMouseEnter("/manage-richmenu")}>
+                <Link href="/manage-richmenu" className={getMenuClass("/manage-richmenu")} >
                   <LayoutGrid size={20} className="shrink-0" />
                   {isDesktopSidebarOpen && <span className="font-bold text-[15px] whitespace-nowrap">จัดการ Menu</span>}
                 </Link>
               )}
 
               {hasAccess(["admin", "editor", "editor_manage_org", "editor_manage_org_info"]) && (
-                <Link href="/manage-org" className={getMenuClass("/manage-org")} onMouseEnter={() => handleMouseEnter("/manage-org")}>
+                <Link href="/manage-org" className={getMenuClass("/manage-org")} >
                   <Users size={20} className="shrink-0" />
                   {isDesktopSidebarOpen && <span className="font-bold text-[15px] whitespace-nowrap">จัดการ ORG</span>}
                 </Link>
               )}
 
               {hasAccess(["admin", "editor", "editor_manage_flex"]) && (
-                <Link href="/manage-flex-message" className={getMenuClass("/manage-flex-message")} onMouseEnter={() => handleMouseEnter("/manage-flex-message")}>
+                <Link href="/manage-flex-message" className={getMenuClass("/manage-flex-message")} >
                   <MessageSquareCode size={20} className="shrink-0" />
                   {isDesktopSidebarOpen && <span className="font-bold text-[15px] whitespace-nowrap">จัดการ Flex Message</span>}
                 </Link>
               )}
 
               {hasAccess(["admin", "editor", "editor_search_duplicate_org"]) && (
-                <Link href="/search-org" className={getMenuClass("/search-org")} onMouseEnter={() => handleMouseEnter("/search-org")}>
+                <Link href="/search-org" className={getMenuClass("/search-org")} >
                   <Search size={20} className="shrink-0" />
                   {isDesktopSidebarOpen && <span className="font-bold text-[15px] whitespace-nowrap">ค้นหาหน่วยงานซ้ำ</span>}
                 </Link>
