@@ -62,24 +62,24 @@ export default function Home() {
     return null;
   };
 
-  const fetchAdmins = async () => {
-    if (!API_URL) return;
-    const currentAdminId = getCurrentAdminId();
-    try {
-      const url = currentAdminId ? `${API_URL}?requester_id=${currentAdminId}` : API_URL;
-      const res = await fetch(url);
-      if (res.ok) {
-        const jsonResponse = await res.json();
-        const data = Array.isArray(jsonResponse) ? jsonResponse : (jsonResponse.data || []);
-        if (currentAdminId && data.length > 0) {
-            const myProfile = data.find(u => String(u.admin_id) === String(currentAdminId));
-            if (myProfile) {
-                setCurrentRoles(Array.isArray(myProfile.roles) ? myProfile.roles : (myProfile.role ? [myProfile.role] : []));
-            }
-        }
-      }
-    } catch (e) { console.error(e); }
-  };
+  // const fetchAdmins = async () => {
+  //   if (!API_URL) return;
+  //   const currentAdminId = getCurrentAdminId();
+  //   try {
+  //     const url = currentAdminId ? `${API_URL}?requester_id=${currentAdminId}` : API_URL;
+  //     const res = await fetch(url);
+  //     if (res.ok) {
+  //       const jsonResponse = await res.json();
+  //       const data = Array.isArray(jsonResponse) ? jsonResponse : (jsonResponse.data || []);
+  //       if (currentAdminId && data.length > 0) {
+  //           const myProfile = data.find(u => String(u.admin_id) === String(currentAdminId));
+  //           if (myProfile) {
+  //               setCurrentRoles(Array.isArray(myProfile.roles) ? myProfile.roles : (myProfile.role ? [myProfile.role] : []));
+  //           }
+  //       }
+  //     }
+  //   } catch (e) { console.error(e); }
+  // };
 
   // 2. ฟังก์ชันสำหรับดึงข้อมูลจาก Database (GET)
 const fetchFlexMessages = async () => {
@@ -124,7 +124,7 @@ const fetchFlexMessages = async () => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        fetchAdmins();
+        // fetchAdmins();
         fetchFlexMessages(); 
       }
       setLoading(false);

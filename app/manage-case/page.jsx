@@ -213,24 +213,24 @@ export default function ManageCase() {
     return null;
   };
 
-  const fetchAdmins = async () => {
-    if (!API_URL_ADMIN) return;
-    const currentAdminId = getCurrentAdminId();
-    try {
-      const url = currentAdminId ? `${API_URL_ADMIN}?requester_id=${currentAdminId}` : API_URL_ADMIN;
-      const res = await fetch(url);
-      const jsonResponse = await res.json();
-      const data = Array.isArray(jsonResponse) ? jsonResponse : (jsonResponse.data || []);
-      if (currentAdminId && data.length > 0) {
-        const myProfile = data.find(u => String(u.admin_id) === String(currentAdminId));
-        if (myProfile) setCurrentRoles(Array.isArray(myProfile.roles) ? myProfile.roles : [myProfile.role]);
-      }
-    } catch (error) { console.error("Error loading admins:", error); }
-  };
+//   const fetchAdmins = async () => {
+//     if (!API_URL_ADMIN) return;
+//     const currentAdminId = getCurrentAdminId();
+//     try {
+//       const url = currentAdminId ? `${API_URL_ADMIN}?requester_id=${currentAdminId}` : API_URL_ADMIN;
+//       const res = await fetch(url);
+//       const jsonResponse = await res.json();
+//       const data = Array.isArray(jsonResponse) ? jsonResponse : (jsonResponse.data || []);
+//       if (currentAdminId && data.length > 0) {
+//         const myProfile = data.find(u => String(u.admin_id) === String(currentAdminId));
+//         if (myProfile) setCurrentRoles(Array.isArray(myProfile.roles) ? myProfile.roles : [myProfile.role]);
+//       }
+//     } catch (error) { console.error("Error loading admins:", error); }
+//   };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) { setUser(currentUser); fetchAdmins(); setLoading(false); } 
+      if (currentUser) { setUser(currentUser); setLoading(false); } 
       else { router.push("/"); }
     });
     return () => unsubscribe();
