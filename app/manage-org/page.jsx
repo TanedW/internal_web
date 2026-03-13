@@ -577,8 +577,10 @@ export default function ManageOrgPage() {
              </header>
                
              <div className="flex flex-col sm:flex-row items-stretch gap-2 mb-8 sm:mb-10">
-               <div className="relative flex-1">
-                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-600 z-20" size={18} />
+               <div className="relative flex-1 group">
+                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-20">
+                   <Search className="text-indigo-600" size={18} />
+                 </div>
                  <input 
                    type="text" 
                    className="input input-bordered w-full h-12 sm:h-14 !pl-11 pr-4 !bg-white !text-slate-900 !rounded-2xl !border-slate-200 focus:!border-black shadow-sm outline-none font-bold text-sm sm:text-base transition-all" 
