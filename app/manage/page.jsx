@@ -7,7 +7,7 @@ import { auth } from "../../firebaseConfig";
 import { 
   Search, 
   Plus, 
-  Pencil,
+  Pencil, 
   Trash2, 
   X, 
   Mail,
@@ -67,7 +67,6 @@ export default function Manage() {
     "editor_file_search": "Admin File Search",
   };
 
-  // ฟังก์ชันกำหนดสีตามกลุ่ม Role (ม่วง=สิทธิ์สูง, เขียว=จัดการข้อมูล, ฟ้า=เครื่องมือ/ค้นหา)
   const getRoleStyles = (roleValue) => {
     const role = roleValue.toLowerCase();
     if (role === 'admin' || role.includes('user')) {
@@ -251,24 +250,25 @@ export default function Manage() {
         setIsDesktopSidebarOpen={setIsDesktopSidebarOpen} 
       />
 
-      <div className={`container mx-auto px-4 lg:px-8 pt-20 lg:pt-8 max-w-7xl transition-all duration-300 pb-24 ${
+      <div className={`container mx-auto px-4 lg:px-6 pt-20 lg:pt-8 max-w-7xl transition-all duration-300 pb-24 ${
           isDesktopSidebarOpen ? "lg:pl-72" : "lg:pl-24"
       }`}>
         
-        {/* Desktop Header */}
-        <div className="hidden lg:flex justify-between items-center mb-8">
+        {/* Header Section - ปรับ Font ให้เล็กลงพอดีๆ */}
+        <div className="hidden lg:flex justify-between items-center mb-6">
             <div>
                 <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">รายชื่อสมาชิกในทีม</h1>
-                <p className="text-slate-400 mt-1 font-medium">จัดการสมาชิกในทีมและกำหนดสิทธิ์การใช้งาน</p>
+                <p className="text-slate-400 mt-0.5 font-medium text-sm">จัดการสมาชิกและกำหนดสิทธิ์การใช้งาน</p>
             </div>
-             <div className="relative w-72 group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Search className="h-5 w-5 text-gray-400 transition-colors" />
+             {/* Search Input - ปรับขนาด Compact */}
+             <div className="relative w-64 group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <Search className="h-4 w-4 text-slate-300" />
                   </div>
                   <input 
                     type="text" 
                     placeholder="ค้นหาสมาชิก..." 
-                    className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm font-medium text-sm"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-100 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-200 transition-all shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)] font-medium text-slate-600 text-[13px]"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -276,45 +276,44 @@ export default function Manage() {
         </div>
 
         {/* Mobile Header */}
-        <div className="lg:hidden mb-6">
-            <h1 className="text-2xl font-bold text-slate-900">รายชื่อผู้ติดต่อ</h1>
-            <div className="mt-4 flex gap-3 items-center">
+        <div className="lg:hidden mb-5">
+            <h1 className="text-xl font-bold text-slate-900">รายชื่อผู้ติดต่อ</h1>
+            <div className="mt-3 flex gap-2 items-center">
                  <div className="relative flex-1 group">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                         <Search className="h-5 w-5 text-slate-400 group-focus-within:text-primary transition-colors" />
+                         <Search className="h-4 w-4 text-slate-300" />
                       </div>
                       <input 
                         type="text"
-                        className="input w-full !pl-12 !bg-white !text-slate-900 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 border-slate-200"
+                        className="input input-sm w-full !pl-9 !bg-white !text-slate-600 rounded-lg shadow-sm focus:outline-none border-slate-100"
                         placeholder="ค้นหา..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                       />
                  </div>
                  <button 
-                onClick={() => {
-                   setEditingAdmin(null);
-                   setNewEmail("");
-                   setNewRoles([]);
-                   document.getElementById('add_admin_modal').showModal();
-                 }}
-                className="btn btn-primary !text-white min-h-[3rem] h-12 px-4 rounded-xl shadow-md shadow-indigo-200 whitespace-nowrap"
-                >
-                + เพิ่มใหม่
-                </button>
+                  onClick={() => {
+                    setEditingAdmin(null);
+                    setNewEmail("");
+                    setNewRoles([]);
+                    document.getElementById('add_admin_modal').showModal();
+                  }}
+                  className="btn btn-primary btn-sm !text-white px-3 rounded-lg shadow-md whitespace-nowrap"
+                 >
+                  + เพิ่มใหม่
+                 </button>
             </div>
         </div>
 
-        {/* GRID VIEW */}
-        <div className={`grid grid-cols-1 gap-4 items-start ${
+        {/* GRID VIEW - ปรับ grid-cols ให้ Card กว้างพอดี และ items-stretch */}
+        <div className={`grid grid-cols-1 gap-5 items-stretch ${
             isDesktopSidebarOpen 
-                ? "md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" 
-                : "md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" 
+                ? "md:grid-cols-2 xl:grid-cols-4" 
+                : "md:grid-cols-3 xl:grid-cols-5" 
         }`}>
+            {/* Add Member Card - ปรับขนาด Compact */}
             <div 
-              className={`hidden lg:flex group relative flex-col items-center justify-center border-2 border-dashed border-indigo-300 !bg-white hover:border-indigo-600 hover:bg-indigo-50 transition-all duration-300 cursor-pointer rounded-3xl shadow-sm hover:shadow-md hover:-translate-y-1 h-full min-h-[140px] ${
-                isDesktopSidebarOpen ? 'p-4' : 'p-6'
-              }`}
+              className={`hidden lg:flex group relative flex-col items-center justify-center border-2 border-dashed border-indigo-200 !bg-white hover:border-indigo-500 hover:bg-indigo-50/30 transition-all duration-300 cursor-pointer rounded-[2rem] shadow-sm hover:shadow-md hover:-translate-y-1 h-full min-h-[180px] p-4`}
               onClick={() => {
                 setEditingAdmin(null);
                 setNewEmail("");
@@ -322,60 +321,39 @@ export default function Manage() {
                 document.getElementById('add_admin_modal').showModal();
               }}
             >
-              <div className={`rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100 group-hover:scale-110 group-hover:rotate-90 transition-all duration-300 flex-shrink-0 ${
-                isDesktopSidebarOpen ? 'w-10 h-10 mb-2' : 'w-14 h-14 mb-3'
-              }`}>
-                <Plus size={isDesktopSidebarOpen ? 20 : 28} strokeWidth={3} />
+              <div className="w-11 h-11 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100 mb-3 group-hover:scale-105 transition-all duration-300">
+                <Plus size={22} strokeWidth={3} />
               </div>
-              <div className="w-full text-center px-1">
-                <h3 className={`font-bold text-indigo-900 group-hover:text-indigo-700 transition-colors ${
-                  isDesktopSidebarOpen ? 'text-[16px]' : 'text-sm'
-                }`}>
-                  เพิ่มสมาชิก
-                </h3>
-                <p className="text-indigo-400 text-[12px] mt-0.5 font-medium opacity-80">
-                  เชิญผู้ดูแลระบบใหม่
-                </p>
+              <div className="w-full text-center">
+                <h3 className="font-bold text-indigo-900 text-[16px]">เพิ่มสมาชิก</h3>
+                <p className="text-indigo-300 text-[12px] mt-0.5 font-medium">เชิญผู้ดูแลใหม่</p>
               </div>
             </div>
 
             {loading ? (
-              <div className="flex items-center justify-center h-full min-h-[140px]">
-                <span className="loading loading-spinner loading-lg text-indigo-600 scale-150"></span>
+              <div className="flex items-center justify-center h-full min-h-[180px]">
+                <span className="loading loading-spinner loading-md text-indigo-600"></span>
               </div>
             ) : (
               filteredEmails.map((item) => {
                   const userRoles = item.roles && item.roles.length > 0 ? item.roles : (item.role ? [item.role] : ['member']);
-                  // ดึง Style ของ Role แรกมาใช้แสดงผล
                   const mainRoleStyle = getRoleStyles(userRoles[0]);
                   
                   return (
                       <div key={item.admin_id} 
-                          className={`relative !bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col items-center text-center overflow-hidden min-h-max ${
-                              isDesktopSidebarOpen ? "p-4" : "p-6"
-                          }`}
+                          className={`relative !bg-white rounded-[2rem] border border-slate-50 shadow-[0_2px_12px_-3px_rgba(0,0,0,0.06)] hover:shadow-lg hover:-translate-y-1 transition-all flex flex-col items-center text-center overflow-hidden h-full min-h-[180px] p-5`}
                       >
                           {canDelete && (
-                              <div className="absolute top-2 right-2 flex gap-1 z-10">
-                                  <button 
-                                    onClick={() => openEditModal(item)}
-                                    className="hover:bg-indigo-50 rounded-full p-2 transition-colors"
-                                    title="แก้ไขบทบาท"
-                                  >
-                                    <Pencil size={18} style={{ color: '#4f46e5', stroke: '#4f46e5' }} />
+                              <div className="absolute top-3 right-4 flex gap-0.5 z-10">
+                                  <button onClick={() => openEditModal(item)} className="p-1.5 hover:bg-indigo-50 rounded-full transition-colors text-indigo-500" title="แก้ไข">
+                                    <Pencil size={15} />
                                   </button>
-                                 <button 
-                                    onClick={() => handleDeleteEmail(item.admin_id)}
-                                    className="hover:bg-red-50 rounded-full p-2 transition-colors"
-                                    title="ลบผู้ใช้งาน"
-                                  >
-                                    <Trash2 size={20} style={{ color: '#ef4444', stroke: '#ef4444' }} />
+                                 <button onClick={() => handleDeleteEmail(item.admin_id)} className="p-1.5 hover:bg-red-50 rounded-full transition-colors text-red-400" title="ลบ">
+                                    <Trash2 size={16} />
                                   </button>
                               </div>
                           )}
-                          <div className={`rounded-full bg-slate-50 mb-3 overflow-hidden ring-2 ring-slate-50 mx-auto flex-shrink-0 ${
-                              isDesktopSidebarOpen ? "w-10 h-10 mb-2" : "w-14 h-14 mb-3"
-                          }`}>
+                          <div className={`rounded-full bg-slate-50 mb-3 overflow-hidden ring-2 ring-slate-50 mx-auto flex-shrink-0 w-12 h-12`}>
                               <img 
                                   src={item.profile_url || getAvatarUrl(item.email)} 
                                   alt="Avatar" 
@@ -384,21 +362,18 @@ export default function Manage() {
                               />
                           </div>
 
-                          <div className="w-full px-1 mb-2"> 
+                          <div className="w-full px-1 mb-3"> 
                               <div className="tooltip lg:tooltip-bottom w-full before:text-[10px]" data-tip={item.email}>
-                                  <h3 className={`font-bold !text-slate-800 truncate block w-full overflow-hidden ${
-                                      isDesktopSidebarOpen ? "text-[10px]" : "text-sm"
-                                  }`}>
+                                  <h3 className={`font-bold !text-slate-800 truncate block w-full overflow-hidden text-[13px]`}>
                                       {item.email}
                                   </h3>
                               </div>
                           </div>
                           
-                          <div className="flex flex-nowrap gap-1.5 justify-center items-center w-full overflow-x-hidden mt-auto">
+                          {/* Role Footer - บรรทัดเดียวกันและ Compact */}
+                          <div className="flex flex-row gap-1.5 justify-center items-center w-full mt-auto">
                               {userRoles.length > 0 && (
-                                  <span className={`font-bold uppercase tracking-tight rounded-full border truncate ${mainRoleStyle.bg} ${mainRoleStyle.text} ${mainRoleStyle.border} ${
-                                      isDesktopSidebarOpen ? "text-[9px] px-2 py-0.5" : "text-[10px] px-2.5 py-1"
-                                  }`}>
+                                  <span className={`font-bold uppercase tracking-wider rounded-lg border truncate text-[9px] px-2 py-1 flex-1 ${mainRoleStyle.bg} ${mainRoleStyle.text} ${mainRoleStyle.border}`}>
                                       {getRoleLabel(userRoles[0])}                                
                                 </span>
                               )}
@@ -409,9 +384,7 @@ export default function Manage() {
                                           setRoleModalData(userRoles);
                                           document.getElementById('role_modal').showModal();
                                       }}
-                                      className={`btn btn-xs min-h-0 !bg-slate-100 border border-slate-200 !text-slate-500 hover:bg-slate-200 rounded-full font-bold tracking-tight uppercase shadow-sm ${
-                                        isDesktopSidebarOpen ? "h-5 text-[9px] px-1.5" : "h-7 text-[10px] px-2"
-                                      }`}
+                                      className={`btn btn-xs min-h-0 !bg-slate-50 border border-slate-100 !text-slate-400 hover:bg-slate-100 rounded-md font-bold tracking-tight uppercase shadow-none h-6 px-1.5 text-[9px] flex-shrink-0`}
                                   >
                                       +{userRoles.length - 1}
                                   </button>
@@ -424,12 +397,12 @@ export default function Manage() {
         </div>
       </div>
 
-      {/* Main Modal: Add/Edit */}
+      {/* Main Modal: Add/Edit - ปรับให้ Compact ขึ้น */}
       <dialog id="add_admin_modal" className="modal modal-bottom sm:modal-middle z-[999]">
-          <div className="modal-box !bg-[#F4F6F8] p-7 rounded-t-[3rem] sm:rounded-[2.5rem] shadow-2xl relative border-none overflow-y-auto max-h-[90vh] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-              <div className="flex justify-between items-center mb-6 px-2">
-                  <h3 className="font-bold text-xl !text-slate-900">
-                    {editingAdmin ? "แก้ไขบทบาทสมาชิก" : "เพิ่มสมาชิกใหม่"}
+          <div className="modal-box !bg-[#F4F6F8] p-6 rounded-t-[2.5rem] sm:rounded-[2rem] shadow-2xl relative border-none overflow-y-auto max-h-[90vh]">
+              <div className="flex justify-between items-center mb-5 px-1">
+                  <h3 className="font-bold text-lg !text-slate-900">
+                    {editingAdmin ? "แก้ไขบทบาท" : "เพิ่มสมาชิกใหม่"}
                   </h3>
                   <button 
                     onClick={() => {
@@ -438,20 +411,20 @@ export default function Manage() {
                         setNewRoles([]);
                         document.getElementById('add_admin_modal').close();
                     }} 
-                    className="absolute top-6 right-6 w-10 h-10 !bg-[#ef4444] !text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all hover:scale-110 z-20 border-4 border-white"
+                    className="absolute top-5 right-5 w-8 h-8 !bg-[#ef4444] !text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all hover:scale-110 z-20 border-2 border-white"
                   >
-                      <X size={20} strokeWidth={3} />
+                      <X size={16} strokeWidth={3} />
                   </button>
               </div>
-              <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                   {!editingAdmin ? (
-                    <div className="form-control px-2">
-                        <label className="label !text-slate-900 font-bold">ที่อยู่อีเมล</label>
-                        <label className="input input-bordered h-14 flex items-center gap-2 !bg-white rounded-2xl border-none shadow-[0_4px_15px_rgba(0,0,0,0.03)] focus-within:ring-2 ring-indigo-100 transition-all">
-                            <Mail size={18} className="!text-slate-400" />
+                    <div className="form-control px-1">
+                        <label className="label py-1 !text-slate-800 font-bold text-sm">ที่อยู่อีเมล</label>
+                        <label className="input input-bordered h-12 flex items-center gap-2 !bg-white rounded-xl border-none shadow-sm focus-within:ring-2 ring-indigo-100 transition-all">
+                            <Mail size={16} className="!text-slate-400" />
                             <input 
                               type="email" 
-                              className="grow !text-slate-900 font-bold placeholder:text-slate-300 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none autofill:shadow-[inset_0_0_0_30px_#f8fafc] autofill:text-slate-900" 
+                              className="grow !text-slate-800 font-bold placeholder:text-slate-300 outline-none text-sm" 
                               placeholder="mail@site.com" 
                               value={newEmail} 
                               onChange={(e) => setNewEmail(e.target.value)} 
@@ -461,42 +434,30 @@ export default function Manage() {
                         </label>
                     </div>
                   ) : (
-                      <div className="px-2">
-                          <p className="text-sm text-slate-500">กำลังแก้ไขบทบาทของ:</p>
-                          <p className="font-bold text-lg text-slate-800 tracking-tight">{editEmail}</p>
+                      <div className="px-1">
+                          <p className="text-[12px] text-slate-500">กำลังแก้ไขบทบาทของ:</p>
+                          <p className="font-bold text-md text-slate-800 tracking-tight">{editEmail}</p>
                       </div>
                   )}
 
-                  <div className="form-control px-2">
-                      <label className="label !text-slate-900 font-bold">กำหนดบทบาท <span className="text-xs font-normal text-slate-400 ml-2">(เลือกได้มากกว่า 1)</span></label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                  <div className="form-control px-1">
+                      <label className="label py-1 !text-slate-800 font-bold text-sm">กำหนดบทบาท <span className="text-[10px] font-normal text-slate-400 ml-2">(เลือกได้หลายสิทธิ์)</span></label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
                         {ROLE_OPTIONS.map((opt) => {
                             const isSelected = newRoles.includes(opt.value);
                             const style = getRoleStyles(opt.value);
-                            
                             return (
                                 <div 
                                     key={opt.value}
                                     onClick={() => toggleRole(opt.value)}
-                                    className={`
-                                        flex items-center justify-between p-4 rounded-[1.5rem] transition-all duration-300 cursor-pointer border-2
-                                        bg-white hover:shadow-lg
-                                        ${isSelected ? `${style.ring} ${style.border} scale-[1.02]` : "border-transparent shadow-sm"}
-                                    `}
+                                    className={`flex items-center justify-between p-3 rounded-2xl transition-all duration-300 cursor-pointer border bg-white hover:shadow-md ${isSelected ? `${style.ring} ${style.border} scale-[1.02]` : "border-transparent shadow-sm"}`}
                                 >
-                                    <div className="flex flex-col pl-2">
-                                        <span className={`text-[11px] font-black uppercase tracking-widest ${isSelected ? style.text : "text-[#475569]"}`}>
-                                            {opt.label}
-                                        </span>
-                                        <span className="text-[10px] text-slate-400 font-medium">
-                                            {opt.desc}
-                                        </span>
+                                    <div className="flex flex-col pl-1">
+                                        <span className={`text-[10px] font-black uppercase tracking-widest ${isSelected ? style.text : "text-slate-600"}`}>{opt.label}</span>
+                                        <span className="text-[9px] text-slate-400 font-medium leading-tight">{opt.desc}</span>
                                     </div>
-                                    <div className={`
-                                        w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 flex-shrink-0
-                                        ${isSelected ? `${style.solid} shadow-lg` : "bg-[#DBE2E9]"}
-                                    `}>
-                                        {isSelected && <Check size={14} strokeWidth={4} className="text-white" />}
+                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${isSelected ? `${style.solid} shadow-md` : "bg-slate-100"}`}>
+                                        {isSelected && <Check size={12} strokeWidth={4} className="text-white" />}
                                     </div>
                                 </div>
                             );
@@ -504,21 +465,12 @@ export default function Manage() {
                       </div>
                   </div>
 
-                  <div className="px-2 pb-2">
-                    <button 
-                        type="submit" 
-                        className={`btn w-full mt-6 h-14 rounded-2xl text-white font-bold border-none transition-all shadow-xl active:scale-95 ${
-                            isFormValid 
-                                ? (editingAdmin ? "!bg-[#4f46e5] hover:!bg-[#4338ca]" : "!bg-[#00945e] hover:!bg-[#007a4d]") 
-                                : "!bg-slate-300 !text-slate-500 cursor-not-allowed"
-                        }`} 
+                  <div className="px-1 pt-2">
+                    <button type="submit" 
+                        className={`btn w-full h-12 rounded-xl text-white font-bold border-none transition-all shadow-lg active:scale-95 text-sm ${isFormValid ? (editingAdmin ? "!bg-indigo-600 hover:!bg-indigo-700" : "!bg-emerald-600 hover:!bg-emerald-700") : "!bg-slate-300 !text-slate-500 cursor-not-allowed"}`} 
                         disabled={isSubmitting || !isFormValid}
                     >
-                        <span className="text-white text-lg tracking-wide">
-                            {isSubmitting 
-                                ? <span className="loading loading-spinner"></span> 
-                                : (editingAdmin ? "บันทึกการแก้ไข" : "ยืนยันการเพิ่ม")}
-                        </span>
+                        {isSubmitting ? <span className="loading loading-spinner loading-xs"></span> : (editingAdmin ? "บันทึกข้อมูล" : "ยืนยันการเพิ่ม")}
                     </button>
                   </div>
               </form>
@@ -526,34 +478,25 @@ export default function Manage() {
           <form method="dialog" className="modal-backdrop bg-slate-900/40 backdrop-blur-sm"><button>close</button></form>
       </dialog>
 
-      {/* Secondary Modal: View All Roles */}
+      {/* Secondary Modal: View All Roles - Compact */}
       <dialog id="role_modal" className="modal modal-bottom sm:modal-middle z-[9999]">
-          <div className="modal-box !bg-white p-10 rounded-t-[3rem] sm:rounded-[2.5rem] text-center shadow-2xl border-none relative [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-            <button 
-              onClick={() => document.getElementById('role_modal').close()} 
-              className="absolute top-4 right-4 w-10 h-10 !bg-[#ef4444] !text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all hover:scale-110 z-20 border-4 border-white"
-            >
-              <X size={20} strokeWidth={3} />
+          <div className="modal-box !bg-white p-8 rounded-t-[2.5rem] sm:rounded-[2rem] text-center shadow-2xl border-none relative">
+            <button onClick={() => document.getElementById('role_modal').close()} className="absolute top-4 right-4 w-8 h-8 !bg-[#ef4444] !text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+              <X size={16} strokeWidth={3} />
             </button>
-            
-            <h3 className="font-bold text-xl !text-slate-900 mb-6 mt-4">บทบาททั้งหมด</h3>
-            <div className="flex flex-wrap gap-3 justify-center">
+            <h3 className="font-bold text-lg !text-slate-900 mb-5 mt-2">บทบาททั้งหมด</h3>
+            <div className="flex flex-wrap gap-2 justify-center">
               {roleModalData && roleModalData.map((role, idx) => {
                 const style = getRoleStyles(role);
                 return (
-                  <span 
-                    key={idx} 
-                    className={`font-bold text-xs uppercase tracking-wider px-4 py-2.5 rounded-2xl border shadow-sm whitespace-nowrap ${style.bg} ${style.text} ${style.border}`}
-                  >
+                  <span key={idx} className={`font-bold text-[9px] uppercase tracking-wider px-3 py-1.5 rounded-lg border shadow-sm ${style.bg} ${style.text} ${style.border}`}>
                     {getRoleLabel(role)}
                   </span>
                 );
               })}
             </div>
           </div>
-          <form method="dialog" className="modal-backdrop bg-slate-900/60 backdrop-blur-sm">
-            <button>close</button>
-          </form>
+          <form method="dialog" className="modal-backdrop bg-slate-900/60 backdrop-blur-sm"><button>close</button></form>
       </dialog>
     </div>
   );
