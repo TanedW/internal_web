@@ -156,20 +156,23 @@ export default function ManageCase() {
             const apiData = result.data;
             let allImagesCombined = [];
             if (apiData.timeline) {
-                apiData.timeline.forEach((item, index) => {
-                    if(item.photo) {
-                        const isCover = index === 0;
-                        allImagesCombined.push({
-                            id: item.id, 
-                            mediaType: getMediaTypeFromFile(item.photo), 
-                            url: item.photo, 
-                            status: item.status,
-                            isCover: isCover,
-                            type: isCover ? "Cover" : "Attachment" // เก็บไว้เป็น Data แต่จะไม่แสดงใน UI
-                        });
-                    }
-                });
-            }
+    apiData.timeline.forEach((item) => {
+        if(item.photo) {
+            // ปรับตรงนี้: ตรวจสอบให้แน่ใจว่าได้ค่า Boolean จริงๆ
+            // เช็คทั้งกรณีที่เป็น boolean true หรือ เป็น string 'true' หรือ number 1
+            const isCover = item.is_cover === true || item.is_cover === "true" || item.is_cover === 1; 
+            
+            allImagesCombined.push({
+                id: item.id, 
+                mediaType: getMediaTypeFromFile(item.photo), 
+                url: item.photo, 
+                status: item.is_hidden ? 'hidden' : 'active', 
+                isCover: isCover, // ค่านี้จะเป็น true/false แน่นอนแล้ว
+                type: isCover ? "Cover" : "Attachment" 
+            });
+        }
+    });
+}
             setCurrentCase({
                 id: apiData.ticket_id, dbId: apiData.id, title: apiData.problem_type,
                 department: apiData.address, date: apiData.timestamp ? new Date(apiData.timestamp).toLocaleDateString('th-TH') : "N/A",
@@ -345,16 +348,17 @@ export default function ManageCase() {
                                     <Images size={24} className="text-indigo-600" /> รูปประกอบอื่นๆ
                                 </h5>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                                    {currentCase.allImages.filter(img => !img.isCover).map((img) => (
-                                        <ImageCard 
-                                            key={img.id} 
-                                            img={img} 
-                                            isSelected={selectedImageToReplace?.id === img.id}
-                                            onSelect={() => handleSelectImage(img)}
-                                            onToggleHide={() => handleToggleHideImage(img.id, img.status)}
-                                        />
-                                    ))}
-                                </div>
+                                {/* กรองเฉพาะอันที่เป็น false มาลงที่นี่ */}
+                                {currentCase.allImages.filter(img => !img.isCover).map((img) => (
+                                    <ImageCard 
+                                        key={img.id} 
+                                        img={img} 
+                                        isSelected={selectedImageToReplace?.id === img.id}
+                                        onSelect={() => handleSelectImage(img)}
+                                        onToggleHide={() => handleToggleHideImage(img.id, img.status)}
+                                    />
+                                ))}
+                            </div>
                             </div>
                         </div>
                     </div>
