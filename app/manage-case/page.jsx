@@ -183,30 +183,52 @@ export default function ManageCase() {
     finally { setIsSearching(false); }
   };
 
-  const handleToggleHideImage = async (imgId, currentStatus) => {
-    const newStatus = currentStatus === 'hidden' ? 'active' : 'hidden';
-    if (!window.confirm(`คุณต้องการ${newStatus === 'hidden' ? 'ซ่อน' : 'แสดง'}รูปภาพนี้ใช่หรือไม่?`)) return;
+ // ในตัวคอมโพเนนต์ ManageCase (page.jsx)
+
+// ในไฟล์ page.jsx ภายในคอมโพเนนต์ ManageCase
+
+const handleToggleHideImage = async (imgId, currentStatus) => {
+    // ตรวจสอบสถานะปัจจุบัน: ถ้าเป็น 'hidden' แสดงว่ากำลังจะเปิด (isHidden = false)
+    const currentIsHidden = currentStatus === 'hidden';
+    const newIsHidden = !currentIsHidden; 
+    const actionText = newIsHidden ? 'ซ่อน' : 'แสดง';
+
+    if (!window.confirm(`คุณต้องการ ${actionText} รูปภาพนี้ใช่หรือไม่?`)) return;
+
     try {
         const adminId = localStorage.getItem("current_admin_id") || "unknown_admin";
         const dbPayload = {
             current_admin_id: adminId.replace(/['"]+/g, ''),
             photo_id: imgId.toString(),
-            status: newStatus,
-            description: `Admin ${newStatus === 'hidden' ? 'ซ่อน' : 'แสดง'} รูปภาพ`
+            is_hidden: newIsHidden, // ส่งค่า true/false ไปที่ API
+            description: `Admin ${actionText} รูปภาพ (ID: ${imgId})`
         };
+
         const response = await fetch(`${process.env.NEXT_PUBLIC_DB_MANAGE_CASE_API_URL}?id=${currentCase.dbId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(dbPayload)
         });
+
         if (response.ok) {
+            // อัปเดต State ในหน้าจอทันทีเพื่อให้ UI เปลี่ยนตาม
             setCurrentCase(prev => ({
                 ...prev,
-                allImages: prev.allImages.map(img => img.id === imgId ? { ...img, status: newStatus } : img)
+                allImages: prev.allImages.map(img => 
+                    img.id === imgId 
+                    ? { ...img, status: newIsHidden ? 'hidden' : 'active' } 
+                    : img
+                )
             }));
-        } else { alert("ไม่สามารถเปลี่ยนสถานะรูปภาพได้"); }
-    } catch (error) { alert("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล"); }
-  };
+        } else {
+            const err = await response.json();
+            alert(`ไม่สามารถ ${actionText} รูปภาพได้: ${err.message}`);
+        }
+    } catch (error) {
+        console.error("Error toggling visibility:", error);
+        alert("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล");
+    }
+};
 
   const handleSelectImage = (img) => {
     if (selectedImageToReplace?.id === img.id) {
@@ -237,6 +259,43 @@ export default function ManageCase() {
     setSearchId(""); setCurrentCase(null); setNewImageFile(null);
     setReason(""); setWizardStep(1); setIsSuccess(false); setSelectedImageToReplace(null);
   };
+
+  // เพิ่มฟังก์ชันนี้ในคอมโพเนนต์ ManageCase
+const handleSetAsCover = async (imgId) => {
+    if (!window.confirm("คุณต้องการตั้งรูปนี้เป็นหน้าปกใช่หรือไม่?")) return;
+
+    try {
+        const adminId = localStorage.getItem("current_admin_id") || "unknown_admin";
+        const dbPayload = {
+            current_admin_id: adminId.replace(/['"]+/g, ''),
+            photo_id: imgId.toString(),
+            is_cover: true // ส่งไปเพื่อให้ API สลับรูปอื่นออก
+        };
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_DB_MANAGE_CASE_API_URL}?id=${currentCase.dbId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dbPayload)
+        });
+
+        if (response.ok) {
+    setCurrentCase(prev => ({
+        ...prev,
+        allImages: prev.allImages.map(img => ({
+            ...img,
+            isCover: img.id === imgId, // ถ้ารหัสตรงกันให้เป็น true ถ้าไม่ตรงให้เป็น false ทั้งหมด
+            type: img.id === imgId ? "Cover" : "Attachment",
+            status: img.id === imgId ? 'active' : img.status // ถ้าเป็นหน้าปกควรบังคับให้แสดง (ไม่ซ่อน)
+        }))
+    }));
+    alert("เปลี่ยนรูปหน้าปกสำเร็จ");
+        } else {
+            alert("ไม่สามารถเปลี่ยนรูปหน้าปกได้");
+        }
+    } catch (error) {
+        alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+    }
+};
 
   if (loading) return <div className="min-h-screen flex justify-center items-center bg-slate-50"><span className="loading loading-spinner loading-lg text-primary"></span></div>;
 
@@ -336,7 +395,8 @@ export default function ManageCase() {
                                             img={img} 
                                             isSelected={selectedImageToReplace?.id === img.id}
                                             onSelect={() => handleSelectImage(img)}
-                                            onToggleHide={() => handleToggleHideImage(img.id, img.status)}
+                                            onToggleHide={() => handleToggleHideImage(img.id, img.status)} // ส่ง status ไปเช็ค
+                                            onSetCover={() => handleSetAsCover(img.id)} // <--- เพิ่มบรรทัดนี้ครับ
                                         />
                                     ))}
                                 </div>
@@ -356,6 +416,7 @@ export default function ManageCase() {
                                         isSelected={selectedImageToReplace?.id === img.id}
                                         onSelect={() => handleSelectImage(img)}
                                         onToggleHide={() => handleToggleHideImage(img.id, img.status)}
+                                        onSetCover={() => handleSetAsCover(img.id)} // <--- เพิ่มบรรทัดนี้เข้าไปครับ
                                     />
                                 ))}
                             </div>
@@ -510,18 +571,20 @@ export default function ManageCase() {
  );
 }
 
-function ImageCard({ img, isSelected, onSelect, onToggleHide }) {
+function ImageCard({ img, isSelected, onSelect, onToggleHide, onSetCover }) {
+    // ใช้ค่า isHidden จาก Object img (ที่ได้จาก State)
+    const isHidden = img.isHidden || img.status === 'hidden';
     return (
         <div 
             className={`group relative rounded-[2.5rem] overflow-hidden transition-all border-4 aspect-[4/3] shadow-md hover:shadow-xl ${
                 isSelected ? 'border-indigo-600 scale-[1.03] z-10' : 'border-white hover:border-slate-200'
             }`}
         >
-            {/* พื้นที่รูปภาพ - ลบ Overlay ข้อความออกทั้งหมด */}
+            {/* พื้นที่รูปภาพและการคลิกเลือก */}
             <div className="w-full h-full cursor-pointer relative" onClick={onSelect}>
                 <FilePreviewRender file={img} />
                 
-                {/* Layer ซ่อนรูปภาพ */}
+                {/* Layer เมื่อรูปถูกซ่อน (is_hidden = true) */}
                 {img.status === 'hidden' && (
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-[3px] flex flex-col items-center justify-center text-white z-20">
                         <EyeOff size={40} className="mb-2 opacity-90" />
@@ -529,41 +592,64 @@ function ImageCard({ img, isSelected, onSelect, onToggleHide }) {
                     </div>
                 )}
                 
-                {/* Gradient บางๆ ด้านล่างเพื่อให้มองเห็นสถานะเลือกได้ชัดเจน */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 opacity-70"></div>
+                {/* Gradient ด้านล่างเพื่อให้ข้อความ/ปุ่มอ่านง่ายขึ้น */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10 opacity-70"></div>
             </div>
 
-            {/* ปุ่มดวงตา (ซ่อน/แสดง) */}
-            <button 
-                onClick={(e) => {
-                    e.stopPropagation(); 
-                    onToggleHide();
-                }}
-                className={`absolute top-4 right-4 z-30 w-12 h-12 rounded-2xl flex items-center justify-center shadow-2xl transition-all active:scale-90 ${
-                    img.status === 'hidden' ? 'bg-indigo-600 text-white' : 'bg-white/90 backdrop-blur text-slate-800 hover:bg-white'
-                }`}
-            >
-                {img.status === 'hidden' ? <Eye size={20} /> : <EyeOff size={20} />}
-            </button>
+            {/* --- ปุ่มควบคุมหลัก (Top Actions) --- */}
+            <div className="absolute top-4 left-4 right-4 flex justify-between items-start z-30">
+                {/* ฝั่งซ้าย: สถานะ Cover หรือ ปุ่มตั้งเป็น Cover */}
+                {img.isCover ? (
+                    <div className="w-8 h-8 bg-indigo-600/90 backdrop-blur text-white rounded-full flex items-center justify-center shadow-lg border border-indigo-400">
+            <CheckCircle2 size={16} strokeWidth={3} />
+        </div>
+                ) : (
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onSetCover();
+                        }}
+                        className="w-10 h-10 rounded-xl bg-white/90 backdrop-blur text-indigo-600 shadow-xl opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center border border-indigo-100 hover:bg-indigo-600 hover:text-white"
+                        title="ตั้งเป็นรูปหน้าปก"
+                    >
+                        <Layout size={18} />
+                    </button>
+                )}
 
-            {/* ส่วนสถานะการเลือกด้านล่าง - ลบ img.type ออกเพื่อไม่ให้มีคำว่า Cover/Attachment กวนใจ */}
+                {/* ฝั่งขวา: ปุ่มเปิด/ปิดการมองเห็น (Hide/Show) */}
+                <button 
+                    onClick={(e) => {
+                        e.stopPropagation(); 
+                        onToggleHide();
+                    }}
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-2xl transition-all active:scale-95 border ${
+                        img.status === 'hidden' 
+                        ? 'bg-rose-600 text-white border-rose-400' 
+                        : 'bg-white/90 backdrop-blur text-slate-800 border-slate-100 hover:bg-white'
+                    }`}
+                >
+                    {img.status === 'hidden' ? <Eye size={18} /> : <EyeOff size={18} />}
+                </button>
+            </div>
+
+            {/* --- ส่วนล่าง (Bottom Status) --- */}
             <div className="absolute bottom-5 left-6 right-6 flex justify-between items-end z-30 pointer-events-none">
                 <div className="flex-1 min-w-0">
                     {!isSelected && (
-                        <span className="text-[10px] text-red-400 font-black animate-pulse drop-shadow-lg uppercase tracking-widest bg-red-950/20 px-2 py-0.5 rounded-lg w-fit">
-                             แตะเพื่อเลือก
+                        <span className="text-[10px] text-white/90 font-black drop-shadow-lg uppercase tracking-widest bg-black/20 backdrop-blur-sm px-2 py-1 rounded-lg w-fit flex items-center gap-2">
+                             <Edit3 size={10} /> แตะเพื่อเลือกแก้ไข
                         </span>
                     )}
                 </div>
 
-                {/* วงกลมแสดงสถานะการเลือก */}
+                {/* วงกลมแสดงสถานะการเลือก (Selection Indicator) */}
                 <div className="flex items-center justify-center ml-2">
                     {isSelected ? (
-                        <div className="bg-white rounded-full p-0.5 shadow-xl">
+                        <div className="bg-white rounded-full p-0.5 shadow-2xl scale-110">
                              <CheckCircle2 size={32} className="text-indigo-600 fill-white" />
                         </div>
                     ) : (
-                        <div className="w-8 h-8 rounded-full bg-blue-100/40 border-2 border-white/60 shadow-inner backdrop-blur-sm"></div>
+                        <div className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/40 shadow-inner backdrop-blur-sm"></div>
                     )}
                 </div>
             </div>
