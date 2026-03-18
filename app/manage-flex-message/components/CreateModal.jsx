@@ -227,6 +227,13 @@ const CreateModal = ({ isOpen, onClose, onCreate }) => {
     setActiveTab("scratch");
   };
 
+  const isCreateDisabled = 
+  !name.trim() || 
+  !desc.trim() || 
+  !!jsonError || 
+  !!lineValidationError || 
+  isValidating;
+
   const insertSnippet = (snippetCode) => {
     const textarea = textAreaRef.current;
     if (!textarea) return;
@@ -253,7 +260,6 @@ const CreateModal = ({ isOpen, onClose, onCreate }) => {
         <div className="bg-white border-b border-slate-100 px-6 py-4 flex justify-between items-center z-10 shrink-0">
             <div>
                 <h2 className="font-extrabold text-xl md:text-2xl text-slate-800 tracking-tight flex items-center gap-2">
-                    <Sparkles className="text-yellow-500 fill-yellow-500" size={24} /> 
                     Create Flex Message
                 </h2>
                 <p className="text-slate-500 text-xs md:text-sm mt-1">Design rich messages or start from a template.</p>
@@ -315,21 +321,27 @@ const CreateModal = ({ isOpen, onClose, onCreate }) => {
                     <div className="flex-1 p-6 lg:p-8 overflow-y-auto space-y-6 order-2 lg:order-2">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div className="space-y-2">
-                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Message Name</label>
+                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                                    Message Name <span className="text-red-500">*</span>
+                                </label>
                                 <input 
-                                    className="w-full p-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 font-semibold text-slate-800 transition-all shadow-sm text-sm"
+                                    className={`w-full p-3 bg-white border rounded-xl focus:outline-none focus:ring-2 transition-all shadow-sm text-sm font-semibold ${!name.trim() ? 'border-red-200' : 'border-slate-200 focus:ring-slate-900/10 focus:border-slate-900'}`}
                                     placeholder="e.g., Welcome Campaign"
                                     value={name} onChange={e => setName(e.target.value)}
                                     autoFocus
                                 />
+                                {!name.trim() && <p className="text-[10px] text-red-400">Please enter a name</p>}
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Description</label>
+                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                                    Description <span className="text-red-500">*</span>
+                                </label>
                                 <input 
-                                    className="w-full p-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 text-slate-600 transition-all shadow-sm text-sm"
+                                    className={`w-full p-3 bg-white border rounded-xl focus:outline-none focus:ring-2 transition-all shadow-sm text-sm ${!desc.trim() ? 'border-red-200' : 'border-slate-200 focus:ring-slate-900/10 focus:border-slate-900'}`}
                                     placeholder="Internal note..."
                                     value={desc} onChange={e => setDesc(e.target.value)}
                                 />
+                                {!desc.trim() && <p className="text-[10px] text-red-400">Please enter a description</p>}
                             </div>
                         </div>
                         
@@ -437,30 +449,43 @@ const CreateModal = ({ isOpen, onClose, onCreate }) => {
             )}
         </div>
 
-        {/* Footer */}
+        {/* Footer Section */}
         <div className="p-4 md:p-5 border-t border-slate-100 bg-white flex justify-between items-center z-20 shrink-0">
-          <div className="text-xs text-slate-400 font-medium px-2 hidden md:block">
-             {activeTab === "scratch" ? ((jsonError || lineValidationError) ? "Fix JSON errors to continue" : "Ready to create") : "Choose a template to get started"}
-          </div>
-          <div className="flex gap-3 ml-auto">
-            <button onClick={onClose} className="px-5 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
+        <div className="text-xs font-medium px-2 hidden md:block">
+            {activeTab === "scratch" ? (
+            isCreateDisabled ? (
+                <span className="text-red-400 flex items-center gap-1"><AlertCircle size={12}/> Please fill in all required fields and fix JSON errors</span>
+            ) : (
+                <span className="text-green-500 flex items-center gap-1"><CheckCircle2 size={12}/> Ready to create</span>
+            )
+            ) : "Choose a template to get started"}
+        </div>
+        
+        <div className="flex gap-3 ml-auto w-full md:w-auto">
+            <button onClick={onClose} className="flex-1 md:flex-none px-5 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">
+            Cancel
+            </button>
+            
             {activeTab === "scratch" ? (
                 <button 
-                    disabled={!!jsonError || !!lineValidationError || isValidating}
+                    disabled={isCreateDisabled}
                     onClick={() => { onCreate(name, desc, json, quickReply); onClose(); }} 
-                    className={`px-6 py-2.5 text-white text-sm font-bold rounded-xl shadow-lg transition-all flex items-center gap-2 ${ (!!jsonError || !!lineValidationError || isValidating) ? 'bg-slate-300 cursor-not-allowed' : 'bg-slate-900 hover:bg-black shadow-slate-900/20 active:scale-95'}`}
+                    className={`flex-1 md:flex-none px-6 py-2.5 text-white text-sm font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 
+                    ${isCreateDisabled 
+                        ? 'bg-slate-300 cursor-not-allowed shadow-none' 
+                        : 'bg-slate-900 hover:bg-black shadow-slate-900/20 active:scale-95'}`}
                 >
                     Create Message <ArrowRight size={16} />
                 </button>
             ) : (
                 <button 
                     disabled
-                    className="px-6 py-2.5 bg-slate-100 text-slate-400 text-sm font-bold rounded-xl cursor-not-allowed"
+                    className="flex-1 md:flex-none px-6 py-2.5 bg-slate-100 text-slate-400 text-sm font-bold rounded-xl cursor-not-allowed"
                 >
                     Select a template
                 </button>
             )}
-          </div>
+        </div>
         </div>
       </div>
     </div>

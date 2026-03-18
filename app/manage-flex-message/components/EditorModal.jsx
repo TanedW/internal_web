@@ -66,13 +66,14 @@ export default function EditorModal({ item, isOpen, onClose, onSave, onDelete })
     if (item && isOpen) {
       const initialJson = item.content ? JSON.stringify(item.content, null, 2) : "";
       setJsonContent(initialJson);
-      
       setHistory([initialJson]);
       setHistoryIndex(0);
 
       setEditName(item.name || "");        
       setEditDesc(item.description || ""); 
+      
       setChangeNote(""); 
+      
       setIsSaveMode(false);
       setIsRenaming(false);
       setParseError(null);
@@ -81,16 +82,13 @@ export default function EditorModal({ item, isOpen, onClose, onSave, onDelete })
     }
   }, [item, isOpen]);
 
+  const isSaveDisabled = !editName.trim() || !editDesc.trim() || !changeNote.trim();
+
   useEffect(() => {
     if (isRenaming && nameInputRef.current) nameInputRef.current.focus();
   }, [isRenaming]);
-
-  // Real-time Validation Effect
   useEffect(() => {
-    // 🛑 CONDITION ADDED: หยุดทำงานทันทีถ้า Modal ปิดอยู่
     if (!isOpen) return;
-
-    // 1. ถ้า JSON ผิด Syntax (วงเล็บไม่ครบ) ไม่ต้องส่งไปเช็ค LINE
     try {
         JSON.parse(jsonContent);
         setParseError(null);
@@ -102,8 +100,6 @@ export default function EditorModal({ item, isOpen, onClose, onSave, onDelete })
 
         const Validate_Push_Api_Url = process.env.NEXT_PUBLIC_VALIDATE_PUSH_API_URL
 
-
-    // 2. ถ้า JSON ถูก Syntax ให้รอ 1 วินาทีแล้วค่อยยิง API
     const timer = setTimeout(async () => {
         setIsValidating(true);
         try {
@@ -310,26 +306,80 @@ export default function EditorModal({ item, isOpen, onClose, onSave, onDelete })
 
         {/* Save Popup */}
         {isSaveMode && (
-           <div className="absolute inset-0 z-50 flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm p-0 md:p-4 animate-in fade-in duration-200">
-             <div className="bg-white w-full max-w-lg rounded-t-2xl md:rounded-2xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 duration-200 max-h-[85vh]">
-               <div className="px-6 py-4 border-b border-gray-100 bg-slate-50/50 flex justify-between items-center shrink-0">
-                  <h3 className="font-bold text-lg text-slate-800">Finalize Saving</h3>
-                  <button onClick={() => setIsSaveMode(false)} className="btn btn-sm btn-circle btn-ghost text-slate-400 hover:bg-slate-200"><X size={20}/></button>
-               </div>
-               <div className="p-6 flex flex-col gap-5 overflow-y-auto">
-                  <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center gap-3">
-                     <div className="bg-white p-2 rounded-full shadow-sm text-indigo-600"><FileJson size={20} /></div>
-                     <div className="min-w-0"><p className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">Template Name</p><p className="font-bold text-indigo-900 text-sm truncate">{editName || "Untitled"}</p></div>
-                  </div>
-                  <div className="form-control"><label className="label pt-0"><span className="label-text font-bold text-slate-700 flex items-center gap-2"><FileText size={16} className="text-slate-500"/> Description</span></label><textarea className="textarea textarea-bordered h-20 resize-none text-sm w-full focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="Brief description..." value={editDesc} onChange={(e) => setEditDesc(e.target.value)}></textarea></div>
-                  <div className="form-control"><label className="label pt-0"><span className="label-text font-bold text-slate-700 flex items-center gap-2"><History size={16} className="text-orange-500"/> Change Log</span></label><textarea className="textarea textarea-bordered h-24 resize-none text-sm w-full bg-orange-50/20 focus:border-orange-500 focus:ring-1 focus:ring-orange-500" placeholder="What changed?" value={changeNote} onChange={(e) => setChangeNote(e.target.value)}></textarea></div>
-               </div>
-               <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 shrink-0 pb-safe">
-                     <button onClick={() => setIsSaveMode(false)} className="btn btn-ghost btn-sm px-6 rounded-xl text-white bg-[#e3243b] hover:bg-[#900603]">Cancel</button>
-                     <button onClick={handleFinalSave} className="btn btn-sm px-6 gap-2 shadow-lg bg-[#111827] text-white hover:bg-[#5bb450] flex items-center rounded-xl"><Check size={16}/> Confirm</button>
-                 </div>
-             </div>
-           </div>
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden max-h-[90vh]">
+              
+              <div className="px-6 py-4 border-b border-gray-100 bg-slate-50/50 flex justify-between items-center shrink-0">
+                <h3 className="font-bold text-lg text-slate-800">Finalize Saving</h3>
+                <button onClick={() => setIsSaveMode(false)} className="btn btn-sm btn-circle btn-ghost"><X size={20}/></button>
+              </div>
+
+              <div className="p-6 flex flex-col gap-5 overflow-y-auto">
+                {/* Name Input (แสดงใน Popup เพื่อให้แก้ได้ง่าย) */}
+                <div className="form-control">
+                  <label className="label pt-0">
+                    <span className="label-text font-bold text-slate-700 flex items-center gap-2">
+                      <Type size={16} className="text-indigo-500"/> Name <span className="text-red-500">*</span>
+                    </span>
+                  </label>
+                  <input 
+                    type="text" 
+                    className={`input input-bordered w-full focus:ring-1 ${!editName.trim() ? 'border-red-300' : 'focus:ring-indigo-500'}`}
+                    value={editName} 
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="Enter template name..."
+                  />
+                </div>
+
+                {/* Description */}
+                <div className="form-control">
+                  <label className="label pt-0">
+                    <span className="label-text font-bold text-slate-700 flex items-center gap-2">
+                      <FileText size={16} className="text-slate-500"/> Description <span className="text-red-500">*</span>
+                    </span>
+                  </label>
+                  <textarea 
+                    className={`textarea textarea-bordered h-20 resize-none text-sm w-full focus:ring-1 ${!editDesc.trim() ? 'border-red-300' : 'focus:ring-indigo-500'}`}
+                    placeholder="อธิบายเกี่ยวกับ Flex Message นี้สั้นๆ" 
+                    value={editDesc} 
+                    onChange={(e) => setEditDesc(e.target.value)}
+                  ></textarea>
+                </div>
+
+                {/* Change Log */}
+                <div className="form-control">
+                  <label className="label pt-0">
+                    <span className="label-text font-bold text-slate-700 flex items-center gap-2">
+                      <History size={16} className="text-orange-500"/> What Change <span className="text-red-500">* (Required for every save)</span>
+                    </span>
+                  </label>
+                  <textarea 
+                    className={`textarea textarea-bordered h-24 resize-none text-sm w-full bg-orange-50/10 focus:ring-1 ${!changeNote.trim() ? 'border-red-300' : 'focus:ring-orange-500'}`}
+                    placeholder="อธิบายการเปลี่ยนแปลงสำหรับบันทึกใน Log" 
+                    value={changeNote} 
+                    onChange={(e) => setChangeNote(e.target.value)}
+                  ></textarea>
+                  {!changeNote.trim() && <p className="text-[10px] text-red-500 mt-1 italic">* Please provide a change log to track updates.</p>}
+                </div>
+              </div>
+
+              <div className="p-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3 shrink-0">
+                <button 
+                  onClick={() => setIsSaveMode(false)} 
+                  className="btn btn-ghost btn-sm px-6 rounded-xl text-white bg-[#e3243b] hover:bg-[#900603] order-2 sm:order-1 h-11 sm:h-9"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleFinalSave} 
+                  disabled={isSaveDisabled}
+                  className="btn btn-sm px-6 gap-2 shadow-lg bg-[#111827] text-white hover:bg-[#5bb450] flex items-center justify-center rounded-xl order-1 sm:order-2 h-11 sm:h-9 disabled:opacity-50 disabled:bg-slate-300 disabled:text-slate-500"
+                >
+                  <Check size={16}/> Confirm & Save
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
