@@ -130,36 +130,56 @@ export default function ManageOrgPage() {
     setTimeout(() => handleScrollCheck(qrScrollRef, setQrScrollPos), 150);
   }
  }, [orgId, qrList]);
+const fetchOrgData = async (targetId = "") => {
+    const sanitizedQuery = targetId.trim().replace(/[^\u0E00-\u0E7Fa-zA-Z0-9\s]/g, "");
+    if (!sanitizedQuery) return;
+    
+    setIsSearching(true);
 
- const fetchOrgData = async (targetId = "") => {
-   const sanitizedQuery = targetId.trim().replace(/[^\u0E00-\u0E7Fa-zA-Z0-9\s]/g, "");
-   if (!sanitizedQuery) return;
-   setIsSearching(true);
-   setOrgId(""); 
-   setShowMobileEditPanel(false);
-   setShowMobileTimeline(false); 
-   try {
-     const res = await fetch(`${API_URL_ORG}?q=${encodeURIComponent(sanitizedQuery)}`);
-     const result = await res.json();
-     if (result.found && result.data) {
-       setCases(result.data.map(item => ({
-         org_id: String(item.id),
-         org_name: String(item.name || ""),
-         logo_url: String(item.photo || ""), 
-         is_deleted: !!item.deleted_at || item.status === 'deleted',
-         is_official: item.official_group === true, 
-         allow_csv: item.download_csv === true, 
-         admin_codes: item.admin_codes || [],
-         qr_report_url: item.qr_report_url || "",
-         members: item.members || []
-       })));
-     } else {
-       setCases([]);
-     }
-   } catch (e) {
-     console.error("Fetch error:", e);
-   } finally { setIsSearching(false); }
- };
+    if (!orgId) { 
+        setOrgId(""); 
+        setShowMobileEditPanel(false);
+        setShowMobileTimeline(false); 
+    }
+
+    try {
+      const res = await fetch(`${API_URL_ORG}?q=${encodeURIComponent(sanitizedQuery)}`);
+      const result = await res.json();
+      
+      if (result.found && result.data) {
+        const newData = result.data.map(item => ({
+          org_id: String(item.id),
+          org_name: String(item.name || ""),
+          logo_url: String(item.photo || ""), 
+          is_deleted: !!item.deleted_at || item.status === 'deleted',
+          is_official: item.official_group === true, 
+          allow_csv: item.download_csv === true, 
+          admin_codes: item.admin_codes || [],
+          qr_report_url: item.qr_report_url || "",
+          members: item.members || []
+        }));
+
+        setCases(newData);
+
+        if (orgId) {
+            const currentSelected = newData.find(item => item.org_id === orgId);
+            if (currentSelected) {
+                setOrgName(currentSelected.org_name);
+                setLogoPreview(currentSelected.logo_url);
+                setIsOfficial(currentSelected.is_official);
+                setIsCsvEnabled(currentSelected.allow_csv);
+                setQrReportUrl(currentSelected.qr_report_url);
+            }
+        }
+      } else {
+        setCases([]);
+      }
+    } catch (e) {
+      console.error("Fetch error:", e);
+    } finally { 
+      setIsSearching(false); 
+    }
+};
 
  const filteredCases = useMemo(() => orgId ? cases.filter(item => item.org_id === orgId) : cases, [cases, orgId]);
 
@@ -248,6 +268,7 @@ export default function ManageOrgPage() {
    } finally {
      setIsSearching(false);
    }
+   await fetchOrgData(searchId, true);
  };
 
  const handleDelete = async () => {
@@ -388,7 +409,7 @@ export default function ManageOrgPage() {
                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-20"><Search className="text-indigo-600" size={18} /></div>
                  <input type="text" className="input input-bordered w-full h-14 pl-11 pr-4 bg-white text-slate-900 rounded-2xl border-slate-200 focus:border-black shadow-sm outline-none font-bold transition-all" placeholder="ค้นหาชื่อ, ชื่อย่อ หรือ ID หน่วยงาน..." value={searchId} onChange={(e) => setSearchId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchOrgData(searchId)} />
                </div>
-               <button onClick={() => fetchOrgData(searchId)} className="btn h-14 px-10 bg-black text-white font-bold rounded-2xl hover:bg-slate-800 border-none shrink-0 transition-all shadow-lg active:scale-95">
+                <button onClick={() => fetchOrgData(searchId)} className="btn h-12 sm:h-14 px-8 sm:px-10 !bg-black !text-white !font-bold !rounded-2xl hover:!bg-slate-800 border-none shrink-0 transition-all shadow-lg active:scale-95 text-sm sm:text-base">
                  {isSearching ? <Loader2 className="animate-spin" size={18} /> : "ค้นหา"}
                </button>
              </div>
@@ -473,62 +494,62 @@ export default function ManageOrgPage() {
 
                               <div className="flex items-center gap-3 w-full">
                                <div className="relative flex-1 group">
-  {/* Tooltip คลุม Input ทั้งหมด */}
-  <div className={`tooltip tooltip-bottom before:max-w-[300px] w-full ${!orgName ? 'before:hidden' : ''}`} data-tip={orgName}>
-    <div className="relative w-full">
-     
-      <input
-        type="text"
-        value={orgName}
-        onChange={(e) => setOrgName(e.target.value)}
-        className="input input-bordered w-full rounded-2xl font-bold bg-white text-slate-900 border-slate-200 focus:border-black transition-all text-base shadow-sm h-14 px-5 pr-[115px] relative z-10"placeholder="ระบุชื่อหน่วยงาน..."
-      />
-    </div>
-  </div>
+                                {/* Tooltip คลุม Input ทั้งหมด */}
+                                <div className={`tooltip tooltip-bottom before:max-w-[300px] w-full ${!orgName ? 'before:hidden' : ''}`} data-tip={orgName}>
+                                  <div className="relative w-full">
+                                  
+                                    <input
+                                      type="text"
+                                      value={orgName}
+                                      onChange={(e) => setOrgName(e.target.value)}
+                                      className="input input-bordered w-full rounded-2xl font-bold bg-white text-slate-900 border-slate-200 focus:border-black transition-all text-base shadow-sm h-14 px-5 pr-[115px] relative z-10"placeholder="ระบุชื่อหน่วยงาน..."
+                                    />
+                                  </div>
+                                </div>
 
-  {/* ส่วนปุ่ม History และ Copy ด้านขวา */}
-  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 z-20 bg-white/80 backdrop-blur-sm pl-2 rounded-r-2xl">
-    <div className="relative flex items-center">
-      <button
-        type="button"
-        onClick={() => setShowNameHistory(!showNameHistory)}
-        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
-          showNameHistory ? "bg-slate-900 text-white shadow-md" : "bg-transparent text-slate-400 hover:bg-slate-100 hover:text-black"
-        }`}
-      >
-        <History size={20} strokeWidth={2.5} />
-      </button>
+                                {/* ส่วนปุ่ม History และ Copy ด้านขวา */}
+                                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 z-20 bg-white/80 backdrop-blur-sm pl-2 rounded-r-2xl">
+                                  <div className="relative flex items-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => setShowNameHistory(!showNameHistory)}
+                                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
+                                        showNameHistory ? "bg-slate-900 text-white shadow-md" : "bg-transparent text-slate-400 hover:bg-slate-100 hover:text-black"
+                                      }`}
+                                    >
+                                      <History size={20} strokeWidth={2.5} />
+                                    </button>
 
-      {showNameHistory && (
-        <>
-          <div className="fixed inset-0 z-[100]" onClick={() => setShowNameHistory(false)} />
-          <div className="absolute top-[120%] right-0 z-[110] w-[320px] max-w-[calc(100vw-32px)] bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] p-6 animate-in fade-in slide-in-from-top-2 duration-200 text-left border-2 border-black">
-            <div className="flex items-center gap-2.5 mb-5 pb-3 border-b border-slate-100">
-              <div className="w-2.5 h-2.5 bg-black rounded-full shrink-0"></div>
-              <span className="text-xs font-black uppercase tracking-[0.15em] text-black">Name Revision History</span>
-            </div>
-            <div className="space-y-4 ml-1">
-              {[
-                { old: "อบต. เดิม", new: "เทศบาลนครนนทบุรี", user: "ธนกฤต แอดมิน", date: "24 ก.พ. 2026" },
-                { old: "หน่วยงานทดสอบ", new: "อบต. เดิม", user: "Super Admin", date: "10 ม.ค. 2026" }
-              ].map((h, i, arr) => (
-                <div key={i} className="flex gap-3 relative">
-                  {i !== arr.length - 1 && <div className="absolute left-[2.5px] top-3 bottom-[-1.5rem] w-[1.5px] bg-slate-300"></div>}
-                  <div className="flex flex-col items-center mt-1.5 z-10"><div className="w-1.5 h-1.5 bg-black rounded-full"></div></div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-bold text-slate-900 leading-tight mb-1 truncate">
-                      <span className="text-slate-400 mr-1.5 font-medium line-through">{h.old}</span>
-                      <span className="text-black font-black">{h.new}</span>
-                    </p>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase">By {h.user} • {h.date}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+                                    {showNameHistory && (
+                                      <>
+                                        <div className="fixed inset-0 z-[100]" onClick={() => setShowNameHistory(false)} />
+                                        <div className="absolute top-[120%] right-0 z-[110] w-[320px] max-w-[calc(100vw-32px)] bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] p-6 animate-in fade-in slide-in-from-top-2 duration-200 text-left border-2 border-black">
+                                          <div className="flex items-center gap-2.5 mb-5 pb-3 border-b border-slate-100">
+                                            <div className="w-2.5 h-2.5 bg-black rounded-full shrink-0"></div>
+                                            <span className="text-xs font-black uppercase tracking-[0.15em] text-black">Name Revision History</span>
+                                          </div>
+                                          <div className="space-y-4 ml-1">
+                                            {[
+                                              { old: "อบต. เดิม", new: "เทศบาลนครนนทบุรี", user: "ธนกฤต แอดมิน", date: "24 ก.พ. 2026" },
+                                              { old: "หน่วยงานทดสอบ", new: "อบต. เดิม", user: "Super Admin", date: "10 ม.ค. 2026" }
+                                            ].map((h, i, arr) => (
+                                              <div key={i} className="flex gap-3 relative">
+                                                {i !== arr.length - 1 && <div className="absolute left-[2.5px] top-3 bottom-[-1.5rem] w-[1.5px] bg-slate-300"></div>}
+                                                <div className="flex flex-col items-center mt-1.5 z-10"><div className="w-1.5 h-1.5 bg-black rounded-full"></div></div>
+                                                <div className="flex-1 min-w-0">
+                                                  <p className="text-[13px] font-bold text-slate-900 leading-tight mb-1 truncate">
+                                                    <span className="text-slate-400 mr-1.5 font-medium line-through">{h.old}</span>
+                                                    <span className="text-black font-black">{h.new}</span>
+                                                  </p>
+                                                  <p className="text-[10px] font-bold text-slate-500 uppercase">By {h.user} • {h.date}</p>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
                                     <button type="button" onClick={() => copyToClipboard(orgName)} className="w-10 h-10 text-slate-400 hover:bg-slate-100 hover:text-indigo-600 rounded-xl flex items-center justify-center transition-all active:scale-95"><Copy size={20} /></button>
                                   </div>
                                 </div>
@@ -555,54 +576,60 @@ export default function ManageOrgPage() {
                          </div>
                      </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  {/* 1. การส่งออก CSV */}
-  <div className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-sm border-2 border-white flex items-center justify-between hover:border-slate-200 transition-all">
-    <div className="flex items-center gap-3">
-      <div className="w-10 h-10 bg-green-50 text-green-600 rounded-xl flex items-center justify-center border border-green-100 shrink-0">
-        <FileSpreadsheet size={20} />
-      </div>
-      <div className="min-w-0 pr-2">
-        <p className="font-black text-sm sm:text-base text-slate-900 tracking-tight truncate">การส่งออก CSV</p>
-        <p className="text-[10px] sm:text-sm text-slate-500 font-bold tracking-tight truncate">อนุญาตให้ดาวน์โหลดรายงาน</p>
-      </div>
-    </div>
-    
-    {/* Custom Toggle Switch */}
-    <label className="relative inline-flex items-center cursor-pointer">
-      <input 
-        type="checkbox" 
-        className="sr-only peer"
-        checked={isCsvEnabled}
-        onChange={(e) => setUpdateModal({ show: true, type: 'csv', title: 'สิทธิ์ CSV', newValue: e.target.checked, reason: "" })}
-      />
-      <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-6 after:transition-all peer-checked:bg-slate-400"></div>
-    </label>
-  </div>
+                      {/* 1. การส่งออก CSV */}
+                      <div className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-sm border-2 border-white flex items-center justify-between hover:border-slate-200 transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-green-50 text-green-600 rounded-xl flex items-center justify-center border border-green-100 shrink-0">
+                            <FileSpreadsheet size={20} />
+                          </div>
+                          <div className="min-w-0 pr-2">
+                            <p className="font-black text-sm sm:text-base text-slate-900 tracking-tight truncate">การส่งออก CSV</p>
+                            <p className="text-[10px] sm:text-sm text-slate-500 font-bold tracking-tight truncate">อนุญาตให้ดาวน์โหลดรายงาน</p>
+                          </div>
+                        </div>
+                        
+                        {/* Custom Toggle Switch */}
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only peer"
+                        checked={isCsvEnabled}
+                        onChange={(e) => setUpdateModal({ 
+                          show: true, 
+                          type: 'csv', 
+                          title: 'สิทธิ์ CSV', 
+                          newValue: e.target.checked, 
+                          reason: "" 
+                        })}
+                      />
+                      <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-6 after:transition-all peer-checked:bg-[#22c55e]"></div>
+                    </label>
+                      </div>
 
-  {/* 2. Official Account */}
-  <div className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-sm border-2 border-white flex items-center justify-between hover:border-slate-200 transition-all">
-    <div className="flex items-center gap-3">
-      <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-100 shrink-0">
-        <ShieldCheck size={20} />
-      </div>
-      <div className="min-w-0 pr-2">
-        <p className="font-black text-sm sm:text-base text-slate-900 tracking-tight truncate">Official Account</p>
-        <p className="text-[10px] sm:text-sm text-slate-500 font-bold tracking-tight truncate">ยืนยันตัวตนทางการ</p>
-      </div>
-    </div>
+                      {/* 2. Official Account */}
+                      <div className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-sm border-2 border-white flex items-center justify-between hover:border-slate-200 transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-100 shrink-0">
+                            <ShieldCheck size={20} />
+                          </div>
+                          <div className="min-w-0 pr-2">
+                            <p className="font-black text-sm sm:text-base text-slate-900 tracking-tight truncate">Official Account</p>
+                            <p className="text-[10px] sm:text-sm text-slate-500 font-bold tracking-tight truncate">ยืนยันตัวตนทางการ</p>
+                          </div>
+                        </div>
 
-    {/* Custom Toggle Switch (Blue) */}
-    <label className="relative inline-flex items-center cursor-pointer">
-      <input 
-        type="checkbox" 
-        className="sr-only peer"
-        checked={isOfficial}
-        onChange={(e) => setUpdateModal({ show: true, type: 'official', title: 'สถานะ Official', newValue: e.target.checked, reason: "" })}
-      />
-      <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-6 after:transition-all peer-checked:bg-[#00AAFF] peer-checked:border-[#00AAFF] border-2 border-transparent"></div>
-    </label>
-  </div>
-</div>
+                        {/* Custom Toggle Switch (Blue) */}
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            className="sr-only peer"
+                            checked={isOfficial}
+                            onChange={(e) => setUpdateModal({ show: true, type: 'official', title: 'สถานะ Official', newValue: e.target.checked, reason: "" })}
+                          />
+                          <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-6 after:transition-all peer-checked:bg-[#00AAFF] peer-checked:border-[#00AAFF] border-2 border-transparent"></div>
+                        </label>
+                      </div>
+                    </div>
                      <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border-2 border-white">
                          <div className="flex row items-center justify-between mb-8 px-1 gap-4">
                              <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
@@ -716,14 +743,20 @@ export default function ManageOrgPage() {
                         </div>
                      </div>
 
-                     <div className="flex flex-col sm:flex-row gap-4 pt-4 pb-10">
+                     <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2 sm:pt-4 pb-8 sm:pb-10">
                      {cases.find(c => c.org_id === orgId)?.is_deleted ? (
-                         <button onClick={() => setUpdateModal({ show: true, type: 'restore', title: 'กู้คืนหน่วยงาน', newValue: true, reason: "" })} className="flex-1 btn h-16 rounded-[2rem] bg-[#00945e] hover:bg-[#007a4d] text-white border-none font-bold shadow-xl transition-all active:scale-95 uppercase tracking-widest text-sm">
-                           <RefreshCcw size={20} className={isSearching ? "animate-spin" : ""} /> กู้คืนหน่วยงาน
+                         <button 
+                         onClick={() => setUpdateModal({ show: true, type: 'restore', title: 'กู้คืนหน่วยงาน', newValue: true, reason: "" })} 
+                         className="flex-1 btn h-14 sm:h-16 !rounded-2xl sm:!rounded-[2rem] !bg-[#00945e] hover:!bg-[#007a4d] !text-white !border-none font-bold shadow-xl transition-all active:scale-95 uppercase tracking-widest text-xs sm:text-sm"
+                         >
+                         <RefreshCcw size={18} className={`sm:w-5 sm:h-5 ${isSearching ? "animate-spin" : ""}`} /> กู้คืนหน่วยงาน
                          </button>
                      ) : (
-                         <button onClick={() => setShowDeleteModal(true)} className="flex-1 btn h-16 rounded-[2rem] bg-rose-600 hover:bg-rose-700 text-white border-none font-bold shadow-xl transition-all active:scale-95 uppercase tracking-widest text-sm">
-                           <Trash2 size={20} /> ลบหน่วยงาน
+                         <button 
+                         onClick={() => setShowDeleteModal(true)} 
+                         className="flex-1 btn h-14 sm:h-16 flex items-center justify-center gap-2 !rounded-2xl sm:!rounded-[2rem] !bg-rose-600 hover:!bg-rose-700 !text-white !border-none font-bold shadow-xl transition-all active:scale-95 uppercase tracking-widest text-xs sm:text-sm"
+                         >
+                         <Trash2 size={18} className="sm:w-5 sm:h-5" /> ลบหน่วยงาน
                          </button>
                      )}
                      </div>
