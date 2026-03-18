@@ -470,7 +470,7 @@ const handleSetAsCover = async (imgId) => {
                     <input 
                         type="file" 
                         className="hidden" 
-                        accept="image/*, video/*, audio/*"
+                        accept="image/*, video/*, audio/*, text/*, application/*, .jpg, .jpeg, .png, .gif, .mp4, .mov, .webm, .mp3, .wav, .m4a"
                         onChange={(e) => {
                             if(e.target.files[0]) setNewImageFile(e.target.files[0]);
                         }} 
