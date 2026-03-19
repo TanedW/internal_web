@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import {
+  Home,
   Mail,
   Briefcase,
   LayoutGrid,
@@ -14,11 +15,8 @@ import {
   Menu,
   MessageSquareCode,
   Search,
-  FolderSearch,
-  X,
-  // เพิ่มไอคอนสำหรับการย่อ-ขยาย
-  ChevronLeft,
-  ChevronRight,
+  FolderSearch
+  
 } from "lucide-react";
 
 // --- Firebase Configuration ---
@@ -346,6 +344,9 @@ const refreshAdminProfileInBackground = async () => {
               <div className="flex flex-col h-full animate-in fade-in duration-500">
                 <SidebarHeader />
                 <nav className="flex flex-col gap-1.5 flex-1 mt-6 overflow-y-auto no-scrollbar">
+                  <Link href="/home" className={getMenuClass("/home")} onClick={() => setIsMobileMenuOpen(false)} >
+                    <Home size={20} /> <span className="text-[15px] font-bold">หน้าแรก</span>
+                  </Link>
                   <Link href="/manage" className={getMenuClass("/manage")} onClick={() => setIsMobileMenuOpen(false)} >
                     <Mail size={20} /> <span className="text-[15px] font-bold">จัดการ Email</span>
                   </Link>
@@ -431,6 +432,11 @@ const refreshAdminProfileInBackground = async () => {
             <SidebarHeader />
 
             <nav className="flex flex-col gap-1.5 flex-1 mt-4 overflow-y-auto no-scrollbar">
+              <Link href="/home" className={getMenuClass("/home")} >
+                <Home size={20} className="shrink-0" />
+                {isDesktopSidebarOpen && <span className="font-bold text-[15px] whitespace-nowrap">หน้าแรก</span>}
+              </Link>
+            
               <Link href="/manage" className={getMenuClass("/manage")} >
                 <Mail size={20} className="shrink-0" />
                 {isDesktopSidebarOpen && <span className="font-bold text-[15px] whitespace-nowrap">จัดการ Email</span>}

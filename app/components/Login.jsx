@@ -81,7 +81,7 @@ if (response.ok) {
   setCookie("user_email", userData.email, 1);
   setCookie("admin_id", responseData.admin_id, 1); // เพิ่มการเก็บ admin_id ใน Cookie
 
-  router.push("/manage"); 
+  router.push("/home");
 } else {
           // อ่านข้อความ Error จาก Backend
           const errorData = await response.json(); 
@@ -98,8 +98,7 @@ if (response.ok) {
         console.error("API Call Error:", apiError);
         setErrorMsg("An error occurred while calling the API.");
       }
-      
-      // 🗑️ ลบส่วนที่เคยอยู่ตรงนี้ออก (if response.ok ...) เพราะ response อยู่นอก scope
+    
 
     } catch (error) {
       console.error("Login Error:", error);
