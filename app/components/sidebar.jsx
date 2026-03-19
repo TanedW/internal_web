@@ -347,9 +347,10 @@ const refreshAdminProfileInBackground = async () => {
                   <Link href="/home" className={getMenuClass("/home")} onClick={() => setIsMobileMenuOpen(false)} >
                     <Home size={20} /> <span className="text-[15px] font-bold">หน้าแรก</span>
                   </Link>
-                  <Link href="/manage" className={getMenuClass("/manage")} onClick={() => setIsMobileMenuOpen(false)} >
-                    <Mail size={20} /> <span className="text-[15px] font-bold">จัดการ Email</span>
-                  </Link>
+                    <Link href="/manage" className={getMenuClass("/manage")} onClick={() => setIsMobileMenuOpen(false)} >
+                      <Mail size={20} /> <span className="text-[15px] font-bold">จัดการ Email</span>
+                    </Link>
+                  
                   {hasAccess(["admin", "editor", "editor_manage_case"]) && (
                     <Link href="/manage-case" className={getMenuClass("/manage-case")} onClick={() => setIsMobileMenuOpen(false)} >
                       <Briefcase size={20} /> <span className="text-[15px] font-bold">จัดการ Case</span>
@@ -441,6 +442,8 @@ const refreshAdminProfileInBackground = async () => {
                 <Mail size={20} className="shrink-0" />
                 {isDesktopSidebarOpen && <span className="font-bold text-[15px] whitespace-nowrap">จัดการ Email</span>}
               </Link>
+            
+
 
               {hasAccess(["admin", "editor", "editor_manage_case"]) && (
                 <Link href="/manage-case" className={getMenuClass("/manage-case")} >

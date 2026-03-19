@@ -44,8 +44,8 @@ export default function Manage() {
 
   // --- UI Logic: Role Configuration ---
   const ROLE_OPTIONS = [
-    { value: "admin", label: "Super Admin", desc: "ดูแลระบบทั้งหมด" },
-    { value: "editor", label: "System Editor", desc: "แก้ไขข้อมูลทั่วไป" },
+    // { value: "admin", label: "Super Admin", desc: "ดูแลระบบทั้งหมด" },
+    // { value: "editor", label: "System Editor", desc: "แก้ไขข้อมูลทั่วไป" },
     { value: "editor_manage_user", label: "Admin Email", desc: "จัดการสิทธิ์สมาชิก" },
     { value: "editor_manage_org", label: "Admin Manage Org", desc: "จัดการข้อมูลองค์กร" },
     { value: "editor_manage_case", label: "Admin Case", desc: "จัดการเคส/ปัญหา" },

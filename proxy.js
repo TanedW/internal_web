@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 // 1. กำหนดสิทธิ์การเข้าถึง (Single Source of Truth)
 const ROLE_PERMISSIONS = {
+  '/manage': ["admin", "editor", "editor__manage_user"],
   '/manage-case': ["admin", "editor", "editor_manage_case"],
   '/manage-org': ["admin", "editor", "editor_manage_org_info", "editor_manage_org"],
   '/manage-flex-message': ["admin", "editor", "editor_manage_flex"],
@@ -81,6 +82,7 @@ export async function proxy(request) {
 // 5. กำหนดหน้าที่ Middleware จะเข้าไปทำงาน
 export const config = {
   matcher: [
+    '/home/:path',
     '/manage-case/:path',
     '/manage-org/:path',
     '/manage-flex-message/:path',
