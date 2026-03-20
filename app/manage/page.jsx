@@ -54,6 +54,7 @@ export default function Manage() {
   ];
 
   const ROLE_LABEL_MAP = {
+    "admin":"Super Admin",
     "editor_manage_user": "Admin Email",
     "editor_manage_org": "Admin Manage Org",
     "editor_manage_case": "Admin Case",
