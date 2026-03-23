@@ -29,6 +29,48 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "",
 };
 
+  const ROLE_LABEL_MAP = {
+    "admin":"Super Admin",
+    "editor_manage_user": "Admin Email",
+    "editor_manage_org": "Admin Manage Org",
+    "editor_manage_case": "Admin Case",
+    "editor_manage_menu": "Admin Menu",
+    "editor_manage_flex": "Admin Flex Message",
+    "editor_search_duplicate_org": "Admin Search Org",
+    "editor_file_search": "Admin File Search",
+  };
+
+  const getRoleLabel = (roleValue) => ROLE_LABEL_MAP[roleValue] || roleValue.replace(/_/g, ' ');
+
+  const getRoleStyles = (roleValue) => {
+    const role = roleValue.toLowerCase();
+    if (role === 'admin' || role.includes('user')) {
+      return {
+        bg: "bg-purple-50",
+        text: "text-purple-600",
+        border: "border-purple-100",
+        ring: "ring-purple-500",
+        solid: "bg-purple-600"
+      };
+    } else if (role.includes('org') || role.includes('case') || role === 'editor') {
+      return {
+        bg: "bg-emerald-50",
+        text: "text-emerald-600",
+        border: "border-emerald-100",
+        ring: "ring-emerald-500",
+        solid: "bg-emerald-600"
+      };
+    } else {
+      return {
+        bg: "bg-sky-50",
+        text: "text-sky-600",
+        border: "border-sky-100",
+        ring: "ring-sky-500",
+        solid: "bg-sky-600"
+      };
+    }
+  };
+
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 
@@ -197,14 +239,17 @@ const refreshAdminProfileInBackground = async () => {
         <>
           {isSidebarRolesExpanded && isDesktopSidebarOpen ? (
             <div className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-1 duration-200 w-full items-center">
-              {currentRoles.map((role, idx) => (
-                <span 
-                  key={idx} 
-                  className="text-[9px] font-bold !text-[#4F46E5] uppercase tracking-wider !bg-[#E0E7FF] px-2.5 py-1 rounded-full border border-indigo-100 truncate max-w-[160px]"
-                >
-                  {role.replace(/_/g, ' ')}
-                </span>
-              ))}
+              {currentRoles.map((role, idx) => {
+                const style = getRoleStyles(role);
+                return (
+                  <span 
+                    key={idx} 
+                    className={`text-[9px] font-black uppercase tracking-wider ${style.bg} ${style.text} ${style.border} px-2.5 py-1 rounded-full border truncate max-w-[160px] shadow-sm`}
+                  >
+                    {getRoleLabel(role)}
+                  </span>
+                );
+              })}
               <button 
                 onClick={() => setIsSidebarRolesExpanded(false)} 
                 className="btn btn-xs h-6 min-h-0 !bg-[#F1F5F9] !border-none !text-[#475569] hover:!bg-slate-200 rounded-full px-3 text-[8px] font-bold uppercase mt-1 shadow-none"
@@ -215,11 +260,16 @@ const refreshAdminProfileInBackground = async () => {
           ) : (
             isDesktopSidebarOpen && (
               <div className="flex items-center justify-center gap-1.5 w-full">
-                <span 
-                  className="text-[9px] font-bold !text-[#4F46E5] uppercase tracking-wider !bg-[#E0E7FF] px-2.5 py-1 rounded-full border border-indigo-100 shadow-sm truncate max-w-[120px]"
-                >
-                  {currentRoles[0].replace(/_/g, ' ')}
-                </span>
+                {(() => {
+                  const style = getRoleStyles(currentRoles[0]);
+                  return (
+                    <span 
+                      className={`text-[9px] font-black uppercase tracking-wider ${style.bg} ${style.text} ${style.border} px-2.5 py-1 rounded-full border shadow-sm truncate max-w-[120px]`}
+                    >
+                      {getRoleLabel(currentRoles[0])}
+                    </span>
+                  );
+                })()}
                 {currentRoles.length > 1 && (
                   <button 
                     onClick={() => setIsSidebarRolesExpanded(true)} 
