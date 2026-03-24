@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation"; 
+import { useRouter } from "next/navigation"; 
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebaseConfig"; 
 import { 
@@ -11,7 +11,6 @@ import {
   Trash2, 
   X, 
   Mail,
-  Menu,
   Check 
 } from "lucide-react";
 
@@ -30,15 +29,14 @@ export default function Manage() {
   const [currentRoles, setCurrentRoles] = useState([]); 
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [roleModalData, setRoleModalData] = useState(null);
-  const [selectedEmailForMobile, setSelectedEmailForMobile] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newRoles, setNewRoles] = useState([]); 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sidebarKey, setSidebarKey] = useState(0);
 
-  // State สำหรับโหมดแก้ไข
   const [editingAdmin, setEditingAdmin] = useState(null);
   const [editEmail, setEditEmail] = useState("");
+  const [initialRoles, setInitialRoles] = useState([]); 
 
   const API_URL = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
 
@@ -54,7 +52,7 @@ export default function Manage() {
   ];
 
   const ROLE_LABEL_MAP = {
-    "admin":"Super Admin",
+    "admin": "Super Admin",
     "editor_manage_user": "Admin Email",
     "editor_manage_org": "Admin Manage Org",
     "editor_manage_case": "Admin Case",
@@ -66,30 +64,15 @@ export default function Manage() {
 
   const getRoleStyles = (roleValue) => {
     const role = roleValue.toLowerCase();
-    if (role === 'admin' || role.includes('user')) {
-      return {
-        bg: "bg-purple-50",
-        text: "text-purple-600",
-        border: "border-purple-100",
-        ring: "ring-purple-500",
-        solid: "bg-purple-600"
-      };
+    if (role === 'admin') {
+        return { bg: "bg-orange-50", text: "text-orange-600", border: "border-orange-200", ring: "ring-orange-500", solid: "bg-orange-600" };
+    }
+    if (role.includes('user')) {
+      return { bg: "bg-purple-50", text: "text-purple-600", border: "border-purple-100", ring: "ring-purple-500", solid: "bg-purple-600" };
     } else if (role.includes('org') || role.includes('case') || role === 'editor') {
-      return {
-        bg: "bg-emerald-50",
-        text: "text-emerald-600",
-        border: "border-emerald-100",
-        ring: "ring-emerald-500",
-        solid: "bg-emerald-600"
-      };
+      return { bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-100", ring: "ring-emerald-500", solid: "bg-emerald-600" };
     } else {
-      return {
-        bg: "bg-sky-50",
-        text: "text-sky-600",
-        border: "border-sky-100",
-        ring: "ring-sky-500",
-        solid: "bg-sky-600"
-      };
+      return { bg: "bg-sky-50", text: "text-sky-600", border: "border-sky-100", ring: "ring-sky-500", solid: "bg-sky-600" };
     }
   };
 
@@ -116,65 +99,43 @@ export default function Manage() {
       const jsonResponse = await res.json();
       const data = Array.isArray(jsonResponse) ? jsonResponse : (jsonResponse.data || []);
       const meta = jsonResponse.meta || {};
-
       setAllowedEmails(data);
       setFilteredEmails(data);
       setCanDelete(!!meta.can_delete); 
-
       if (currentAdminId && data.length > 0) {
         const myProfile = data.find(u => String(u.admin_id) === String(currentAdminId));
         if (myProfile) {
-            let roles = [];
-            if (Array.isArray(myProfile.roles)) {
-                roles = myProfile.roles;
-            } else if (myProfile.role) {
-                roles = [myProfile.role];
-            }
+            let roles = Array.isArray(myProfile.roles) ? myProfile.roles : (myProfile.role ? [myProfile.role] : []);
             setCurrentRoles(roles);
         }
       }
-    } catch (error) {
-      console.error("Error loading admins:", error);
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) { console.error("Error loading admins:", error); } 
+    finally { setLoading(false); }
   };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-        fetchAdmins(); 
-      } else {
-        router.push("/");
-      }
+      if (currentUser) { setUser(currentUser); fetchAdmins(); } 
+      else { router.push("/"); }
     });
     return () => unsubscribe();
   }, [router, API_URL]);
 
   useEffect(() => {
-    const results = allowedEmails.filter(item =>
-      item.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const results = allowedEmails.filter(item => item.email.toLowerCase().includes(searchTerm.toLowerCase()));
     setFilteredEmails(results);
   }, [searchTerm, allowedEmails]);
 
   const toggleRole = (roleValue) => {
-    setNewRoles(prev => 
-      prev.includes(roleValue) 
-        ? prev.filter(r => r !== roleValue) 
-        : [...prev, roleValue]
-    );
+    setNewRoles(prev => prev.includes(roleValue) ? prev.filter(r => r !== roleValue) : [...prev, roleValue]);
   };
 
   const openEditModal = (admin) => {
-    setNewRoles([]); 
     setEditingAdmin(admin.admin_id);
     setEditEmail(admin.email);
-    const dbRoles = Array.isArray(admin.roles) 
-      ? admin.roles 
-      : (admin.role ? [admin.role] : []);
-    setNewRoles(dbRoles); 
+    const dbRoles = Array.isArray(admin.roles) ? admin.roles : (admin.role ? [admin.role] : []);
+    setNewRoles([...dbRoles]); 
+    setInitialRoles([...dbRoles]); // เก็บค่าดั้งเดิมไว้เปรียบเทียบ
     document.getElementById('add_admin_modal').showModal();
   };
 
@@ -182,7 +143,6 @@ export default function Manage() {
     e.preventDefault();
     if (!editingAdmin && (!newEmail.trim() || !newEmail.includes("@"))) return;
     if (newRoles.length === 0) return;
-
     const currentAdminId = getCurrentAdminId();
     setIsSubmitting(true);
     try {
@@ -190,18 +150,14 @@ export default function Manage() {
         const bodyData = editingAdmin 
             ? { admin_id: editingAdmin, roles: newRoles, current_admin_id: currentAdminId }
             : { email: newEmail, roles: newRoles, current_admin_id: currentAdminId };
-
         const res = await fetch(API_URL, {
             method: method,
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(bodyData),
         });
         if (res.ok) {
-            setNewEmail("");
-            setNewRoles([]); 
-            setEditingAdmin(null);
-            fetchAdmins();
-            setSidebarKey(prev => prev + 1);
+            setNewEmail(""); setNewRoles([]); setEditingAdmin(null);
+            fetchAdmins(); setSidebarKey(prev => prev + 1);
             document.getElementById('add_admin_modal').close();
         } else {
             const errorData = await res.json();
@@ -220,22 +176,19 @@ export default function Manage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ current_admin_id: currentAdminId }),
         });
-        if (res.ok) {
-            fetchAdmins(); 
-        } else {
-            const err = await res.json();
-            alert(err.message || "เกิดข้อผิดพลาด");
-        }
-    } catch (error) { 
-        console.error(error); 
-        alert("ไม่สามารถติดต่อ Server ได้");
-    }
+        if (res.ok) { fetchAdmins(); } 
+        else { const err = await res.json(); alert(err.message || "เกิดข้อผิดพลาด"); }
+    } catch (error) { console.error(error); alert("ไม่สามารถติดต่อ Server ได้"); }
   };
 
+  // --- Logic การตรวจสอบว่ามีการเปลี่ยนแปลงหรือไม่ ---
+  const isRolesChanged = JSON.stringify([...newRoles].sort()) !== JSON.stringify([...initialRoles].sort());
+  
   const isFormValid = editingAdmin 
-    ? newRoles.length > 0 
-    : (newEmail.trim().includes("@") && newRoles.length > 0);
+    ? (newRoles.length > 0 && isRolesChanged) 
+    : (newEmail.trim().includes("@") && newRoles.length > 0); 
 
+  const canModifyMembers = currentRoles.includes("admin") || currentRoles.includes("editor_manage_user");
   return (
     <div className="min-h-screen bg-[#F4F6F8] font-sans">
       
@@ -249,13 +202,12 @@ export default function Manage() {
           isDesktopSidebarOpen ? "lg:pl-72" : "lg:pl-24"
       }`}>
         
-        {/* Header Section - ปรับ Font ให้เล็กลงพอดีๆ */}
+        {/* Header Section */}
         <div className="hidden lg:flex justify-between items-center mb-6">
             <div>
                 <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">รายชื่อสมาชิกในทีม</h1>
                 <p className="text-slate-400 mt-0.5 font-medium text-sm">จัดการสมาชิกและกำหนดสิทธิ์การใช้งาน</p>
             </div>
-             {/* Search Input - ปรับขนาด Compact */}
              <div className="relative w-64 group">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                     <Search className="h-4 w-4 text-slate-500" />
@@ -269,6 +221,7 @@ export default function Manage() {
                   />
             </div>
         </div>
+
         {/* Mobile Header Section */}
         <div className="lg:hidden mb-5">
             <h1 className="text-xl font-bold text-slate-900">รายชื่อผู้ติดต่อ</h1>
@@ -286,7 +239,7 @@ export default function Manage() {
                     />
                 </div>
 
-                {/* Add Button - ทำให้เล็กลงและ Compact กว่าช่องค้นหา */}
+                {/* ปุ่ม "เพิ่มใหม่" ของ Mobile - ทำได้ทุก Role ตามที่ระบุ */}
                 <button 
                     onClick={() => {
                         setEditingAdmin(null);
@@ -302,13 +255,13 @@ export default function Manage() {
             </div>
         </div>
 
-        {/* GRID VIEW - ปรับ grid-cols ให้ Card กว้างพอดี และ items-stretch */}
+        {/* GRID VIEW */}
         <div className={`grid grid-cols-1 gap-5 items-stretch ${
             isDesktopSidebarOpen 
                 ? "md:grid-cols-2 xl:grid-cols-4" 
                 : "md:grid-cols-3 xl:grid-cols-5" 
         }`}>
-            {/* Add Member Card - ปรับขนาด Compact */}
+            {/* Add Member Card - ทำได้ทุก Role ตามที่ระบุ */}
             <div 
               className={`hidden lg:flex group relative flex-col items-center justify-center border-2 border-dashed border-indigo-200 !bg-white hover:border-indigo-500 hover:bg-indigo-50/30 transition-all duration-300 cursor-pointer rounded-[2rem] shadow-sm hover:shadow-md hover:-translate-y-1 h-full min-h-[180px] p-4`}
               onClick={() => {
@@ -330,7 +283,6 @@ export default function Manage() {
             {loading ? (
                 <div className="flex items-center justify-center h-full min-h-[180px]">
                   <div className="flex flex-col items-center gap-2">
-                  
                     <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
                     <span className="text-sm font-medium text-slate-400">กำลังโหลด...</span>
                   </div>
@@ -344,16 +296,21 @@ export default function Manage() {
                       <div key={item.admin_id} 
                           className={`relative !bg-white rounded-[2rem] border border-slate-50 shadow-[0_2px_12px_-3px_rgba(0,0,0,0.06)] hover:shadow-lg hover:-translate-y-1 transition-all flex flex-col items-center text-center overflow-hidden h-full min-h-[180px] p-5`}
                       >
-                          {canDelete && (
+                          {/* ปุ่มแก้ไข/ลบ: แสดงเฉพาะ Super Admin และ Admin Email เท่านั้น */}
+                          {canModifyMembers && (
                               <div className="absolute top-3 right-4 flex gap-0.5 z-10">
                                   <button onClick={() => openEditModal(item)} className="p-1.5 hover:bg-indigo-50 rounded-full transition-colors text-indigo-500" title="แก้ไข">
                                     <Pencil size={15} />
                                   </button>
-                                 <button onClick={() => handleDeleteEmail(item.admin_id)} className="p-1.5 hover:bg-red-50 rounded-full transition-colors text-red-400" title="ลบ">
-                                    <Trash2 size={16} />
-                                  </button>
+                                  {/* ป้องกันการลบตัวเอง */}
+                                  {String(item.admin_id) !== String(getCurrentAdminId()) && (
+                                    <button onClick={() => handleDeleteEmail(item.admin_id)} className="p-1.5 hover:bg-red-50 rounded-full transition-colors text-red-400" title="ลบ">
+                                      <Trash2 size={16} />
+                                    </button>
+                                  )}
                               </div>
                           )}
+
                           <div className={`rounded-full bg-slate-50 mb-3 overflow-hidden ring-2 ring-slate-50 mx-auto flex-shrink-0 w-12 h-12`}>
                               <img 
                                   src={item.profile_url || getAvatarUrl(item.email)} 
@@ -375,8 +332,8 @@ export default function Manage() {
                             {userRoles.length > 0 && (
                               <span className={`
                                 font-black uppercase tracking-wider rounded-xl border-2 truncate text-[10px] px-3 py-1.5 flex-1 shadow-sm
-                                ${mainRoleStyle.bg} ${mainRoleStyle.text} ${mainRoleStyle.border.replace('border-', 'border-opacity-50 border-')} 
-                                border-current /* ใช้สีเดียวกับ Text เพื่อให้ขอบชัดเจน */
+                                ${mainRoleStyle.bg} ${mainRoleStyle.text} ${mainRoleStyle.border} 
+                                border-current
                               `}>
                                 {getRoleLabel(userRoles[0])}
                               </span>
@@ -409,6 +366,7 @@ export default function Manage() {
         </div>
       </div>
 
+      {/* Modal: เพิ่ม/แก้ไขสมาชิก */}
       <dialog id="add_admin_modal" className="modal z-[999]">
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="modal-box !bg-[#F4F6F8] p-6 rounded-[2rem] shadow-2xl relative border-none overflow-y-auto max-h-[90vh] w-full max-w-lg animate-in zoom-in duration-300">
@@ -434,9 +392,8 @@ export default function Manage() {
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                   {!editingAdmin ? (
                    <div className="form-control px-1">
-                      <label className="label py-1 !text-slate-800 font-bold text-sm">ที่อยู่อีเมล</label><br></br>
-
-                      <label className="input input-bordered h-12 flex items-center gap-3 !bg-white rounded-xl border-none shadow-sm focus-within:ring-2 ring-indigo-100 transition-all px-5">
+                      <label className="label py-1 !text-slate-800 font-bold text-sm">ที่อยู่อีเมล</label>
+                      <label className="input input-bordered h-12 flex items-center gap-3 !bg-white rounded-xl border-none shadow-sm focus-within:ring-2 ring-indigo-100 transition-all px-5 mt-1">
                           <Mail size={16} className="!text-slate-400 shrink-0" />
                           <input 
                             type="email" 
@@ -483,11 +440,12 @@ export default function Manage() {
 
                   <div className="px-1 pt-2">
                     <button type="submit" 
-                        className={`btn w-full h-12 rounded-xl text-white font-bold border-none transition-all shadow-lg active:scale-95 text-sm flex items-center justify-center ${isFormValid ? (editingAdmin ? "!bg-indigo-600 hover:!bg-indigo-700" : "!bg-emerald-600 hover:!bg-emerald-700") : "!bg-slate-300 !text-slate-500 cursor-not-allowed"}`} 
+                        className={`btn w-full h-12 rounded-xl text-white font-bold border-none transition-all shadow-lg active:scale-95 text-sm flex items-center justify-center ${isFormValid ? "!bg-emerald-600 hover:!bg-emerald-700" : "!bg-slate-300 !text-slate-500 cursor-not-allowed"}`} 
                         disabled={isSubmitting || !isFormValid}
                     >
                         {isSubmitting ? <span className="loading loading-spinner loading-xs"></span> : (editingAdmin ? "บันทึกข้อมูล" : "ยืนยันการเพิ่ม")}
                     </button>
+                    
                   </div>
               </form>
           </div>
@@ -497,6 +455,7 @@ export default function Manage() {
         </div>
       </dialog>
 
+      {/* Modal: แสดง Role ทั้งหมด */}
       <dialog id="role_modal" className="modal z-[9999]">
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="modal-box !bg-white p-8 rounded-[2rem] text-center shadow-2xl border-none relative w-full max-w-sm animate-in zoom-in duration-300">

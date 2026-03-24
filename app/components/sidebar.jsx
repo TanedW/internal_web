@@ -44,7 +44,16 @@ const firebaseConfig = {
 
   const getRoleStyles = (roleValue) => {
     const role = roleValue.toLowerCase();
-    if (role === 'admin' || role.includes('user')) {
+     if (role === 'admin') {
+        return {
+          bg: "bg-orange-50",
+          text: "text-orange-600",
+          border: "border-orange-200",
+          ring: "ring-orange-500",
+          solid: "bg-orange-600"
+        };
+    }
+    if (role.includes('user')) {
       return {
         bg: "bg-purple-50",
         text: "text-purple-600",
