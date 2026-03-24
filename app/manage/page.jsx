@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation"; 
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebaseConfig"; 
@@ -78,14 +78,14 @@ export default function Manage() {
 
   const getRoleLabel = (roleValue) => ROLE_LABEL_MAP[roleValue] || roleValue.replace(/_/g, ' ');
 
-  const getCurrentAdminId = () => {
+  const getCurrentAdminId = useCallback(() => {
     if (typeof window !== "undefined") {
       const storedId = localStorage.getItem("current_admin_id");
       if (!storedId) return null;
       return storedId.replace(/^"|"$/g, ''); 
     }
     return null;
-  };
+  }, []);
 
   const getAvatarUrl = (seed) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
 
@@ -135,7 +135,7 @@ export default function Manage() {
     setEditEmail(admin.email);
     const dbRoles = Array.isArray(admin.roles) ? admin.roles : (admin.role ? [admin.role] : []);
     setNewRoles([...dbRoles]); 
-    setInitialRoles([...dbRoles]); // เก็บค่าดั้งเดิมไว้เปรียบเทียบ
+    setInitialRoles([...dbRoles]);
     document.getElementById('add_admin_modal').showModal();
   };
 
@@ -168,7 +168,13 @@ export default function Manage() {
   };
 
   const handleDeleteEmail = async (targetId) => {
-    if(!confirm("ยืนยันการระงับสิทธิ์ผู้ใช้งานนี้?")) return;
+    const isSelfDelete = String(targetId) === String(getCurrentAdminId());
+    const confirmMsg = isSelfDelete 
+      ? "⚠️ คุณกำลังจะระงับสิทธิ์ตัวเอง ซึ่งจะทำให้คุณหลุดออกจากระบบทันที ยืนยันหรือไม่?" 
+      : "ยืนยันการระงับสิทธิ์ผู้ใช้งานนี้?";
+
+    if(!confirm(confirmMsg)) return;
+
     const currentAdminId = getCurrentAdminId();
     try {
         const res = await fetch(`${API_URL}?id=${targetId}`, {
@@ -176,19 +182,34 @@ export default function Manage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ current_admin_id: currentAdminId }),
         });
-        if (res.ok) { fetchAdmins(); } 
-        else { const err = await res.json(); alert(err.message || "เกิดข้อผิดพลาด"); }
-    } catch (error) { console.error(error); alert("ไม่สามารถติดต่อ Server ได้"); }
+        
+        if (res.ok) { 
+          if (isSelfDelete) {
+
+            sessionStorage.clear();
+            localStorage.removeItem("current_admin_id");
+            window.location.href = "/";
+          } else {
+            fetchAdmins(); 
+          }
+        } 
+        else { 
+          const err = await res.json(); 
+          alert(err.message || "เกิดข้อผิดพลาด"); 
+        }
+    } catch (error) { 
+      console.error(error); 
+      alert("ไม่สามารถติดต่อ Server ได้"); 
+    }
   };
 
-  // --- Logic การตรวจสอบว่ามีการเปลี่ยนแปลงหรือไม่ ---
   const isRolesChanged = JSON.stringify([...newRoles].sort()) !== JSON.stringify([...initialRoles].sort());
-  
   const isFormValid = editingAdmin 
     ? (newRoles.length > 0 && isRolesChanged) 
     : (newEmail.trim().includes("@") && newRoles.length > 0); 
 
   const canModifyMembers = currentRoles.includes("admin") || currentRoles.includes("editor_manage_user");
+
   return (
     <div className="min-h-screen bg-[#F4F6F8] font-sans">
       
@@ -239,7 +260,6 @@ export default function Manage() {
                     />
                 </div>
 
-                {/* ปุ่ม "เพิ่มใหม่" ของ Mobile - ทำได้ทุก Role ตามที่ระบุ */}
                 <button 
                     onClick={() => {
                         setEditingAdmin(null);
@@ -261,7 +281,7 @@ export default function Manage() {
                 ? "md:grid-cols-2 xl:grid-cols-4" 
                 : "md:grid-cols-3 xl:grid-cols-5" 
         }`}>
-            {/* Add Member Card - ทำได้ทุก Role ตามที่ระบุ */}
+            {/* Add Member Card */}
             <div 
               className={`hidden lg:flex group relative flex-col items-center justify-center border-2 border-dashed border-indigo-200 !bg-white hover:border-indigo-500 hover:bg-indigo-50/30 transition-all duration-300 cursor-pointer rounded-[2rem] shadow-sm hover:shadow-md hover:-translate-y-1 h-full min-h-[180px] p-4`}
               onClick={() => {
@@ -296,18 +316,15 @@ export default function Manage() {
                       <div key={item.admin_id} 
                           className={`relative !bg-white rounded-[2rem] border border-slate-50 shadow-[0_2px_12px_-3px_rgba(0,0,0,0.06)] hover:shadow-lg hover:-translate-y-1 transition-all flex flex-col items-center text-center overflow-hidden h-full min-h-[180px] p-5`}
                       >
-                          {/* ปุ่มแก้ไข/ลบ: แสดงเฉพาะ Super Admin และ Admin Email เท่านั้น */}
+                          {/* ส่วนจัดการ: สามารถแก้ไข และลบได้ทุกคนรวมถึงตัวเอง */}
                           {canModifyMembers && (
                               <div className="absolute top-3 right-4 flex gap-0.5 z-10">
                                   <button onClick={() => openEditModal(item)} className="p-1.5 hover:bg-indigo-50 rounded-full transition-colors text-indigo-500" title="แก้ไข">
                                     <Pencil size={15} />
                                   </button>
-                                  {/* ป้องกันการลบตัวเอง */}
-                                  {String(item.admin_id) !== String(getCurrentAdminId()) && (
-                                    <button onClick={() => handleDeleteEmail(item.admin_id)} className="p-1.5 hover:bg-red-50 rounded-full transition-colors text-red-400" title="ลบ">
-                                      <Trash2 size={16} />
-                                    </button>
-                                  )}
+                                  <button onClick={() => handleDeleteEmail(item.admin_id)} className="p-1.5 hover:bg-red-50 rounded-full transition-colors text-red-400" title="ลบ">
+                                    <Trash2 size={16} />
+                                  </button>
                               </div>
                           )}
 
@@ -346,14 +363,7 @@ export default function Manage() {
                                   setRoleModalData(userRoles);
                                   document.getElementById('role_modal').showModal();
                                 }}
-                                className="
-                                  flex items-center justify-center
-                                  min-h-0 h-7 px-2
-                                  bg-white border-2 border-slate-200 text-slate-500 
-                                  hover:border-indigo-500 hover:text-indigo-600 
-                                  rounded-xl font-black text-[10px] shadow-sm
-                                  transition-all duration-200 active:scale-90 flex-shrink-0
-                                "
+                                className="flex items-center justify-center min-h-0 h-7 px-2 bg-white border-2 border-slate-200 text-slate-500 hover:border-indigo-500 hover:text-indigo-600 rounded-xl font-black text-[10px] shadow-sm transition-all duration-200 active:scale-90 flex-shrink-0"
                               >
                                 +{userRoles.length - 1}
                               </button>
@@ -443,9 +453,16 @@ export default function Manage() {
                         className={`btn w-full h-12 rounded-xl text-white font-bold border-none transition-all shadow-lg active:scale-95 text-sm flex items-center justify-center ${isFormValid ? "!bg-emerald-600 hover:!bg-emerald-700" : "!bg-slate-300 !text-slate-500 cursor-not-allowed"}`} 
                         disabled={isSubmitting || !isFormValid}
                     >
-                        {isSubmitting ? <span className="loading loading-spinner loading-xs"></span> : (editingAdmin ? "บันทึกข้อมูล" : "ยืนยันการเพิ่ม")}
-                    </button>
-                    
+                        {isSubmitting ? (
+                      <>
+                        <span className="loading loading-spinner loading-sm"></span>
+                        <span>กำลังดำเนินการ...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>{editingAdmin ? "บันทึกการเปลี่ยนแปลง" : "ยืนยันการเพิ่มสมาชิก"}</span>
+                      </>
+                    )}</button>
                   </div>
               </form>
           </div>

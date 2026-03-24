@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { 
   Mail, Briefcase, LayoutGrid, Users, 
@@ -12,12 +12,21 @@ export default function HomePage() {
   const [currentRoles, setCurrentRoles] = useState([]);
   const [userName, setUserName] = useState("");
   const [isMounted, setIsMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // 1. ตั้งค่า Mounted เป็น true เมื่อรันบน Client เสร็จ
-    setIsMounted(true);
+  const API_URL = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
 
-    // 2. ดึงข้อมูลจาก Session
+  const getCurrentAdminId = useCallback(() => {
+    if (typeof window !== "undefined") {
+      const storedId = localStorage.getItem("current_admin_id");
+      if (!storedId) return null;
+      return storedId.replace(/^"|"$/g, ''); 
+    }
+    return null;
+  }, []);
+
+  const syncUserRoles = useCallback(async () => {
+    const currentAdminId = getCurrentAdminId();
     const sessionData = sessionStorage.getItem("active_sidebar_data");
     if (sessionData) {
       try {
@@ -28,19 +37,52 @@ export default function HomePage() {
         console.error("Session parse error", e);
       }
     }
-  }, []);
+
+    if (currentAdminId && API_URL) {
+      try {
+        const res = await fetch(`${API_URL}?requester_id=${currentAdminId}`);
+        if (res.ok) {
+          const jsonResponse = await res.json();
+          const data = Array.isArray(jsonResponse) ? jsonResponse : (jsonResponse.data || []);
+          const myProfile = data.find(u => String(u.admin_id) === String(currentAdminId));
+          if (myProfile) {
+            const updatedRoles = Array.isArray(myProfile.roles) ? myProfile.roles : (myProfile.role ? [myProfile.role] : []);
+            setCurrentRoles(updatedRoles);
+            const newName = myProfile.email ? myProfile.email.split('@')[0] : "Admin";
+            setUserName(newName);
+            const updatedSession = { ...(sessionData ? JSON.parse(sessionData) : {}), roles: updatedRoles, name: newName };
+            sessionStorage.setItem("active_sidebar_data", JSON.stringify(updatedSession));
+          }
+        }
+      } catch (error) {
+        console.error("Failed to sync roles:", error);
+      }
+    }
+    setIsLoading(false);
+  }, [API_URL, getCurrentAdminId]);
+
+  useEffect(() => {
+    setIsMounted(true);
+    syncUserRoles();
+    window.addEventListener("focus", syncUserRoles);
+    window.addEventListener("storage", syncUserRoles);
+    return () => {
+      window.removeEventListener("focus", syncUserRoles);
+      window.removeEventListener("storage", syncUserRoles);
+    };
+  }, [syncUserRoles]);
 
   const handleLogout = () => {
     const confirmLogout = window.confirm("คุณต้องการออกจากระบบใช่หรือไม่?");
     if (confirmLogout) {
       sessionStorage.clear();
+      localStorage.removeItem("current_admin_id");
       window.location.href = "/";
     }
   };
 
-  // ✅ ย้าย useMemo มาไว้ด้านบน (ก่อน Conditional Return ใดๆ)
   const allMenus = useMemo(() => [
-    { title: "จัดการ Email", slug: "email", description: "ดูแลจัดการสมาชิกเเละสิทธิ์ของสมาชิก", icon: <Mail size={24} />, href: "/manage", roles: ["admin", "editor", "editor_manage_user"] },
+    { title: "จัดการ Email", slug: "email", description: "ดูแลจัดการสมาชิกเเละสิทธิ์ของสมาชิก", icon: <Mail size={24} />, href: "/manage", roles: [] },
     { title: "จัดการ Case", slug: "case", description: "แก้ไขจัดการรูปภาพใน case", icon: <Briefcase size={24} />, href: "/manage-case", roles: ["admin", "editor", "editor_manage_case"] },
     { title: "จัดการ Menu", slug: "menu", description: "Rich Menu สำหรับ LINE OA", icon: <LayoutGrid size={24} />, href: "/manage-richmenu", roles: ["admin", "editor", "editor_manage_menu"] },
     { title: "จัดการ ORG", slug: "org", description: "ดูเเลจัดการหน่วยงานและข้อมูลองค์กร", icon: <Users size={24} />, href: "/manage-org", roles: ["admin", "editor", "editor_manage_org", "editor_manage_org_info"] },
@@ -50,64 +92,67 @@ export default function HomePage() {
   ], []);
 
   const accessibleMenus = useMemo(() => {
-    // กรองเมนูตามสิทธิ์ (ถ้ายังไม่ Mounted จะคืนค่าว่างป้องกัน UI โดด)
     if (!isMounted) return [];
-    return allMenus.filter(menu => currentRoles.some(r => menu.roles.includes(r)));
+    return allMenus.filter(menu => {
+      if (menu.slug === "email") return true; 
+      return currentRoles.some(r => menu.roles.includes(r));
+    });
   }, [isMounted, currentRoles, allMenus]);
 
   const getMenuStyles = (slug) => {
     const styles = {
-      email: { color: "from-blue-600 to-indigo-700", text: "text-blue-600" },
-      case: { color: "from-rose-500 to-orange-600", text: "text-rose-600" },
-      menu: { color: "from-amber-400 to-orange-600", text: "text-amber-600" },
-      org: { color: "from-emerald-500 to-teal-600", text: "text-emerald-600" },
-      flex: { color: "from-violet-500 to-purple-600", text: "text-violet-600" },
-      search: { color: "from-sky-400 to-blue-600", text: "text-sky-600" },
-      file: { color: "from-slate-700 to-slate-900", text: "text-slate-700" },
-      default: { color: "from-indigo-600 to-purple-700", text: "text-indigo-600" }
+      email: { color: "from-purple-500 to-purple-600", text: "text-purple-600" },
+      case: { color: "from-emerald-500 to-emerald-600", text: "text-emerald-600" },
+      org: { color: "from-emerald-500 to-emerald-600", text: "text-emerald-600" },
+      search: { color: "from-emerald-500 to-emerald-600", text: "text-emerald-600" },
+      menu: { color: "from-sky-500 to-sky-600", text: "text-sky-600" },
+      flex: { color: "from-sky-500 to-sky-600", text: "text-sky-600" },
+      file: { color: "from-sky-500 to-sky-600", text: "text-sky-600" },
+      default: { color: "from-indigo-600 to-indigo-700", text: "text-indigo-600" }
     };
     return styles[slug] || styles.default;
   };
 
-  // ✅ เช็คการ Mounted บรรทัดสุดท้ายก่อน Render UI จริง
-  if (!isMounted) {
-    return <div className="min-h-screen bg-[#FDFDFD]" />;
-  }
+  if (!isMounted) return <div className="min-h-screen bg-[#FDFDFD]" />;
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] font-sans text-slate-900 selection:bg-indigo-100">
+    <div className="min-h-screen bg-[#F4F6F8] font-sans text-slate-900 selection:bg-indigo-100">
       <div className="max-w-7xl mx-auto px-6 py-12 lg:py-20">
         
-        {/* Top Info Bar */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-16 animate-in fade-in duration-700">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-white border border-slate-100 shadow-sm rounded-2xl text-indigo-600">
-              <LayoutDashboard size={24} />
+
+        <div className="flex items-center justify-between mb-16 animate-in fade-in duration-700">
+          
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="p-2.5 sm:p-3 bg-white border border-slate-100 shadow-sm rounded-xl sm:rounded-2xl text-indigo-600 flex-shrink-0">
+              <LayoutDashboard size={20} className="sm:hidden" />
+              <LayoutDashboard size={24} className="hidden sm:block" />
             </div>
-            <div className="flex flex-col">
-              <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400 leading-none mb-1.5">Administration</span>
-              <h2 className="text-sm font-bold text-slate-800">Control Center Hub</h2>
+            <div className="flex flex-col justify-center">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400 leading-none mb-1 sm:mb-1.5">Administration</span>
+              <h2 className="text-sm sm:text-base font-bold text-slate-800 leading-tight">Control Center</h2>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 p-1.5 bg-white border border-slate-100 shadow-sm rounded-[1.5rem]">
+           
+            <div className="hidden sm:flex items-center gap-2 p-1.5 bg-white border border-slate-100 shadow-sm rounded-[1.5rem]">
               <div className="flex items-center gap-3 pl-3 pr-4 py-1.5 bg-slate-50/50 rounded-[1.25rem]">
                 <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
                   {userName ? userName.charAt(0).toUpperCase() : "?"}
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-bold text-indigo-600 flex items-center gap-1 uppercase">
-                    <ShieldCheck size={10} /> Verified
+                <div className="flex flex-col text-left">
+                  <span className="text-[10px] font-bold text-indigo-600 uppercase flex items-center gap-1">
+                    <ShieldCheck size={10} /> {isLoading ? "Syncing..." : "Verified"}
                   </span>
                   <span className="text-sm font-black text-slate-800">{userName || "Admin"}</span>
                 </div>
               </div>
             </div>
 
+          
             <button 
               onClick={handleLogout}
-              className="p-4 bg-white border border-slate-100 text-rose-500 hover:bg-rose-50 hover:border-rose-100 rounded-2xl transition-all duration-300 shadow-sm group active:scale-95"
+              className="p-3 sm:p-4 bg-white border border-slate-100 text-rose-500 hover:bg-rose-50 hover:border-rose-100 rounded-full sm:rounded-2xl transition-all duration-300 shadow-sm group active:scale-95 flex-shrink-0"
               title="ออกจากระบบ"
             >
               <LogOut size={20} className="group-hover:rotate-12 transition-transform" />
@@ -121,13 +166,13 @@ export default function HomePage() {
             สวัสดี, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600">{userName || "ผู้ดูแลระบบ"}</span>
             <span className="inline-block ml-4">✨</span>
           </h1>
-          <p className="text-slate-500 font-medium text-lg lg:text-xl leading-relaxed whitespace-nowrap">
+          <p className="text-slate-500 font-medium text-lg lg:text-xl leading-relaxed">
             เลือกเมนูที่คุณต้องการเพื่อเริ่มดำเนินการจัดการระบบได้เลย!
           </p>
         </header>
 
         {/* Menu Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
           {accessibleMenus.map((menu, index) => {
             const style = getMenuStyles(menu.slug);
             return (
@@ -140,7 +185,6 @@ export default function HomePage() {
                 <div className={`relative w-16 h-16 rounded-[1.5rem] bg-gradient-to-br ${style.color} text-white flex items-center justify-center mb-10 shadow-lg group-hover:scale-110 transition-transform duration-500`}>
                   {menu.icon}
                 </div>
-
                 <div className="relative">
                   <h3 className="text-2xl font-bold text-slate-800 mb-3 tracking-tight group-hover:text-indigo-600 transition-colors">
                     {menu.title}
@@ -149,7 +193,6 @@ export default function HomePage() {
                     {menu.description}
                   </p>
                 </div>
-
                 <div className="relative mt-auto pt-6 flex items-center justify-between border-t border-slate-50">
                   <div className={`flex items-center gap-2 font-black text-[11px] uppercase tracking-widest ${style.text}`}>
                     Explore Tool <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
