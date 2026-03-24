@@ -161,6 +161,15 @@ export default function Manage() {
             document.getElementById('add_admin_modal').close();
         } else {
             const errorData = await res.json();
+            
+            // --- ส่วนที่แก้ไข: ถ้าเจอข้อความว่ามีอีเมลอยู่แล้ว ให้ปิด Modal ทันที ---
+            if (errorData.message === 'มี email อยู่ในระบบแล้ว') {
+                document.getElementById('add_admin_modal').close(); // ปิด Modal
+                setNewEmail(""); // ล้างค่าอีเมลที่กรอกค้างไว้
+                setNewRoles([]); // ล้างค่า roles
+            }
+            
+            // แสดงแจ้งเตือนให้ผู้ใช้ทราบ
             alert(errorData.message || "เกิดข้อผิดพลาด");
         }
     } catch (error) { console.error(error); } 
