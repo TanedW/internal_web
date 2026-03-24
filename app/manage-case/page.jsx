@@ -319,7 +319,7 @@ const handleSetAsCover = async (imgId) => {
     <div className="min-h-screen bg-[#F4F6F8] font-sans text-slate-900">
       <Sidebar isDesktopSidebarOpen={isDesktopSidebarOpen} setIsDesktopSidebarOpen={setIsDesktopSidebarOpen} />
 
-<div className={`container mx-auto px-4 pt-16 lg:pt-6 max-w-[1600px] transition-all duration-300 pb-24 ${isDesktopSidebarOpen ? "lg:pl-96" : "lg:pl-24"}`}>
+<div className={`container mx-auto px-4 pt-16 lg:pt-6 max-w-[1600px] transition-all duration-300 pb-24 ${isDesktopSidebarOpen ? "lg:pl-100" : "lg:pl-35"}`}>
   <br />
   <div className="flex flex-col xl:flex-row gap-8 items-start w-full">
       <div className={`flex-1 w-full min-w-0 ${activeTab === "timeline" && currentCase ? "hidden xl:block" : "block"}`}>
