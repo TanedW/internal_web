@@ -217,8 +217,8 @@ export default function Manage() {
     ? (newRoles.length > 0 && isRolesChanged) 
     : (newEmail.trim().includes("@") && newRoles.length > 0); 
 
-  const canModifyMembers = currentRoles.includes("admin") || currentRoles.includes("editor_manage_user");
-
+  // const canModifyMembers = currentRoles.includes("admin") || currentRoles.includes("editor_manage_user");
+const canModifyMembers = canDelete;
   return (
     <div className="min-h-screen bg-[#F4F6F8] font-sans">
       
