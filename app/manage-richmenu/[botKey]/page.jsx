@@ -3777,7 +3777,7 @@ export default function RichMenuDashboard() {
                   </p>
                 </div>
               ) : (
-                <div className="p-2 space-y-3">
+                <div className="p-4 space-y-3">
                   {segments.map((seg) => {
                     const isExpanded = expandedSegmentId === seg.id;
                     return (
@@ -3803,11 +3803,11 @@ export default function RichMenuDashboard() {
                           <div className="flex items-center gap-3">
                             <ChevronRight
                               size={20}
-                              className={`transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
+                              className={`transition-transform duration-200 shrink-0 ${isExpanded ? "rotate-90" : ""}`}
                             />
                             <div className="text-left">
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-[15px]">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-bold text-[15px] leading-tight">
                                   {seg.name}
                                 </span>
                                 {seg.is_default && (
@@ -3832,7 +3832,7 @@ export default function RichMenuDashboard() {
                             </div>
                           </div>
                           <span
-                            className={`text-xs font-bold px-3 py-1.5 rounded-full shrink-0 ml-2 ${
+                            className={`text-xs font-bold px-3 py-1.5 rounded-full shrink-0 ml-3 ${
                               isExpanded
                                 ? "bg-slate-800 text-slate-300"
                                 : "bg-gray-100 text-gray-600"
@@ -3842,92 +3842,70 @@ export default function RichMenuDashboard() {
                           </span>
                         </button>
 
-                        {/* ── Expanded Body ── */}
+                        {/* ── Expanded Body (Idea 68 layout เป๊ะ) ── */}
                         {isExpanded && (
                           <div className="p-4 bg-[#F8FAFC] border-t border-gray-100 space-y-4">
-                            {/* Menu preview + info */}
-                            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 flex flex-col lg:flex-row items-start gap-5">
-                              {/* Left: รูปเมนู */}
-                              <div className="w-full lg:w-56 shrink-0">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                                  เมนูที่ assign อยู่
-                                </p>
-                                {seg.active_rich_menu_name ? (
-                                  <div className="rounded-lg overflow-hidden border border-gray-200 bg-slate-50">
-                                    <div
-                                      className="relative w-full"
-                                      style={{ aspectRatio: "2500/843" }}
-                                    >
-                                      <img
-                                        src={
-                                          menus.find(
-                                            (m) =>
-                                              m.richMenuId ===
-                                              seg.active_rich_menu_id,
-                                          )?.image_url ||
-                                          (seg.active_rich_menu_id
-                                            ? `${API}?action=image&botKey=${botKey}&menuId=${seg.active_rich_menu_id}`
-                                            : null)
-                                        }
-                                        alt={seg.active_rich_menu_name}
-                                        className="absolute inset-0 w-full h-full object-contain p-1"
-                                        onError={(e) => {
-                                          e.target.style.display = "none";
-                                        }}
-                                      />
-                                    </div>
-                                    <div className="px-2 py-1.5 border-t border-gray-100">
-                                      <p className="text-[11px] font-bold text-gray-700 truncate">
-                                        {seg.active_rich_menu_name}
-                                      </p>
-                                      <p className="text-[9px] text-gray-400 font-mono truncate">
-                                        {seg.active_rich_menu_id}
-                                      </p>
-                                    </div>
+                            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 flex flex-col lg:flex-row items-start gap-6">
+                              {/* Left: รูปเมนู (w-1/3) */}
+                              <div className="w-full lg:w-1/3 shrink-0">
+                                <div className="font-bold text-gray-800 mb-2 text-sm">
+                                  {seg.active_rich_menu_name ||
+                                    "ยังไม่ได้ assign เมนู"}
+                                </div>
+                                {seg.active_rich_menu_id ? (
+                                  <div
+                                    className="w-full bg-slate-100 rounded-lg overflow-hidden border border-gray-200"
+                                    style={{ aspectRatio: "2500/843" }}
+                                  >
+                                    <img
+                                      src={
+                                        menus.find(
+                                          (m) =>
+                                            m.richMenuId ===
+                                            seg.active_rich_menu_id,
+                                        )?.image_url ||
+                                        `${API}?action=image&botKey=${botKey}&menuId=${seg.active_rich_menu_id}`
+                                      }
+                                      alt={seg.active_rich_menu_name}
+                                      className="w-full h-full object-contain"
+                                      onError={(e) => {
+                                        e.target.style.display = "none";
+                                      }}
+                                    />
                                   </div>
                                 ) : (
-                                  <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-1 p-6 text-gray-400">
-                                    <ImageIcon
-                                      size={18}
-                                      className="opacity-40"
-                                    />
-                                    <p className="text-xs">
-                                      ยังไม่ได้ assign เมนู
-                                    </p>
+                                  <div
+                                    className="w-full bg-gray-50 rounded-lg border border-dashed border-gray-200 flex items-center justify-center text-gray-300"
+                                    style={{ aspectRatio: "2500/843" }}
+                                  >
+                                    <ImageIcon size={20} />
                                   </div>
                                 )}
                               </div>
 
-                              {/* Right: stats + actions */}
-                              <div className="flex-1 w-full lg:pl-2">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
-                                  รายละเอียด
-                                </p>
+                              {/* Right: info + actions */}
+                              <div className="flex-1 w-full lg:border-l lg:border-gray-100 lg:pl-6">
+                                <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+                                  จัดการ Segment ({seg.user_count ?? 0} users)
+                                </div>
 
-                                {/* Stats */}
-                                <div className="grid grid-cols-2 gap-2 mb-4">
-                                  <div className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
-                                    <p className="text-[10px] text-gray-400 mb-0.5">
-                                      จำนวน Users
-                                    </p>
-                                    <p className="text-xl font-bold text-gray-900">
-                                      {seg.user_count ?? 0}
-                                    </p>
-                                  </div>
-                                  <div className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
-                                    <p className="text-[10px] text-gray-400 mb-0.5">
-                                      สถานะเมนู
-                                    </p>
-                                    {seg.active_rich_menu_name ? (
-                                      <p className="text-sm font-bold text-green-600 flex items-center gap-1 mt-0.5">
-                                        <CheckCircle size={12} /> assigned
-                                      </p>
-                                    ) : (
-                                      <p className="text-sm font-bold text-amber-500 mt-0.5">
-                                        ยังไม่ได้ตั้งค่า
-                                      </p>
-                                    )}
-                                  </div>
+                                {/* สถานะ */}
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                  {seg.active_rich_menu_name ? (
+                                    <span className="flex items-center gap-1 text-[11px] font-semibold text-green-700 bg-green-50 px-2.5 py-1 rounded-full border border-green-100">
+                                      <CheckCircle size={11} />{" "}
+                                      {seg.active_rich_menu_name}
+                                    </span>
+                                  ) : (
+                                    <span className="text-[11px] font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">
+                                      ยังไม่ได้ assign เมนู
+                                    </span>
+                                  )}
+                                  {seg.is_default && (
+                                    <span className="text-[11px] font-semibold text-green-700 bg-green-50 px-2.5 py-1 rounded-full border border-green-100">
+                                      Default segment
+                                    </span>
+                                  )}
                                 </div>
 
                                 {/* Action buttons */}
