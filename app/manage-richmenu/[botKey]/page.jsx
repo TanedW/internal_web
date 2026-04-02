@@ -139,21 +139,21 @@ export default function RichMenuDashboard() {
   const botKey = params.botKey;
   const API = process.env.NEXT_PUBLIC_RICHMENU_DASHBOARD_API_URL;
 
-  useEffect(() => {
-    // โหลด Tailwind CSS
-    const tailwindScript = document.createElement("script");
-    tailwindScript.src = "https://cdn.tailwindcss.com";
-    tailwindScript.async = true;
-    document.head.appendChild(tailwindScript);
+  // useEffect(() => {
+  //   // โหลด Tailwind CSS
+  //   const tailwindScript = document.createElement("script");
+  //   tailwindScript.src = "https://cdn.tailwindcss.com";
+  //   tailwindScript.async = true;
+  //   document.head.appendChild(tailwindScript);
 
-    // โหลด DaisyUI
-    const daisyLink = document.createElement("link");
-    daisyLink.href =
-      "https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css";
-    daisyLink.rel = "stylesheet";
-    daisyLink.type = "text/css";
-    document.head.appendChild(daisyLink);
-  }, []);
+  //   // โหลด DaisyUI
+  //   const daisyLink = document.createElement("link");
+  //   daisyLink.href =
+  //     "https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css";
+  //   daisyLink.rel = "stylesheet";
+  //   daisyLink.type = "text/css";
+  //   document.head.appendChild(daisyLink);
+  // }, []);
 
   // --- State: Auth & Data ---
   const [user, setUser] = useState(null);
@@ -1151,12 +1151,12 @@ export default function RichMenuDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F4F6F8] font-sans">
-      <link
+      {/* <link
         href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css"
         rel="stylesheet"
         type="text/css"
       />
-      <Script src="https://cdn.tailwindcss.com" strategy="beforeInteractive" />
+      <Script src="https://cdn.tailwindcss.com" strategy="beforeInteractive"/> */}
 
       {/* ✅ เรียกใช้คอมโพเนนต์ Sidebar ที่แยกออกมา */}
       <Sidebar
