@@ -175,6 +175,7 @@ export default function RichMenuDashboard() {
 
   // --- ✅ Segment State ---
   const [segments, setSegments] = useState([]);
+  const [expandedSegmentId, setExpandedSegmentId] = useState(null);
   const [segmentFormModal, setSegmentFormModal] = useState(null); // null | { mode:'create'|'edit', data? }
   const [assignMenuModal, setAssignMenuModal] = useState(null);   // null | segment object
   const [usersModal, setUsersModal] = useState(null);             // null | segment object
