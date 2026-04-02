@@ -13,6 +13,7 @@ import {
   LayoutGrid,
   ChevronDown,
   ChevronRight,
+  MapPin,
   Save,
   Smartphone,
   Upload,
