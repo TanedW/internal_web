@@ -1156,8 +1156,7 @@ export default function RichMenuDashboard() {
         rel="stylesheet"
         type="text/css"
       />
-      <script src="https://cdn.tailwindcss.com"></script>
-      {/* <Script src="https://cdn.tailwindcss.com" strategy="beforeInteractive" /> */}
+      <Script src="https://cdn.tailwindcss.com" strategy="beforeInteractive" />
 
       {/* ✅ เรียกใช้คอมโพเนนต์ Sidebar ที่แยกออกมา */}
       <Sidebar
