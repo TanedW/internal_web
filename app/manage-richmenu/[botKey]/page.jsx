@@ -1151,6 +1151,23 @@ export default function RichMenuDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F4F6F8] font-sans">
+      {/* เพิ่ม Style Block ตรงนี้เพื่อบังคับให้ Hover ของ Sidebar ทำงาน */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+          /* Sidebar Menu Hover */
+          .hover\\:bg-slate-50:hover { background-color: #f8fafc !important; }
+          .hover\\:text-slate-900:hover { color: #0f172a !important; }
+          
+          /* Sidebar Toggle Button Hover */
+          .hover\\:bg-slate-100:hover { background-color: #f1f5f9 !important; }
+          
+          /* Logout Button Hover */
+          .hover\\:bg-red-50:hover { background-color: #fef2f2 !important; }
+          .group:hover .group-hover\\:bg-red-100 { background-color: #fee2e2 !important; }
+        `,
+        }}
+      />
       {/* <link
         href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css"
         rel="stylesheet"
