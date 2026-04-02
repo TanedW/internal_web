@@ -3764,7 +3764,7 @@ export default function RichMenuDashboard() {
                     });
                     setSegmentFormModal({ mode: "create" });
                   }}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors"
+                  className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm"
                 >
                   <Plus size={14} /> สร้าง Segment
                 </button>
@@ -3779,70 +3779,259 @@ export default function RichMenuDashboard() {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {segments.map((seg) => {
+                <div className="space-y-3">
+                  {segments.map((seg, segIdx) => {
                     const isExpanded = expandedSegmentId === seg.id;
+
+                    // ── สีประจำ segment (วนซ้ำ 5 สี) ──
+                    const PALETTE = [
+                      {
+                        accent: "#3B82F6",
+                        light: "#EFF6FF",
+                        badge: "#DBEAFE",
+                        badgeText: "#1D4ED8",
+                        ring: "rgba(59,130,246,0.15)",
+                      },
+                      {
+                        accent: "#8B5CF6",
+                        light: "#F5F3FF",
+                        badge: "#EDE9FE",
+                        badgeText: "#5B21B6",
+                        ring: "rgba(139,92,246,0.15)",
+                      },
+                      {
+                        accent: "#06C755",
+                        light: "#F0FFF4",
+                        badge: "#DCFCE7",
+                        badgeText: "#166534",
+                        ring: "rgba(6,199,85,0.15)",
+                      },
+                      {
+                        accent: "#F59E0B",
+                        light: "#FFFBEB",
+                        badge: "#FEF3C7",
+                        badgeText: "#92400E",
+                        ring: "rgba(245,158,11,0.15)",
+                      },
+                      {
+                        accent: "#EF4444",
+                        light: "#FEF2F2",
+                        badge: "#FEE2E2",
+                        badgeText: "#991B1B",
+                        ring: "rgba(239,68,68,0.15)",
+                      },
+                    ];
+                    const pal = PALETTE[segIdx % PALETTE.length];
+
                     return (
                       <div
                         key={seg.id}
-                        className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm"
+                        style={{
+                          border: isExpanded
+                            ? `2px solid ${pal.accent}`
+                            : "1.5px solid #E2E8F0",
+                          borderRadius: 18,
+                          overflow: "hidden",
+                          boxShadow: isExpanded
+                            ? `0 0 0 4px ${pal.ring}`
+                            : "0 1px 4px rgba(0,0,0,0.05)",
+                          transition: "all 0.2s",
+                          background: "#fff",
+                        }}
                       >
                         {/* ── Header ── */}
                         <button
                           onClick={() =>
                             setExpandedSegmentId(isExpanded ? null : seg.id)
                           }
-                          className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                          style={{
+                            width: "100%",
+                            padding: "14px 18px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            background: isExpanded ? pal.light : "#fff",
+                            border: "none",
+                            cursor: "pointer",
+                            transition: "background 0.2s",
+                            borderBottom: isExpanded
+                              ? `1px solid ${pal.accent}22`
+                              : "none",
+                          }}
                         >
-                          <div className="flex items-center gap-3 text-left">
-                            <MapPin
-                              size={18}
-                              className="text-blue-500 shrink-0"
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 12,
+                              textAlign: "left",
+                            }}
+                          >
+                            {/* Dot accent */}
+                            <div
+                              style={{
+                                width: 10,
+                                height: 10,
+                                borderRadius: "50%",
+                                background: pal.accent,
+                                flexShrink: 0,
+                                boxShadow: `0 0 0 3px ${pal.ring}`,
+                              }}
                             />
                             <div>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-bold text-[15px] text-slate-900 leading-tight">
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 8,
+                                  flexWrap: "wrap",
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    fontWeight: 700,
+                                    fontSize: 15,
+                                    color: "#0F172A",
+                                  }}
+                                >
                                   {seg.name}
                                 </span>
                                 {seg.is_default && (
-                                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                                  <span
+                                    style={{
+                                      fontSize: 9,
+                                      fontWeight: 700,
+                                      padding: "2px 8px",
+                                      borderRadius: 20,
+                                      background: pal.badge,
+                                      color: pal.badgeText,
+                                    }}
+                                  >
                                     Default
                                   </span>
                                 )}
                               </div>
                               {seg.description && (
-                                <p className="text-[11px] text-slate-400 mt-0.5">
+                                <p
+                                  style={{
+                                    fontSize: 11,
+                                    color: "#94A3B8",
+                                    marginTop: 2,
+                                  }}
+                                >
                                   {seg.description}
                                 </p>
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-3 shrink-0 ml-3">
-                            <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-gray-100 text-gray-600">
-                              {seg.user_count ?? 0} เมนู
+
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
+                              flexShrink: 0,
+                              marginLeft: 12,
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 700,
+                                padding: "4px 12px",
+                                borderRadius: 20,
+                                background: isExpanded ? pal.badge : "#F1F5F9",
+                                color: isExpanded ? pal.badgeText : "#64748B",
+                              }}
+                            >
+                              {seg.user_count ?? 0} users
                             </span>
                             <ChevronRight
                               size={18}
-                              className={`text-gray-400 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
+                              style={{
+                                color: isExpanded ? pal.accent : "#CBD5E1",
+                                transform: isExpanded
+                                  ? "rotate(90deg)"
+                                  : "none",
+                                transition: "transform 0.2s",
+                              }}
                             />
                           </div>
                         </button>
 
-                        {/* ── Expanded: เมนูการ์ด ── */}
+                        {/* ── Expanded Body ── */}
                         {isExpanded && (
-                          <div className="border-t border-gray-100 p-5 space-y-5 bg-white">
+                          <div
+                            style={{ padding: "16px", background: "#FAFAFA" }}
+                          >
                             {/* การ์ดเมนู */}
-                            <div className="border border-gray-100 rounded-2xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
-                              <h3 className="font-bold text-gray-800 mb-3 text-sm">
-                                {seg.active_rich_menu_name ||
-                                  "ยังไม่ได้ assign เมนู"}
-                              </h3>
+                            <div
+                              style={{
+                                background: "#fff",
+                                border: `1px solid ${pal.accent}30`,
+                                borderRadius: 14,
+                                padding: 14,
+                                marginBottom: 14,
+                                boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+                              }}
+                            >
+                              {/* ชื่อเมนู + label */}
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 8,
+                                  marginBottom: 10,
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    display: "inline-block",
+                                    width: 4,
+                                    height: 16,
+                                    borderRadius: 2,
+                                    background: pal.accent,
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <span
+                                  style={{
+                                    fontSize: 13,
+                                    fontWeight: 700,
+                                    color: "#1E293B",
+                                  }}
+                                >
+                                  {seg.active_rich_menu_name ||
+                                    "ยังไม่ได้ assign เมนู"}
+                                </span>
+                                {seg.active_rich_menu_name && (
+                                  <span
+                                    style={{
+                                      fontSize: 9,
+                                      fontWeight: 700,
+                                      padding: "2px 7px",
+                                      borderRadius: 20,
+                                      background: pal.badge,
+                                      color: pal.badgeText,
+                                    }}
+                                  >
+                                    ACTIVE
+                                  </span>
+                                )}
+                              </div>
 
                               {/* รูปเมนู */}
                               {seg.active_rich_menu_id ? (
                                 <div
-                                  className="w-full bg-blue-50 rounded-xl overflow-hidden border border-black/10 shadow-sm mb-4"
-                                  style={{ aspectRatio: "2500/843" }}
+                                  style={{
+                                    width: "100%",
+                                    aspectRatio: "2500/843",
+                                    borderRadius: 10,
+                                    overflow: "hidden",
+                                    border: `1px solid ${pal.accent}20`,
+                                    marginBottom: 12,
+                                    background: pal.light,
+                                  }}
                                 >
                                   <img
                                     src={
@@ -3854,7 +4043,11 @@ export default function RichMenuDashboard() {
                                       `${API}?action=image&botKey=${botKey}&menuId=${seg.active_rich_menu_id}`
                                     }
                                     alt={seg.active_rich_menu_name}
-                                    className="w-full h-full object-contain"
+                                    style={{
+                                      width: "100%",
+                                      height: "100%",
+                                      objectFit: "contain",
+                                    }}
                                     onError={(e) => {
                                       e.target.style.display = "none";
                                     }}
@@ -3862,24 +4055,76 @@ export default function RichMenuDashboard() {
                                 </div>
                               ) : (
                                 <div
-                                  className="w-full bg-gray-50 rounded-xl border border-dashed border-gray-200 flex items-center justify-center text-gray-300 mb-4"
-                                  style={{ aspectRatio: "2500/843" }}
+                                  style={{
+                                    width: "100%",
+                                    aspectRatio: "2500/843",
+                                    borderRadius: 10,
+                                    border: "1.5px dashed #CBD5E1",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    color: "#CBD5E1",
+                                    marginBottom: 12,
+                                    background: "#F8FAFC",
+                                  }}
                                 >
                                   <ImageIcon size={24} />
                                 </div>
                               )}
 
-                              {/* ACCESS label + user chips */}
+                              {/* ACCESS chips */}
                               <div>
-                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                                <div
+                                  style={{
+                                    fontSize: 9,
+                                    fontWeight: 700,
+                                    letterSpacing: "0.1em",
+                                    color: "#94A3B8",
+                                    textTransform: "uppercase",
+                                    marginBottom: 8,
+                                  }}
+                                >
                                   Access
                                 </div>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  {/* placeholder chips — แสดง user_count */}
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexWrap: "wrap",
+                                    gap: 8,
+                                    alignItems: "center",
+                                  }}
+                                >
                                   {seg.user_count > 0 ? (
                                     <>
-                                      <span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md text-xs font-medium border border-gray-200 flex items-center gap-1.5">
-                                        <div className="w-4 h-4 rounded-full bg-slate-400 text-white flex items-center justify-center text-[8px] font-bold">
+                                      <span
+                                        style={{
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 6,
+                                          padding: "5px 10px",
+                                          borderRadius: 8,
+                                          background: "#F1F5F9",
+                                          border: "1px solid #E2E8F0",
+                                          fontSize: 12,
+                                          fontWeight: 600,
+                                          color: "#334155",
+                                        }}
+                                      >
+                                        <div
+                                          style={{
+                                            width: 18,
+                                            height: 18,
+                                            borderRadius: "50%",
+                                            background: pal.accent,
+                                            color: "#fff",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            fontSize: 8,
+                                            fontWeight: 800,
+                                            flexShrink: 0,
+                                          }}
+                                        >
                                           U
                                         </div>
                                         {seg.user_count} users
@@ -3889,7 +4134,16 @@ export default function RichMenuDashboard() {
                                           setUsersModal(seg);
                                           fetchSegmentUsers(seg.id);
                                         }}
-                                        className="text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 border border-blue-100"
+                                        style={{
+                                          padding: "5px 10px",
+                                          borderRadius: 8,
+                                          background: pal.badge,
+                                          border: `1px solid ${pal.accent}40`,
+                                          color: pal.badgeText,
+                                          fontSize: 11,
+                                          fontWeight: 700,
+                                          cursor: "pointer",
+                                        }}
                                       >
                                         ดูเพิ่มเติม
                                       </button>
@@ -3900,13 +4154,21 @@ export default function RichMenuDashboard() {
                                         setUsersModal(seg);
                                         fetchSegmentUsers(seg.id);
                                       }}
-                                      className="text-xs font-bold text-gray-500 bg-white border border-dashed border-gray-300 hover:border-gray-400 hover:text-gray-700 px-2.5 py-1 rounded-md transition-colors"
+                                      style={{
+                                        padding: "5px 10px",
+                                        borderRadius: 8,
+                                        background: "#fff",
+                                        border: "1.5px dashed #CBD5E1",
+                                        color: "#64748B",
+                                        fontSize: 11,
+                                        fontWeight: 700,
+                                        cursor: "pointer",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 4,
+                                      }}
                                     >
-                                      <Plus
-                                        size={12}
-                                        className="inline mr-0.5"
-                                      />{" "}
-                                      จัดการ
+                                      <Plus size={12} /> จัดการ
                                     </button>
                                   )}
                                 </div>
@@ -3914,8 +4176,14 @@ export default function RichMenuDashboard() {
                             </div>
 
                             {/* ── Action Buttons ── */}
-                            <div className="flex flex-wrap gap-2 pt-1">
-                              {/* Assign เมนู — indigo */}
+                            <div
+                              style={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: 8,
+                              }}
+                            >
+                              {/* Assign เมนู */}
                               <button
                                 onClick={() => {
                                   setAssignSelectedMenuId(
@@ -3923,23 +4191,48 @@ export default function RichMenuDashboard() {
                                   );
                                   setAssignMenuModal(seg);
                                 }}
-                                className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors"
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                  padding: "8px 14px",
+                                  borderRadius: 10,
+                                  background: pal.accent,
+                                  color: "#fff",
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  border: "none",
+                                  boxShadow: `0 2px 8px ${pal.ring}`,
+                                }}
                               >
-                                <ArrowRightLeft size={12} /> Assign เมนู
+                                <ArrowRightLeft size={13} /> Assign เมนู
                               </button>
 
-                              {/* จัดการ User — slate */}
+                              {/* จัดการ User */}
                               <button
                                 onClick={() => {
                                   setUsersModal(seg);
                                   fetchSegmentUsers(seg.id);
                                 }}
-                                className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors"
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                  padding: "8px 14px",
+                                  borderRadius: 10,
+                                  background: "#F1F5F9",
+                                  color: "#334155",
+                                  border: "1.5px solid #E2E8F0",
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                }}
                               >
-                                <Users size={12} /> จัดการ User
+                                <Users size={13} /> จัดการ User
                               </button>
 
-                              {/* แก้ไข — amber */}
+                              {/* แก้ไข */}
                               <button
                                 onClick={() => {
                                   setSegmentForm({
@@ -3952,17 +4245,41 @@ export default function RichMenuDashboard() {
                                     data: seg,
                                   });
                                 }}
-                                className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-xs font-bold transition-colors border border-amber-100"
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                  padding: "8px 14px",
+                                  borderRadius: 10,
+                                  background: "#FFFBEB",
+                                  color: "#92400E",
+                                  border: "1.5px solid #FDE68A",
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                }}
                               >
-                                <Pencil size={12} /> แก้ไข
+                                <Pencil size={13} /> แก้ไข
                               </button>
 
-                              {/* ลบ — red */}
+                              {/* ลบ */}
                               <button
                                 onClick={() => handleDeleteSegment(seg)}
-                                className="flex items-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-bold transition-colors border border-red-100"
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                  padding: "8px 14px",
+                                  borderRadius: 10,
+                                  background: "#FEF2F2",
+                                  color: "#991B1B",
+                                  border: "1.5px solid #FEE2E2",
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                }}
                               >
-                                <Trash2 size={12} /> ลบ
+                                <Trash2 size={13} /> ลบ
                               </button>
                             </div>
                           </div>
