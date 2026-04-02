@@ -363,7 +363,7 @@ export default function RichMenuDashboard() {
     setAuditLoading(true);
     try {
       const res = await fetch(
-        `${API}?action=audit_logs&botKey=${encodeURIComponent(botKey)}`,
+        `${API}?action=audit_logs&botKey=${encodeURIComponent(botKey)}&_t=${Date.now()}`,
       );
       const data = await res.json();
       setAuditLogs(Array.isArray(data.logs) ? data.logs : []);
@@ -512,8 +512,8 @@ export default function RichMenuDashboard() {
       }
 
       const [currentRes, listRes] = await Promise.all([
-        fetch(`${API}?action=current&botKey=${botKey}`),
-        fetch(`${API}?action=list&botKey=${botKey}`),
+        fetch(`${API}?action=current&botKey=${botKey}&_t=${Date.now()}`),
+        fetch(`${API}?action=list&botKey=${botKey}&_t=${Date.now()}`),
       ]);
 
       const [currentData, listData] = await Promise.all([
@@ -543,7 +543,7 @@ export default function RichMenuDashboard() {
   async function fetchSegments() {
     try {
       const res = await fetch(
-        `${API}?action=list_segments&botKey=${encodeURIComponent(botKey)}`,
+        `${API}?action=list_segments&botKey=${encodeURIComponent(botKey)}&_t=${Date.now()}`,
       );
       const data = await res.json();
       setSegments(data.segments || []);
@@ -556,7 +556,7 @@ export default function RichMenuDashboard() {
     setSegmentUsersLoading(true);
     try {
       const res = await fetch(
-        `${API}?action=segment_detail&botKey=${encodeURIComponent(botKey)}&segmentId=${segmentId}`,
+        `${API}?action=segment_detail&botKey=${encodeURIComponent(botKey)}&segmentId=${segmentId}&_t=${Date.now()}`,
       );
       const data = await res.json();
       setSegmentUsers(data.users || []);
