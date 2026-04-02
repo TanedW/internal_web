@@ -4322,8 +4322,8 @@ export default function RichMenuDashboard() {
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
               <h3 className="font-bold text-slate-800">
                 {segmentFormModal.mode === "edit"
-                  ? "แก้ไข Segment"
-                  : "สร้าง Segment ใหม่"}
+                  ? "แก้ไขกลุ่มผู้ใช้งาน"
+                  : "สร้างกลุ่มผู้ใช้งานใหม่"}
               </h3>
               <button onClick={() => setSegmentFormModal(null)}>
                 <X size={20} className="text-slate-400" />
@@ -4332,7 +4332,7 @@ export default function RichMenuDashboard() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="text-xs font-bold text-slate-600 block mb-1">
-                  ชื่อ Segment *
+                  ชื่อกลุ่ม
                 </label>
                 <div className="php-input-group">
                   <input
@@ -4358,7 +4358,7 @@ export default function RichMenuDashboard() {
                         description: e.target.value,
                       })
                     }
-                    placeholder="อธิบายกลุ่มนี้..."
+                    placeholder="อธิบายกลุ่มผู้ใช้งานนี้..."
                     className="php-input-field"
                   />
                 </div>
@@ -4383,10 +4383,10 @@ export default function RichMenuDashboard() {
                 />
                 <div>
                   <div className="text-sm font-bold text-slate-700">
-                    ตั้งเป็น Default Segment
+                    ตั้งเป็นกลุ่มเริ่มต้น (Default)
                   </div>
                   <div className="text-xs text-slate-400">
-                    เมนูของ segment นี้จะเป็น LINE default menu
+                    ผู้ใช้ที่ไม่ได้อยู่ในกลุ่มอื่น จะเห็น Rich Menu ของกลุ่มนี้เป็นหลัก
                   </div>
                 </div>
               </label>
