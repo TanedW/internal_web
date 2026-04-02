@@ -690,6 +690,17 @@ export default function RichMenuDashboard() {
         setNewUserId("");
         setNewUserDisplayName("");
         fetchSegmentUsers(usersModal.id);
+        fetchSegments(); // refresh user_count
+
+        // ✅ แจ้งเตือนถ้า segment ยังไม่มีเมนู
+        if (data.has_menu === false) {
+          await Swal.fire({
+            icon: "warning",
+            title: "เพิ่ม User สำเร็จ",
+            text: "แต่ segment นี้ยังไม่ได้ assign เมนู กรุณากด 'Assign เมนู' เพื่อส่งเมนูให้ users",
+            confirmButtonText: "ตกลง",
+          });
+        }
       }
     } finally {
       setAddingUser(false);
