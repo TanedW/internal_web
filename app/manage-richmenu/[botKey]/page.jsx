@@ -1235,8 +1235,8 @@ export default function RichMenuDashboard() {
                 className="php-qa-btn"
               >
                 <div className="php-qa-content">
-                  <h3>จัดการ Segments</h3>
-                  <p>แบ่งกลุ่ม user ตามจังหวัด/ประเภท</p>
+                  <h3>จัดการเมนูส่วนจังหวัด</h3>
+                  <p>ตั้งค่าเมนูให้เหมาะสมกับแต่ละจังหวัดและประเภทบุคคล</p>
                 </div>
                 <div
                   className="php-qa-icon"
@@ -3770,7 +3770,7 @@ export default function RichMenuDashboard() {
             <section id="segment-section" className="php-card">
               <div className="php-card-header flex justify-between items-center">
                 <h2 className="php-card-title flex items-center gap-2">
-                  <Users size={18} /> จัดการ Segments
+                  <Users size={18} /> จัดการเมนูส่วนจังหวัด
                 </h2>
                 <button
                   onClick={() => {
@@ -3783,16 +3783,16 @@ export default function RichMenuDashboard() {
                   }}
                   className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm"
                 >
-                  <Plus size={14} /> สร้าง Segment
+                  <Plus size={14} /> เพิ่มการตั้งค่าพื้นที่
                 </button>
               </div>
 
               {segments.length === 0 ? (
                 <div className="py-12 text-center text-slate-400">
                   <Users size={32} className="mx-auto mb-3 opacity-30" />
-                  <p className="font-bold">ยังไม่มี Segment</p>
+                  <p className="font-bold">ยังไม่มีการตั้งค่า</p>
                   <p className="text-sm mt-1">
-                    กดปุ่ม "สร้าง Segment" เพื่อเริ่มต้นแบ่งกลุ่ม user
+                    กดปุ่ม "เพิ่มการตั้งค่าพื้นที่" เพื่อเริ่มต้นจัดการเมนูแต่ละจังหวัด
                   </p>
                 </div>
               ) : (
