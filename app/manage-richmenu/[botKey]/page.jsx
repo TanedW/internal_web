@@ -7,7 +7,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/firebaseConfig";
 import "@fortawesome/fontawesome-free/css/all.css";
 import Swal from "sweetalert2";
-import Script from 'next/script';
+import Script from "next/script";
 import {
   Menu,
   X,
@@ -3792,7 +3792,8 @@ export default function RichMenuDashboard() {
                   <Users size={32} className="mx-auto mb-3 opacity-30" />
                   <p className="font-bold">ยังไม่มีการตั้งค่า</p>
                   <p className="text-sm mt-1">
-                    กดปุ่ม "เพิ่มการตั้งค่าพื้นที่" เพื่อเริ่มต้นจัดการเมนูแต่ละจังหวัด
+                    กดปุ่ม "เพิ่มการตั้งค่าพื้นที่"
+                    เพื่อเริ่มต้นจัดการเมนูแต่ละจังหวัด
                   </p>
                 </div>
               ) : (
@@ -3884,17 +3885,22 @@ export default function RichMenuDashboard() {
                               textAlign: "left",
                             }}
                           >
-                            {/* Dot accent */}
+                            {/* Map Pin Icon */}
                             <div
                               style={{
-                                width: 10,
-                                height: 10,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                width: 32,
+                                height: 32,
                                 borderRadius: "50%",
-                                background: pal.accent,
+                                background: pal.light,
+                                color: pal.accent,
                                 flexShrink: 0,
-                                boxShadow: `0 0 0 3px ${pal.ring}`,
                               }}
-                            />
+                            >
+                              <MapPin size={18} />
+                            </div>
                             <div>
                               <div
                                 style={{
@@ -4386,7 +4392,8 @@ export default function RichMenuDashboard() {
                     ตั้งเป็นกลุ่มเริ่มต้น (Default)
                   </div>
                   <div className="text-xs text-slate-400">
-                    ผู้ใช้ที่ไม่ได้อยู่ในกลุ่มอื่น จะเห็น Rich Menu ของกลุ่มนี้เป็นหลัก
+                    ผู้ใช้ที่ไม่ได้อยู่ในกลุ่มอื่น จะเห็น Rich Menu
+                    ของกลุ่มนี้เป็นหลัก
                   </div>
                 </div>
               </label>
