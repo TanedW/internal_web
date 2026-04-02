@@ -142,6 +142,7 @@ export default function RichMenuDashboard() {
   const [menus, setMenus] = useState([]);
   const [currentMenuId, setCurrentMenuId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [alert, setAlert] = useState(null);
 
   // --- State: Rich Menu Logic ---
   const [uploading, setUploading] = useState(false);
