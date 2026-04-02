@@ -3604,171 +3604,222 @@ export default function RichMenuDashboard() {
               )}
             </section>
 
-            {/* ==================== SEGMENT SECTION ==================== */}
             <section id="segment-section" className="php-card">
-              <div className="php-card-header flex justify-between items-center">
-                <h2 className="php-card-title flex items-center gap-2">
-                  <Users size={18} /> จัดการ Segments
-                </h2>
-                <button
-                  onClick={() => {
-                    setSegmentForm({ name: "", description: "", is_default: false });
-                    setSegmentFormModal({ mode: "create" });
-                  }}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-bold"
-                >
-                  <Plus size={14} /> สร้าง Segment
-                </button>
+
+  {/* ── Header ── */}
+  <div className="php-card-header flex justify-between items-center">
+    <h2 className="php-card-title flex items-center gap-2">
+      <Users size={18} /> จัดการ Segments
+    </h2>
+    <button
+      onClick={() => {
+        setSegmentForm({ name: "", description: "", is_default: false });
+        setSegmentFormModal({ mode: "create" });
+      }}
+      className="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-bold transition-colors"
+    >
+      <Plus size={14} /> สร้าง Segment
+    </button>
+  </div>
+
+  {/* ── Empty State ── */}
+  {segments.length === 0 ? (
+    <div className="py-12 text-center text-slate-400">
+      <Users size={32} className="mx-auto mb-3 opacity-30" />
+      <p className="font-bold">ยังไม่มี Segment</p>
+      <p className="text-sm mt-1">กดปุ่ม "สร้าง Segment" เพื่อเริ่มต้นแบ่งกลุ่ม user</p>
+    </div>
+  ) : (
+
+    // ── Expandable List (Idea 68 style) ──
+    <div className="p-4 space-y-3">
+      {segments.map((seg) => {
+        const isExpanded = expandedSegmentId === seg.id;
+        return (
+          <div
+            key={seg.id}
+            className={`border rounded-2xl overflow-hidden transition-all duration-200 ${
+              isExpanded
+                ? "border-violet-400 ring-1 ring-violet-300 shadow-md shadow-violet-100"
+                : "border-slate-200 hover:border-slate-300"
+            }`}
+          >
+
+            {/* ── Row Header (คลิกเพื่อ expand) ── */}
+            <button
+              onClick={() => setExpandedSegmentId(isExpanded ? null : seg.id)}
+              className={`w-full flex items-center justify-between p-4 transition-colors text-left ${
+                isExpanded ? "bg-violet-600" : "bg-white hover:bg-slate-50"
+              }`}
+            >
+              {/* Left: icon + name */}
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                  isExpanded
+                    ? "bg-white/20"
+                    : seg.is_default ? "bg-green-50" : "bg-violet-50"
+                }`}>
+                  {seg.is_default
+                    ? <Star size={15} className={isExpanded ? "text-white" : "text-green-600"} />
+                    : <LayoutGrid size={15} className={isExpanded ? "text-white" : "text-violet-600"} />
+                  }
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`font-bold text-sm ${isExpanded ? "text-white" : "text-slate-900"}`}>
+                      {seg.name}
+                    </span>
+                    {seg.is_default && (
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                        isExpanded ? "bg-white/20 text-white" : "bg-green-100 text-green-700"
+                      }`}>Default</span>
+                    )}
+                  </div>
+                  {seg.description && (
+                    <p className={`text-[11px] truncate mt-0.5 ${isExpanded ? "text-white/70" : "text-slate-400"}`}>
+                      {seg.description}
+                    </p>
+                  )}
+                </div>
               </div>
 
-              {segments.length === 0 ? (
-                <div className="py-12 text-center text-slate-400">
-                  <Users size={32} className="mx-auto mb-3 opacity-30" />
-                  <p className="font-bold">ยังไม่มี Segment</p>
-                  <p className="text-sm mt-1">กดปุ่ม "สร้าง Segment" เพื่อเริ่มต้นแบ่งกลุ่ม user</p>
+              {/* Right: stats + chevron */}
+              <div className="flex items-center gap-3 shrink-0 ml-2">
+                <div className={`text-right hidden sm:block ${isExpanded ? "text-white/80" : "text-slate-500"}`}>
+                  <div className="flex items-center gap-3 text-[11px]">
+                    <span className="flex items-center gap-1">
+                      <Users size={11} /> {seg.user_count ?? 0} user
+                    </span>
+                    {seg.active_rich_menu_name ? (
+                      <span className={`flex items-center gap-1 font-semibold ${isExpanded ? "text-white" : "text-green-600"}`}>
+                        <CheckCircle size={11} /> {seg.active_rich_menu_name}
+                      </span>
+                    ) : (
+                      <span className={`font-semibold ${isExpanded ? "text-yellow-200" : "text-amber-500"}`}>
+                        ยังไม่ได้ assign เมนู
+                      </span>
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16, padding: 16 }}>
-                  {segments.map((seg) => (
-                    <div
-                      key={seg.id}
-                      style={{
-                        background: "#fff",
-                        borderRadius: 18,
-                        border: `2px solid ${seg.is_default ? "#86EFAC" : "#E2E8F0"}`,
-                        boxShadow: seg.is_default
-                          ? "0 4px 16px rgba(6,199,85,0.10)"
-                          : "0 2px 8px rgba(0,0,0,0.05)",
-                        overflow: "hidden",
-                        transition: "box-shadow 0.2s",
-                      }}
-                    >
-                      {/* Accent top bar */}
-                      <div style={{
-                        height: 4,
-                        background: seg.is_default
-                          ? "linear-gradient(90deg,#06C755,#34D399)"
-                          : "linear-gradient(90deg,#A78BFA,#818CF8)",
-                        borderRadius: "18px 18px 0 0",
-                      }} />
+                <ChevronDown
+                  size={16}
+                  className={`transition-transform duration-200 ${
+                    isExpanded ? "rotate-180 text-white" : "text-slate-400"
+                  }`}
+                />
+              </div>
+            </button>
 
-                      {/* Header */}
-                      <div style={{ padding: "14px 14px 8px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                          {/* Icon */}
-                          <div style={{
-                            width: 38, height: 38,
-                            borderRadius: 12,
-                            background: seg.is_default ? "#DCFCE7" : "#EDE9FE",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            flexShrink: 0,
-                          }}>
-                            {seg.is_default
-                              ? <Star size={16} color="#16A34A" />
-                              : <LayoutGrid size={16} color="#7C3AED" />
+            {/* ── Expanded Content ── */}
+            {isExpanded && (
+              <div className="bg-slate-50 border-t border-violet-200 p-4">
+                <div className="flex flex-col lg:flex-row items-start gap-4">
+
+                  {/* Left: Menu Preview */}
+                  <div className="w-full lg:w-1/3 shrink-0">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+                      เมนูที่ Assign อยู่
+                    </p>
+                    {seg.active_rich_menu_name ? (
+                      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                        <div className="relative aspect-[2500/843] bg-slate-100">
+                          <img
+                            src={
+                              menus.find(m => m.richMenuId === seg.active_rich_menu_id)?.image_url
+                              || (seg.active_rich_menu_id ? `${API}?action=image&botKey=${botKey}&menuId=${seg.active_rich_menu_id}` : null)
                             }
-                          </div>
-                          {/* Name */}
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                              <span style={{ fontWeight: 700, fontSize: 14, color: "#0F172A" }}>{seg.name}</span>
-                              {seg.is_default && (
-                                <span style={{
-                                  fontSize: 9, fontWeight: 700,
-                                  padding: "2px 7px",
-                                  background: "#DCFCE7", color: "#166534",
-                                  borderRadius: 99,
-                                }}>Default</span>
-                              )}
-                            </div>
-                            {seg.description && (
-                              <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                {seg.description}
-                              </p>
-                            )}
-                          </div>
+                            alt={seg.active_rich_menu_name}
+                            className="w-full h-full object-contain p-1"
+                            onError={(e) => { e.target.style.display = "none"; }}
+                          />
                         </div>
-
-                        {/* Edit/Delete buttons */}
-                        <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
-                          <button
-                            onClick={() => {
-                              setSegmentForm({ name: seg.name, description: seg.description || "", is_default: seg.is_default });
-                              setSegmentFormModal({ mode: "edit", data: seg });
-                            }}
-                            style={{ padding: 6, background: "none", border: "none", cursor: "pointer", borderRadius: 8, color: "#94A3B8" }}
-                            onMouseEnter={e => { e.currentTarget.style.background = "#EEF2FF"; e.currentTarget.style.color = "#4F46E5"; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = "#94A3B8"; }}
-                          >
-                            <Pencil size={13} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteSegment(seg)}
-                            style={{ padding: 6, background: "none", border: "none", cursor: "pointer", borderRadius: 8, color: "#94A3B8" }}
-                            onMouseEnter={e => { e.currentTarget.style.background = "#FEF2F2"; e.currentTarget.style.color = "#EF4444"; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = "#94A3B8"; }}
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                        <div className="px-3 py-2 border-t border-slate-100">
+                          <p className="text-[11px] font-bold text-slate-700 truncate">{seg.active_rich_menu_name}</p>
+                          <p className="text-[9px] text-slate-400 font-mono truncate">{seg.active_rich_menu_id}</p>
                         </div>
                       </div>
-
-                      {/* Stats row */}
-                      <div style={{ padding: "4px 14px 12px", display: "flex", alignItems: "center", gap: 12 }}>
-                        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#64748B" }}>
-                          <Users size={11} /> {seg.user_count} user
-                        </span>
-                        {seg.active_rich_menu_name ? (
-                          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#16A34A", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            <CheckCircle size={11} /> {seg.active_rich_menu_name}
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: 11, color: "#F59E0B", fontWeight: 600 }}>ยังไม่ได้ assign เมนู</span>
-                        )}
+                    ) : (
+                      <div className="bg-white rounded-xl border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-1.5 p-6">
+                        <ImageIcon size={20} className="opacity-40" />
+                        <p className="text-xs font-medium">ยังไม่มีเมนู</p>
                       </div>
+                    )}
+                  </div>
 
-                      {/* Divider */}
-                      <div style={{ height: 1, background: "#F1F5F9", margin: "0 14px" }} />
+                  {/* Right: Stats + Actions */}
+                  <div className="flex-1 w-full lg:border-l lg:border-slate-200 lg:pl-4 flex flex-col gap-3">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      รายละเอียด &amp; จัดการ
+                    </p>
 
-                      {/* Action buttons */}
-                      <div style={{ padding: "10px 14px", display: "flex", gap: 8 }}>
-                        <button
-                          onClick={() => { setAssignSelectedMenuId(seg.active_rich_menu_id || ""); setAssignMenuModal(seg); }}
-                          style={{
-                            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                            padding: "8px 0",
-                            background: "#0F172A", color: "#fff",
-                            border: "none", borderRadius: 10,
-                            fontSize: 11, fontWeight: 700,
-                            cursor: "pointer", fontFamily: "inherit",
-                            transition: "background 0.18s",
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.background = "#7C3AED"}
-                          onMouseLeave={e => e.currentTarget.style.background = "#0F172A"}
-                        >
-                          <ArrowRightLeft size={12} /> Assign เมนู
-                        </button>
-                        <button
-                          onClick={() => { setUsersModal(seg); fetchSegmentUsers(seg.id); }}
-                          style={{
-                            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                            padding: "8px 0",
-                            background: "#F8FAFC", color: "#475569",
-                            border: "1.5px solid #E2E8F0", borderRadius: 10,
-                            fontSize: 11, fontWeight: 700,
-                            cursor: "pointer", fontFamily: "inherit",
-                          }}
-                          onMouseEnter={e => { e.currentTarget.style.background = "#F1F5F9"; e.currentTarget.style.borderColor = "#CBD5E1"; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = "#F8FAFC"; e.currentTarget.style.borderColor = "#E2E8F0"; }}
-                        >
-                          <Users size={12} /> จัดการ User
-                        </button>
+                    {/* Stats grid */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-white rounded-xl border border-slate-200 px-3 py-2.5">
+                        <p className="text-[10px] text-slate-400 mb-0.5">จำนวน User</p>
+                        <p className="text-lg font-bold text-slate-800">{seg.user_count ?? 0}</p>
+                      </div>
+                      <div className="bg-white rounded-xl border border-slate-200 px-3 py-2.5">
+                        <p className="text-[10px] text-slate-400 mb-0.5">สถานะ</p>
+                        <p className={`text-sm font-bold ${seg.is_default ? "text-green-600" : "text-violet-600"}`}>
+                          {seg.is_default ? "Default" : "Custom"}
+                        </p>
                       </div>
                     </div>
-                  ))}
+
+                    {/* Mobile stats (hidden on lg) */}
+                    <div className="flex items-center gap-3 text-[11px] text-slate-500 sm:hidden">
+                      {seg.active_rich_menu_name ? (
+                        <span className="flex items-center gap-1 text-green-600 font-semibold">
+                          <CheckCircle size={11} /> {seg.active_rich_menu_name}
+                        </span>
+                      ) : (
+                        <span className="text-amber-500 font-semibold">ยังไม่ได้ assign เมนู</span>
+                      )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap gap-2 mt-auto">
+                      <button
+                        onClick={() => {
+                          setAssignSelectedMenuId(seg.active_rich_menu_id || "");
+                          setAssignMenuModal(seg);
+                        }}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-violet-600 text-white rounded-xl text-xs font-bold transition-colors"
+                      >
+                        <ArrowRightLeft size={12} /> Assign เมนู
+                      </button>
+                      <button
+                        onClick={() => { setUsersModal(seg); fetchSegmentUsers(seg.id); }}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-bold transition-colors"
+                      >
+                        <Users size={12} /> จัดการ User
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSegmentForm({ name: seg.name, description: seg.description || "", is_default: seg.is_default });
+                          setSegmentFormModal({ mode: "edit", data: seg });
+                        }}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-indigo-50 text-indigo-600 border border-indigo-100 hover:border-indigo-300 rounded-xl text-xs font-bold transition-colors"
+                      >
+                        <Pencil size={12} /> แก้ไข
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSegment(seg)}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-red-50 text-red-500 border border-red-100 hover:border-red-300 rounded-xl text-xs font-bold transition-colors"
+                      >
+                        <Trash2 size={12} /> ลบ
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </section>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  )}
+</section>
           </div>
         </div>
       </div>
