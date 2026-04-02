@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/firebaseConfig";
 import "@fortawesome/fontawesome-free/css/all.css";
 import Swal from "sweetalert2";
+import Script from 'next/script';
 import {
   Menu,
   X,
@@ -137,6 +138,22 @@ export default function RichMenuDashboard() {
   const pathname = usePathname();
   const botKey = params.botKey;
   const API = process.env.NEXT_PUBLIC_RICHMENU_DASHBOARD_API_URL;
+
+  useEffect(() => {
+    // โหลด Tailwind CSS
+    const tailwindScript = document.createElement("script");
+    tailwindScript.src = "https://cdn.tailwindcss.com";
+    tailwindScript.async = true;
+    document.head.appendChild(tailwindScript);
+
+    // โหลด DaisyUI
+    const daisyLink = document.createElement("link");
+    daisyLink.href =
+      "https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css";
+    daisyLink.rel = "stylesheet";
+    daisyLink.type = "text/css";
+    document.head.appendChild(daisyLink);
+  }, []);
 
   // --- State: Auth & Data ---
   const [user, setUser] = useState(null);
@@ -1139,7 +1156,7 @@ export default function RichMenuDashboard() {
         rel="stylesheet"
         type="text/css"
       />
-      <script src="https://cdn.tailwindcss.com"></script>
+      <Script src="https://cdn.tailwindcss.com" strategy="beforeInteractive" />
 
       {/* ✅ เรียกใช้คอมโพเนนต์ Sidebar ที่แยกออกมา */}
       <Sidebar
