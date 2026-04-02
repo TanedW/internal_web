@@ -13,7 +13,6 @@ import {
   LayoutGrid,
   ChevronDown,
   ChevronRight,
-  MapPin,
   Save,
   Smartphone,
   Upload,
@@ -32,6 +31,7 @@ import {
   Check,
   CheckCircle,
   MousePointer2,
+  MapPin,        // ← เพิ่มบรรทัดนี้
   Star,
   Pencil,
   Trash2,
