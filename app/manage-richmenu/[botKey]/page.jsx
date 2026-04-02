@@ -12,6 +12,7 @@ import {
   X,
   LayoutGrid,
   ChevronDown,
+  ChevronRight,
   Save,
   Smartphone,
   Upload,
