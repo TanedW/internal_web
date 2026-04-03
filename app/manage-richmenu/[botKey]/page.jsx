@@ -1225,17 +1225,6 @@ export default function RichMenuDashboard() {
                 </div>
               </button>
 
-              {/* ปุ่ม 3: ประวัติ */}
-              <button onClick={openAuditLog} className="php-qa-btn">
-                <div className="php-qa-content">
-                  <h3>ประวัติการใช้งาน</h3>
-                  <p>ดูบันทึก Audit Log</p>
-                </div>
-                <div className="php-qa-icon amber">
-                  <History size={20} />
-                </div>
-              </button>
-
               {/* ปุ่ม 4: Segments */}
               <button
                 onClick={() =>
@@ -1260,6 +1249,18 @@ export default function RichMenuDashboard() {
                   <Users size={20} />
                 </div>
               </button>
+
+              {/* ปุ่ม 3: ประวัติ */}
+              <button onClick={openAuditLog} className="php-qa-btn">
+                <div className="php-qa-content">
+                  <h3>ประวัติการใช้งาน</h3>
+                  <p>ดูบันทึก Audit Log</p>
+                </div>
+                <div className="php-qa-icon amber">
+                  <History size={20} />
+                </div>
+              </button>
+
             </div>
 
             {/* Alert */}
