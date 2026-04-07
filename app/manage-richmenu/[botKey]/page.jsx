@@ -606,13 +606,27 @@ export default function RichMenuDashboard() {
   async function handleAddSegmentMenu() {
     if (!addMenuModal || !addMenuSelectedId) return;
     setAddingMenu(true);
+    // capture ก่อน setState เพื่อป้องกัน addMenuModal กลายเป็น null
+    const segId = addMenuModal.id;
+    const menu = menus.find((m) => m.richMenuId === addMenuSelectedId);
     try {
-      const menu = menus.find((m) => m.richMenuId === addMenuSelectedId);
+      // Optimistic update — เพิ่มเมนูลง state ทันทีโดยไม่รอ API
+      const tempEntry = {
+        id: `temp-${Date.now()}`,
+        rich_menu_id: addMenuSelectedId,
+        rich_menu_name: menu?.name || addMenuSelectedId,
+        is_active: true,
+      };
+      setSegmentMenus((prev) => ({
+        ...prev,
+        [segId]: [...(prev[segId] || []), tempEntry],
+      }));
+
       const res = await fetch(`${API}?action=assign_segment_menu`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          segmentId: addMenuModal.id,
+          segmentId: segId,
           richMenuId: addMenuSelectedId,
           richMenuName: menu?.name || addMenuSelectedId,
           botKey: decodeURIComponent(botKey),
@@ -624,9 +638,15 @@ export default function RichMenuDashboard() {
       if (data.success) {
         setAddMenuModal(null);
         setAddMenuSelectedId('');
-        fetchSegmentUsers(addMenuModal.id);
+        // sync ข้อมูลจริงจาก server (รวม id จริงของ entry ใหม่)
+        await fetchSegmentUsers(segId);
         fetchSegments();
       } else {
+        // rollback optimistic update
+        setSegmentMenus((prev) => ({
+          ...prev,
+          [segId]: (prev[segId] || []).filter((m) => m.id !== tempEntry.id),
+        }));
         alert(data.error || 'เกิดข้อผิดพลาด');
       }
     } finally {
@@ -635,7 +655,7 @@ export default function RichMenuDashboard() {
   }
 
   async function handleRemoveSegmentMenu(seg, menuEntryId) {
-    const confirm = await Swal.fire({
+    const confirmed = await Swal.fire({
       title: 'ลบเมนูนี้ออกจากพื้นที่?',
       text: 'เมนูจะถูกถอดออกจากกลุ่มนี้',
       icon: 'warning',
@@ -644,14 +664,24 @@ export default function RichMenuDashboard() {
       cancelButtonText: 'ยกเลิก',
       confirmButtonColor: '#EF4444',
     });
-    if (!confirm.isConfirmed) return;
-    await fetch(`${API}?action=remove_segment_menu`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ segmentId: seg.id, menuEntryId, botKey: decodeURIComponent(botKey), adminEmail: user?.email }),
-    });
-    fetchSegmentUsers(seg.id);
-    fetchSegments();
+    if (!confirmed.isConfirmed) return;
+    const segId = seg.id;
+    // Optimistic remove — ลบออกจาก state ทันที
+    setSegmentMenus((prev) => ({
+      ...prev,
+      [segId]: (prev[segId] || []).filter((m) => m.id !== menuEntryId),
+    }));
+    try {
+      await fetch(`${API}?action=remove_segment_menu`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ segmentId: segId, menuEntryId, botKey: decodeURIComponent(botKey), adminEmail: user?.email }),
+      });
+      fetchSegments(); // อัพเดท badge count
+    } catch {
+      // rollback ถ้า API fail
+      fetchSegmentUsers(segId);
+    }
   }
 
   async function handleSaveSegment() {
@@ -741,6 +771,8 @@ export default function RichMenuDashboard() {
           timer: 1500,
           showConfirmButton: false,
         });
+        // อัพเดทรายการเมนูใน segment ที่เปลี่ยน
+        fetchSegmentUsers(assignMenuModal.id);
         fetchSegments();
       } else {
         await Swal.fire({
@@ -3945,7 +3977,7 @@ export default function RichMenuDashboard() {
                           onClick={() => {
                             const next = isExpanded ? null : seg.id;
                             setExpandedSegmentId(next);
-                            if (next && !segmentMenus[next]) fetchSegmentUsers(next);
+                            if (next) fetchSegmentUsers(next); // always refresh on expand
                           }}
                           className="w-full p-4 md:p-5 flex items-center justify-between"
                           style={{ background: isExpanded ? pal.light : '#fff', transition: 'background 0.2s' }}
