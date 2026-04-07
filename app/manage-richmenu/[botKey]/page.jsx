@@ -579,7 +579,19 @@ export default function RichMenuDashboard() {
         `${API}?action=list_segments&botKey=${encodeURIComponent(botKey)}&_t=${Date.now()}`,
       );
       const data = await res.json();
-      setSegments(data.segments || []);
+      const segs = data.segments || [];
+      setSegments(segs);
+
+      // backend ส่ง active_menus มาพร้อมกันแล้ว → set segmentMenus ทันทีโดยไม่ต้องเรียก API เพิ่ม
+      const menusMap = {};
+      segs.forEach((seg) => {
+        if (Array.isArray(seg.active_menus)) {
+          menusMap[seg.id] = seg.active_menus;
+        }
+      });
+      if (Object.keys(menusMap).length > 0) {
+        setSegmentMenus((prev) => ({ ...prev, ...menusMap }));
+      }
     } catch (err) {
       console.error("[fetchSegments]", err);
     }
