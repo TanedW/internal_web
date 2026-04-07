@@ -4114,46 +4114,32 @@ export default function RichMenuDashboard() {
                                             </div>
                                           </div>
 
-                                          {/* ACCESS row */}
-                                          <div className="flex items-center justify-between flex-wrap gap-2">
-                                            <div>
-                                              <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">
-                                                Access — {seg.user_count ?? 0} users
-                                              </div>
-                                              <AvatarStack count={seg.user_count ?? 0} accent={mAccent} />
+                                          {/* ACCESS row — แสดงแค่จำนวน, ปุ่มจัดการ User อยู่ด้านล่าง */}
+                                          <div className="flex items-center gap-3 mt-1">
+                                            <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                                              Access — {seg.user_count ?? 0} users
                                             </div>
-                                            <button
-                                              onClick={() => { setUsersModal(seg); fetchSegmentUsers(seg.id); }}
-                                              className="px-3 py-1.5 border border-dashed border-gray-300 text-gray-500 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
-                                            >
-                                              <Plus size={12} /> จัดการ User
-                                            </button>
+                                            <AvatarStack count={seg.user_count ?? 0} accent={mAccent} />
                                           </div>
                                         </div>
                                       </div>
 
-                                      {/* Action Buttons */}
-                                      <div className="flex flex-wrap gap-2 px-4 py-3 bg-slate-50 border-t border-slate-100">
+                                      {/* Action Buttons — menu level only */}
+                                      <div className="flex gap-2 px-4 py-3 bg-slate-50 border-t border-slate-100">
                                         <button
                                           onClick={() => { setAssignSelectedMenuId(entry.rich_menu_id); setAssignMenuModal(seg); }}
-                                          className="flex-1 min-w-[90px] py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 text-white shadow-sm transition-all hover:opacity-90"
+                                          className="flex-1 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 text-white shadow-sm transition-all hover:opacity-90"
                                           style={{ background: mAccent }}
                                         >
-                                          <ArrowRightLeft size={13} /> เปลี่ยนเมนู
+                                          <ArrowRightLeft size={13} /> เปลี่ยนเมนูนี้
                                         </button>
                                         <button
-                                          onClick={() => { setSegmentForm({ name: seg.name, description: seg.description || '', is_default: seg.is_default }); setSegmentFormModal({ mode: 'edit', data: seg }); }}
-                                          className="flex-1 min-w-[70px] py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 border transition-all"
-                                          style={{ background: '#FFFBEB', color: '#D97706', borderColor: '#FDE68A' }}
-                                        >
-                                          <Pencil size={13} /> แก้ไข
-                                        </button>
-                                        <button
-                                          onClick={() => handleDeleteSegment(seg)}
-                                          className="flex-1 min-w-[70px] py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 border transition-all"
+                                          onClick={() => entry.id && handleRemoveSegmentMenu(seg, entry.id)}
+                                          className="py-2 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 border transition-all"
                                           style={{ background: '#FEF2F2', color: '#DC2626', borderColor: '#FECACA' }}
+                                          title="ถอดเมนูนี้ออกจากพื้นที่"
                                         >
-                                          <Trash2 size={13} /> ลบ
+                                          <Trash2 size={13} /> ถอดเมนู
                                         </button>
                                       </div>
                                     </div>
@@ -4168,6 +4154,30 @@ export default function RichMenuDashboard() {
                                 >
                                   <Plus size={16} /> เพิ่มเมนูสำหรับพื้นที่นี้
                                 </button>
+
+                                {/* ── Province-level actions (แก้ไข / ลบ กลุ่มจังหวัด) ── */}
+                                <div className="flex gap-2 pt-1">
+                                  <button
+                                    onClick={() => { setSegmentForm({ name: seg.name, description: seg.description || '', is_default: seg.is_default }); setSegmentFormModal({ mode: 'edit', data: seg }); }}
+                                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold border transition-all"
+                                    style={{ background: '#FFFBEB', color: '#92400E', borderColor: '#FDE68A' }}
+                                  >
+                                    <Pencil size={12} /> แก้ไขพื้นที่
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteSegment(seg)}
+                                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold border transition-all"
+                                    style={{ background: '#FEF2F2', color: '#991B1B', borderColor: '#FECACA' }}
+                                  >
+                                    <Trash2 size={12} /> ลบพื้นที่นี้
+                                  </button>
+                                  <button
+                                    onClick={() => { setUsersModal(seg); fetchSegmentUsers(seg.id); }}
+                                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-all ml-auto"
+                                  >
+                                    <Users size={12} /> จัดการ User
+                                  </button>
+                                </div>
 
                               </div>
                             </div>
