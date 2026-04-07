@@ -4047,7 +4047,6 @@ export default function RichMenuDashboard() {
                             : (seg.active_rich_menu_id
                                 ? [{ id: null, rich_menu_id: seg.active_rich_menu_id, rich_menu_name: seg.active_rich_menu_name, is_active: true }]
                                 : []);
-                          const menuAccentList = [pal.accent, '#8B5CF6', '#06C755', '#F59E0B', '#EF4444'];
 
                           return (
                             <div className="border-t" style={{ borderColor: `${pal.accent}22`, background: '#FAFAFA' }}>
@@ -4067,7 +4066,6 @@ export default function RichMenuDashboard() {
 
                                 {/* ── การ์ดแต่ละเมนู ── */}
                                 {displayMenus.map((entry, mIdx) => {
-                                  const mAccent = menuAccentList[mIdx % menuAccentList.length];
                                   const mInfo = menus.find((m) => m.richMenuId === entry.rich_menu_id);
                                   const imgSrc = mInfo?.image_url || `${API}?action=image&botKey=${encodeURIComponent(botKey)}&menuId=${entry.rich_menu_id}`;
 
@@ -4076,7 +4074,7 @@ export default function RichMenuDashboard() {
                                       className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                                       <div className="flex">
                                         {/* Color bar */}
-                                        <div className="w-1.5 shrink-0 rounded-l-2xl" style={{ background: mAccent }} />
+                                        <div className="w-1.5 shrink-0 rounded-l-2xl" style={{ background: pal.accent }} />
                                         <div className="flex-1 p-4">
                                           {/* Name + badge */}
                                           <div className="flex items-center justify-between gap-2 mb-3">
@@ -4104,7 +4102,7 @@ export default function RichMenuDashboard() {
                                           {/* Preview image */}
                                           <div className="mb-4">
                                             <div className="w-full rounded-xl overflow-hidden border"
-                                              style={{ aspectRatio: '2500/843', borderColor: `${mAccent}30`, background: pal.light }}>
+                                              style={{ aspectRatio: '2500/843', borderColor: `${pal.accent}30`, background: pal.light }}>
                                               <img
                                                 src={imgSrc}
                                                 alt={entry.rich_menu_name}
@@ -4119,7 +4117,7 @@ export default function RichMenuDashboard() {
                                             <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
                                               Access — {seg.user_count ?? 0} users
                                             </div>
-                                            <AvatarStack count={seg.user_count ?? 0} accent={mAccent} />
+                                            <AvatarStack count={seg.user_count ?? 0} accent={pal.accent} />
                                           </div>
                                         </div>
                                       </div>
@@ -4129,7 +4127,7 @@ export default function RichMenuDashboard() {
                                         <button
                                           onClick={() => { setAssignSelectedMenuId(entry.rich_menu_id); setAssignMenuModal(seg); }}
                                           className="flex-1 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 text-white shadow-sm transition-all hover:opacity-90"
-                                          style={{ background: mAccent }}
+                                          style={{ background: pal.accent }}
                                         >
                                           <ArrowRightLeft size={13} /> เปลี่ยนเมนูนี้
                                         </button>
