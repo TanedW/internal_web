@@ -3983,7 +3983,7 @@ export default function RichMenuDashboard() {
                                 : { background: '#F1F5F9', color: '#475569', border: '1px solid #E2E8F0' }}
                             >
                               <LayoutGrid size={12} />
-                              {seg.active_rich_menu_name ? '1' : '0'} เมนู
+                              {segmentMenus[seg.id] !== undefined ? segmentMenus[seg.id].length : (seg.active_menu_count ?? (seg.active_rich_menu_name ? 1 : 0))} เมนู
                             </div>
                             <div
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border"
