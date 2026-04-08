@@ -88,7 +88,7 @@ export default function ResetOtpPage() {
         {!userInfo && (
           <div className="w-full max-w-xl bg-white rounded-[2.5rem] p-10 shadow-[0_25px_60px_rgba(0,0,0,0.1)] border border-slate-100 text-center">
             <h1 className="text-2xl font-black text-slate-900 mb-2">Reset OTP Lock</h1>
-            <p className="text-slate-400 text-sm font-medium mb-8">กรอกเบอร์โทรศัพท์เพื่อค้นหาผู้ใช้งาน</p>
+            <p className="text-slate-400 text-sm font-medium mb-8">กรอกเบอร์โทรศัพท์เพื่อค้นหาผู้ใช้งานเเละปลดบล็อก OTP</p>
             
             <form onSubmit={handleCheckStatus} className="space-y-6 flex flex-col items-center">
               <div className="w-full max-w-sm text-left">
