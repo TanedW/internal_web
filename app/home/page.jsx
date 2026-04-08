@@ -2,10 +2,9 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
+import Sidebar, { SIDEBAR_MENUS } from "../components/sidebar"; 
 import { 
-  Mail, Briefcase, LayoutGrid, Users, 
-  MessageSquareCode, Search, FolderSearch, ArrowRight,
-  LayoutDashboard, ShieldCheck, LogOut 
+  ArrowRight, LayoutDashboard, ShieldCheck, LogOut 
 } from "lucide-react";
 
 export default function HomePage() {
@@ -81,36 +80,21 @@ export default function HomePage() {
     }
   };
 
-  const allMenus = useMemo(() => [
-    { title: "จัดการ Email", slug: "email", description: "ดูแลจัดการสมาชิกเเละสิทธิ์ของสมาชิก", icon: <Mail size={24} />, href: "/manage", roles: [] },
-    { title: "จัดการ Case", slug: "case", description: "แก้ไขจัดการรูปภาพใน case", icon: <Briefcase size={24} />, href: "/manage-case", roles: ["admin", "editor", "editor_manage_case"] },
-    { title: "จัดการ Menu", slug: "menu", description: "Rich Menu สำหรับ LINE OA", icon: <LayoutGrid size={24} />, href: "/manage-richmenu", roles: ["admin", "editor", "editor_manage_menu"] },
-    { title: "จัดการ ORG", slug: "org", description: "ดูเเลจัดการหน่วยงานและข้อมูลองค์กร", icon: <Users size={24} />, href: "/manage-org", roles: ["admin", "editor", "editor_manage_org", "editor_manage_org_info"] },
-    { title: "จัดการ Flex Message", slug: "flex", description: "สร้างชุดข้อความ Flex", icon: <MessageSquareCode size={24} />, href: "/manage-flex-message", roles: ["admin", "editor", "editor_manage_flex"] },
-    { title: "ค้นหาหน่วยงานซ้ำ", slug: "search", description: "ค้นหาและจัดการความซ้ำซ้อนของหน่วยงาน", icon: <Search size={24} />, href: "/search-org", roles: ["admin", "editor", "editor_search_duplicate_org"] },
-    { title: "จัดการไฟล์ FAQ", slug: "file", description: "จัดการฐานข้อมูลความรู้และเอกสาร", icon: <FolderSearch size={24} />, href: "/manage-file-search", roles: ["admin", "editor", "editor_file_search"] },
-  ], []);
-
   const accessibleMenus = useMemo(() => {
     if (!isMounted) return [];
-    return allMenus.filter(menu => {
-      if (menu.slug === "email") return true; 
+    return SIDEBAR_MENUS.filter(menu => {
+      if (menu.href === "/home") return false;
+      if (menu.roles.includes("all")) return true; 
       return currentRoles.some(r => menu.roles.includes(r));
     });
-  }, [isMounted, currentRoles, allMenus]);
+  }, [isMounted, currentRoles]);
 
-  const getMenuStyles = (slug) => {
-    const styles = {
-      email: { color: "from-purple-500 to-purple-600", text: "text-purple-600" },
-      case: { color: "from-emerald-500 to-emerald-600", text: "text-emerald-600" },
-      org: { color: "from-emerald-500 to-emerald-600", text: "text-emerald-600" },
-      search: { color: "from-emerald-500 to-emerald-600", text: "text-emerald-600" },
-      menu: { color: "from-sky-500 to-sky-600", text: "text-sky-600" },
-      flex: { color: "from-sky-500 to-sky-600", text: "text-sky-600" },
-      file: { color: "from-sky-500 to-sky-600", text: "text-sky-600" },
-      default: { color: "from-indigo-600 to-indigo-700", text: "text-indigo-600" }
-    };
-    return styles[slug] || styles.default;
+  const getMenuStyles = (href) => {
+    const path = href.toLowerCase();
+    if (path.includes("manage") || path.includes("email")) return { color: "from-purple-500 to-purple-600", text: "text-purple-600" };
+    if (path.includes("case") || path.includes("org") || path.includes("search")) return { color: "from-emerald-500 to-emerald-600", text: "text-emerald-600" };
+    if (path.includes("otp") || path.includes("shield")) return { color: "from-amber-500 to-orange-600", text: "text-orange-600" };
+    return { color: "from-sky-500 to-sky-600", text: "text-sky-600" };
   };
 
   if (!isMounted) return <div className="min-h-screen bg-[#FDFDFD]" />;
@@ -119,22 +103,18 @@ export default function HomePage() {
     <div className="min-h-screen bg-[#F4F6F8] font-sans text-slate-900 selection:bg-indigo-100">
       <div className="max-w-7xl mx-auto px-6 py-12 lg:py-20">
         
-
         <div className="flex items-center justify-between mb-16 animate-in fade-in duration-700">
-          
           <div className="flex items-center gap-3 sm:gap-4">
             <div className="p-2.5 sm:p-3 bg-white border border-slate-100 shadow-sm rounded-xl sm:rounded-2xl text-indigo-600 flex-shrink-0">
-              <LayoutDashboard size={20} className="sm:hidden" />
-              <LayoutDashboard size={24} className="hidden sm:block" />
+              <LayoutDashboard size={24} />
             </div>
             <div className="flex flex-col justify-center">
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400 leading-none mb-1 sm:mb-1.5">Administration</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 leading-none mb-1.5">Administration</span>
               <h2 className="text-sm sm:text-base font-bold text-slate-800 leading-tight">Control Center</h2>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-           
             <div className="hidden sm:flex items-center gap-2 p-1.5 bg-white border border-slate-100 shadow-sm rounded-[1.5rem]">
               <div className="flex items-center gap-3 pl-3 pr-4 py-1.5 bg-slate-50/50 rounded-[1.25rem]">
                 <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
@@ -148,8 +128,6 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-
-          
             <button 
               onClick={handleLogout}
               className="p-3 sm:p-4 bg-white border border-slate-100 text-rose-500 hover:bg-rose-50 hover:border-rose-100 rounded-full sm:rounded-2xl transition-all duration-300 shadow-sm group active:scale-95 flex-shrink-0"
@@ -160,37 +138,35 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Hero Section */}
         <header className="mb-16 animate-in fade-in slide-in-from-left-4 duration-700">
           <h1 className="text-4xl lg:text-6xl font-black text-slate-900 tracking-tighter mb-6 leading-[1.1]">
-            สวัสดี, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600">{userName || "ผู้ดูแลระบบ"}</span>
-            <span className="inline-block ml-4">✨</span>
+            สวัสดี, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600">{userName || "ผู้ดูแลระบบ"}</span> ✨
           </h1>
           <p className="text-slate-500 font-medium text-lg lg:text-xl leading-relaxed">
-            เลือกเมนูที่คุณต้องการเพื่อเริ่มดำเนินการจัดการระบบได้เลย!
+            ระบบตรวจสอบสิทธิ์เรียบร้อยแล้ว กรุณาเลือกเครื่องมือจัดการระบบด้านล่างนี้
           </p>
         </header>
 
-        {/* Menu Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
           {accessibleMenus.map((menu, index) => {
-            const style = getMenuStyles(menu.slug);
+            const style = getMenuStyles(menu.href);
             return (
               <Link 
-                key={menu.slug} 
+                key={menu.href} 
                 href={menu.href}
                 className="group relative bg-white rounded-[2.5rem] p-8 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-500 border border-slate-50 flex flex-col h-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 fill-mode-forwards"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
+                {/* ดึงไอคอนมาใช้ และขยายขนาดเล็กน้อยสำหรับหน้า Home */}
                 <div className={`relative w-16 h-16 rounded-[1.5rem] bg-gradient-to-br ${style.color} text-white flex items-center justify-center mb-10 shadow-lg group-hover:scale-110 transition-transform duration-500`}>
-                  {menu.icon}
+                  {React.cloneElement(menu.icon, { size: 28 })}
                 </div>
                 <div className="relative">
                   <h3 className="text-2xl font-bold text-slate-800 mb-3 tracking-tight group-hover:text-indigo-600 transition-colors">
                     {menu.title}
                   </h3>
                   <p className="text-slate-400 text-[15px] leading-relaxed mb-10 min-h-[3rem] font-medium">
-                    {menu.description}
+                    เข้าจัดการส่วนงาน {menu.title} ตามสิทธิ์ของผู้ดูแลระบบ
                   </p>
                 </div>
                 <div className="relative mt-auto pt-6 flex items-center justify-between border-t border-slate-50">

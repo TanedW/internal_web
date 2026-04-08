@@ -15,8 +15,8 @@ import {
   Menu,
   MessageSquareCode,
   Search,
-  FolderSearch
-  
+  FolderSearch,
+  ShieldCheck
 } from "lucide-react";
 
 // --- Firebase Configuration ---
@@ -38,6 +38,7 @@ const firebaseConfig = {
     "editor_manage_flex": "Admin Flex Message",
     "editor_search_duplicate_org": "Admin Search Org",
     "editor_file_search": "Admin File Search",
+    "editor_reset_otp": "Admin Reset OTP", 
   };
 
   const getRoleLabel = (roleValue) => ROLE_LABEL_MAP[roleValue] || roleValue.replace(/_/g, ' ');
@@ -82,7 +83,17 @@ const firebaseConfig = {
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
-
+export const SIDEBAR_MENUS = [
+  { title: "หน้าแรก", href: "/home", icon: <Home size={20} />, roles: ["all"] },
+  { title: "จัดการ Email", href: "/manage", icon: <Mail size={20} />, roles: ["all"] },
+  { title: "จัดการ Case", href: "/manage-case", icon: <Briefcase size={20} />, roles: ["admin", "editor", "editor_manage_case"] },
+  { title: "จัดการ Menu", href: "/manage-richmenu", icon: <LayoutGrid size={20} />, roles: ["admin", "editor", "editor_manage_menu"] },
+  { title: "จัดการ ORG", href: "/manage-org", icon: <Users size={20} />, roles: ["admin", "editor", "editor_manage_org", "editor_manage_org_info"] },
+  { title: "จัดการ Flex Message", href: "/manage-flex-message", icon: <MessageSquareCode size={20} />, roles: ["admin", "editor", "editor_manage_flex"] },
+  { title: "ค้นหาหน่วยงานซ้ำ", href: "/search-org", icon: <Search size={20} />, roles: ["admin", "editor", "editor_search_duplicate_org"] },
+  { title: "จัดการไฟล์ FAQ", href: "/manage-file-search", icon: <FolderSearch size={20} />, roles: ["admin", "editor", "editor_file_search"] },
+  { title: "Reset OTP", href: "/reset-otp", icon: <ShieldCheck size={20} />, roles: ["admin", "editor", "editor_reset_otp"] },
+];
 export default function Sidebar({
   isDesktopSidebarOpen,
   setIsDesktopSidebarOpen,
@@ -98,17 +109,6 @@ export default function Sidebar({
 
   const API_URL_ADMIN = process.env.NEXT_PUBLIC_DB_CRUD_USER_API_URL;
 
-  // --- ฟังก์ชันสำหรับแอบโหลดข้อมูล (Prefetch) ---
-  const prefetchData = async (url) => {
-    if (!url) return;
-    try {
-      await fetch(url, { credentials: 'include' });
-    } catch (e) {
-      console.warn("Prefetch failed:", e);
-    }
-  };
-
-
   const getAvatarUrl = (seed) =>
     `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed || "Admin")}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
 
@@ -116,22 +116,15 @@ useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        
-        // --- ส่วนที่ปรับปรุงใหม่ ---
-        // ตรวจสอบว่ามีข้อมูลใน Session หรือยัง
         const sessionData = sessionStorage.getItem("active_sidebar_data");
         
         if (sessionData) {
-          // หากมีข้อมูลใน Cache ให้ดึงมาแสดงทันที
           const cachedData = JSON.parse(sessionData);
           setAdminData(cachedData);
           setCurrentRoles(cachedData.roles || []);
-          setIsLoading(false); // ปิด Loading ทันที UI จะไม่กระพริบ
-          
-          // (Optional) โหลดข้อมูลใหม่เงียบๆ เบื้องหลังเพื่ออัปเดตให้เป็นปัจจุบัน
+          setIsLoading(false); 
           refreshAdminProfileInBackground(); 
         } else {
-          // หากไม่มีข้อมูลใน Cache เลย (เช่น เข้าหน้าเว็บครั้งแรกหลัง Login) ค่อยเรียก API
           await fetchAdminProfile(); 
         }
       } else {
@@ -143,22 +136,20 @@ useEffect(() => {
   
   useEffect(() => {
     const handleNavigation = () => {
-      // สำหรับ Desktop เราจะไม่ปิด Sidebar อัตโนมัติเมื่อเปลี่ยนหน้า เพื่อให้ค้างสถานะหด/ขยายไว้
       setIsMobileMenuOpen(false);
     };
     handleNavigation();
   }, [pathname]);
 
-  const isFetching = React.useRef(false); // เพิ่มไว้ด้านบน
+  const isFetching = React.useRef(false);
 
   const fetchAdminProfile = async () => {
-    if (isFetching.current) return; // ถ้ากำลังเรียกอยู่ ให้หยุด
+    if (isFetching.current) return;
     isFetching.current = true;
     const adminId = localStorage.getItem("current_admin_id")?.replace(/^"|"$/g, "");
     if (!adminId || !API_URL_ADMIN) {
       setIsLoading(false);
       isFetching.current = false;
-
       return;
     }
     try {
@@ -173,8 +164,6 @@ useEffect(() => {
         const roles = Array.isArray(myProfile.roles) ? myProfile.roles : [myProfile.role || "guest"];
         setAdminData(myProfile);
         setCurrentRoles(roles);
-
-        // บันทึกลง sessionStorage เพื่อให้หน้าถัดไปดึงไปใช้ได้ทันที
         sessionStorage.setItem("active_sidebar_data", JSON.stringify({
           ...myProfile,
           roles: roles
@@ -184,10 +173,10 @@ useEffect(() => {
       console.error("Error fetching profile:", error);
     } finally {
       setIsLoading(false); 
+      isFetching.current = false;
     }
   };
 
-  // ฟังก์ชันเสริมสำหรับ Update ข้อมูลเงียบๆ (ไม่ต้องโชว์ Skeleton)
 const refreshAdminProfileInBackground = async () => {
     const adminId = localStorage.getItem("current_admin_id")?.replace(/^"|"$/g, "");
     if (!adminId || !API_URL_ADMIN) return;
@@ -199,16 +188,13 @@ const refreshAdminProfileInBackground = async () => {
       
       if (myProfile) {
         const roles = Array.isArray(myProfile.roles) ? myProfile.roles : [myProfile.role || "guest"];
-        // อัปเดต Cache
         sessionStorage.setItem("active_sidebar_data", JSON.stringify({ ...myProfile, roles }));
-        // อัปเดต State โดยไม่ผ่าน Loading เพื่อให้ชื่อและรูปเปลี่ยนนิ่งๆ
         setAdminData(myProfile);
         setCurrentRoles(roles);
       }
-    } catch (e) { /* ไม่แสดง error ต่อหน้าผู้ใช้ */ }
+    } catch (e) { }
   };
 
- // 3. ปรับ handleLogout ให้เคลียร์ sessionStorage
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -218,11 +204,7 @@ const refreshAdminProfileInBackground = async () => {
       deleteCookie("access_token");
       deleteCookie("user_email");
       deleteCookie("user_role");
-      
-      // ลบข้อมูลเฉพาะกิจ
       sessionStorage.removeItem("active_sidebar_data");
-      
-      // localStorage.clear() ยังเก็บไว้ตามที่คุณต้องการ
       localStorage.clear(); 
       router.push("/");
     } catch (error) {
@@ -234,7 +216,6 @@ const refreshAdminProfileInBackground = async () => {
 
   const getMenuClass = (path) => {
     const isActive = pathname === path;
-    // ปรับ Padding และ Alignment ตามสถานะ Sidebar
     return `flex items-center ${isDesktopSidebarOpen ? 'gap-4 px-6' : 'justify-center px-0'} py-3 rounded-xl transition-all duration-200 ${
       isActive
         ? "bg-[#111827] !text-white shadow-lg scale-[1.02]"
@@ -335,7 +316,7 @@ const refreshAdminProfileInBackground = async () => {
       </div>
     </div>
   );
-
+  
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: `
@@ -346,31 +327,31 @@ const refreshAdminProfileInBackground = async () => {
 
       {/* MOBILE NAVBAR */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 force-light z-40 px-4 flex items-center border-b border-slate-100 shadow-sm bg-white">
-  <button
-    onClick={() => setIsMobileMenuOpen(true)}
-    className="btn btn-square btn-ghost p-0 min-h-0 h-10 w-10 hover:bg-slate-100 transition-all duration-300"
-    aria-label="open sidebar"
-  >
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      viewBox="0 0 24 24" 
-      strokeLinejoin="round" 
-      strokeLinecap="round" 
-      strokeWidth="2" 
-      fill="none" 
-      stroke="currentColor" 
-      className="inline-block size-6 transition-transform duration-300"
-      style={{ color: '#1e293b' }}
-    >
-      <path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"></path>
-      <path d="M9 4v16"></path>
-      <path d="M14 10l2 2l-2 2"></path>
-    </svg>
-  </button>
+        <button
+          onClick={() => setIsMobileMenuOpen(true)}
+          className="btn btn-square btn-ghost p-0 min-h-0 h-10 w-10 hover:bg-slate-100 transition-all duration-300"
+          aria-label="open sidebar"
+        >
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            viewBox="0 0 24 24" 
+            strokeLinejoin="round" 
+            strokeLinecap="round" 
+            strokeWidth="2" 
+            fill="none" 
+            stroke="currentColor" 
+            className="inline-block size-6 transition-transform duration-300"
+            style={{ color: '#1e293b' }}
+          >
+            <path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"></path>
+            <path d="M9 4v16"></path>
+            <path d="M14 10l2 2l-2 2"></path>
+          </svg>
+        </button>
+        <span className="ml-2 font-bold text-slate-800 text-[15px]">Admin Portal</span>
+      </div>
 
-  <span className="ml-2 font-bold text-slate-800 text-[15px]">Admin Portal</span>
-</div>
-{/* MOBILE SIDEBAR DRAW (คงเดิม) */}
+      {/* MOBILE SIDEBAR DRAW */}
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
@@ -380,20 +361,20 @@ const refreshAdminProfileInBackground = async () => {
               className="absolute top-6 right-6 p-1.5 bg-slate-50 text-slate-400 rounded-full border border-slate-100"
             >
              <svg 
-        xmlns="http://www.w3.org/2000/svg" 
-        viewBox="0 0 24 24" 
-        strokeLinejoin="round" 
-        strokeLinecap="round" 
-        strokeWidth="2" 
-        fill="none" 
-        stroke="currentColor" 
-        className={`inline-block size-6 transition-transform duration-300 ${!isDesktopSidebarOpen ? 'rotate-180' : ''}`}
-        style={{ color: '#1e293b' }}
-      >
-        <path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"></path>
-        <path d="M9 4v16"></path>
-        <path d="M14 10l2 2l-2 2"></path>
-      </svg>
+                xmlns="http://www.w3.org/2000/svg" 
+                viewBox="0 0 24 24" 
+                strokeLinejoin="round" 
+                strokeLinecap="round" 
+                strokeWidth="2" 
+                fill="none" 
+                stroke="currentColor" 
+                className={`inline-block size-6 transition-transform duration-300 ${!isDesktopSidebarOpen ? 'rotate-180' : ''}`}
+                style={{ color: '#1e293b' }}
+              >
+                <path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"></path>
+                <path d="M9 4v16"></path>
+                <path d="M14 10l2 2l-2 2"></path>
+              </svg>
             </button>
             {isLoading ? (
               <div className="mt-8">
@@ -406,9 +387,9 @@ const refreshAdminProfileInBackground = async () => {
                   <Link href="/home" className={getMenuClass("/home")} onClick={() => setIsMobileMenuOpen(false)} >
                     <Home size={20} /> <span className="text-[15px] font-bold">หน้าแรก</span>
                   </Link>
-                    <Link href="/manage" className={getMenuClass("/manage")} onClick={() => setIsMobileMenuOpen(false)} >
-                      <Mail size={20} /> <span className="text-[15px] font-bold">จัดการ Email</span>
-                    </Link>
+                  <Link href="/manage" className={getMenuClass("/manage")} onClick={() => setIsMobileMenuOpen(false)} >
+                    <Mail size={20} /> <span className="text-[15px] font-bold">จัดการ Email</span>
+                  </Link>
                   
                   {hasAccess(["admin", "editor", "editor_manage_case"]) && (
                     <Link href="/manage-case" className={getMenuClass("/manage-case")} onClick={() => setIsMobileMenuOpen(false)} >
@@ -440,6 +421,12 @@ const refreshAdminProfileInBackground = async () => {
                       <FolderSearch size={20} /> <span className="text-[15px] font-bold">จัดการไฟล์ FAQ</span>
                     </Link>
                   )}
+                  {/* เพิ่มเมนู Reset OTP (Mobile) */}
+                  {hasAccess(["admin", "editor", "editor_reset_otp"]) && (
+                    <Link href="/reset-otp" className={getMenuClass("/reset-otp")} onClick={() => setIsMobileMenuOpen(false)}>
+                      <ShieldCheck size={20} /> <span className="text-[15px] font-bold">Reset OTP</span>
+                    </Link>
+                  )}
                 </nav>
                 <div className="mt-auto pt-4 border-t border-slate-100">
                   <button onClick={handleLogout} className="group flex items-center gap-2.5 px-4 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 w-full">
@@ -456,34 +443,33 @@ const refreshAdminProfileInBackground = async () => {
       )}
 
 
-      {/* DESKTOP SIDEBAR - ปรับเป็น Mini Sidebar */}
+      {/* DESKTOP SIDEBAR */}
       <aside
         className={`hidden lg:flex fixed top-4 bottom-4 left-4 force-light rounded-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] border border-slate-100 flex-col py-10 z-50 transition-all duration-300 ease-in-out no-scrollbar ${isDesktopSidebarOpen ? "w-72 px-8" : "w-20 px-2"}`}
       >
-        {/* ปุ่มลูกศรหดเข้า-ขยายออก แทนปุ่มกากบาท */}
-       <div className={`flex items-center mb-6 ${isDesktopSidebarOpen ? "justify-end" : "justify-center"}`}>
-    <button
-      onClick={() => setIsDesktopSidebarOpen(!isDesktopSidebarOpen)}
-      className="btn btn-square btn-ghost hover:bg-slate-100 transition-all duration-300"
-      aria-label="toggle sidebar"
-    >
-      <svg 
-        xmlns="http://www.w3.org/2000/svg" 
-        viewBox="0 0 24 24" 
-        strokeLinejoin="round" 
-        strokeLinecap="round" 
-        strokeWidth="2" 
-        fill="none" 
-        stroke="currentColor" 
-        className={`inline-block size-6 transition-transform duration-300 ${!isDesktopSidebarOpen ? 'rotate-180' : ''}`}
-        style={{ color: '#1e293b' }}
-      >
-        <path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"></path>
-        <path d="M9 4v16"></path>
-        <path d="M14 10l2 2l-2 2"></path>
-      </svg>
-    </button>
-  </div>
+        <div className={`flex items-center mb-6 ${isDesktopSidebarOpen ? "justify-end" : "justify-center"}`}>
+          <button
+            onClick={() => setIsDesktopSidebarOpen(!isDesktopSidebarOpen)}
+            className="btn btn-square btn-ghost hover:bg-slate-100 transition-all duration-300"
+            aria-label="toggle sidebar"
+          >
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              viewBox="0 0 24 24" 
+              strokeLinejoin="round" 
+              strokeLinecap="round" 
+              strokeWidth="2" 
+              fill="none" 
+              stroke="currentColor" 
+              className={`inline-block size-6 transition-transform duration-300 ${!isDesktopSidebarOpen ? 'rotate-180' : ''}`}
+              style={{ color: '#1e293b' }}
+            >
+              <path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"></path>
+              <path d="M9 4v16"></path>
+              <path d="M14 10l2 2l-2 2"></path>
+            </svg>
+          </button>
+        </div>
 
         {isLoading ? (
           <SidebarSkeleton />
@@ -496,14 +482,11 @@ const refreshAdminProfileInBackground = async () => {
                 <Home size={20} className="shrink-0" />
                 {isDesktopSidebarOpen && <span className="font-bold text-[15px] whitespace-nowrap">หน้าแรก</span>}
               </Link>
-            
               <Link href="/manage" className={getMenuClass("/manage")} >
                 <Mail size={20} className="shrink-0" />
                 {isDesktopSidebarOpen && <span className="font-bold text-[15px] whitespace-nowrap">จัดการ Email</span>}
               </Link>
-            
-
-
+              
               {hasAccess(["admin", "editor", "editor_manage_case"]) && (
                 <Link href="/manage-case" className={getMenuClass("/manage-case")} >
                   <Briefcase size={20} className="shrink-0" />
@@ -543,6 +526,14 @@ const refreshAdminProfileInBackground = async () => {
                 <Link href="/manage-file-search" className={getMenuClass("/manage-file-search")}>
                   <FolderSearch size={20} className="shrink-0" />
                   {isDesktopSidebarOpen && <span className="font-bold text-[15px] whitespace-nowrap">จัดการไฟล์ FAQ</span>}
+                </Link>
+              )}
+
+              
+              {hasAccess(["admin", "editor", "editor_reset_otp"]) && (
+                <Link href="/reset-otp" className={getMenuClass("/reset-otp")}>
+                  <ShieldCheck size={20} className="shrink-0" />
+                  {isDesktopSidebarOpen && <span className="font-bold text-[15px] whitespace-nowrap">Reset OTP</span>}
                 </Link>
               )}
             </nav>

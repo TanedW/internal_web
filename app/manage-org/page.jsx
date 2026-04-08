@@ -13,7 +13,7 @@ import {
  MoveVertical, Type,
  Clock, Edit3, RefreshCw, FileText, ArrowRight, Filter, MoreVertical, Activity, Settings2,
  History, Eye, UserCircle2 
-} from "lucide-react";
+ } from "lucide-react";
 
 // Mock Data
 const TIMELINE_DATA = [
@@ -53,7 +53,7 @@ export default function ManageOrgPage() {
  const [isSearching, setIsSearching] = useState(false);
  const [searchId, setSearchId] = useState("");
  const [cases, setCases] = useState([]); 
- const [orgId, setOrgId] = useState("");                    
+ const [orgId, setOrgId] = useState("");                       
  const [orgName, setOrgName] = useState("");
  const [logoPreview, setLogoPreview] = useState(null);
  const [qrReportUrl, setQrReportUrl] = useState("");
@@ -107,6 +107,14 @@ export default function ManageOrgPage() {
  const uploadApiUrl = process.env.NEXT_PUBLIC_FILE_UPLOAD_API_URL;
  const STORAGE_BASE_URL = "https://storage.googleapis.com/traffy_public_bucket/";
 
+ const scrollToEdit = () => {
+    setShowMobileEditPanel(true);
+    setShowMobileTimeline(false);
+    setTimeout(() => {
+        editPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+ };
+
  const combinedPhotoHistory = useMemo(() => {
    const history = [...PHOTO_HISTORY_DATA];
    if (logoPreview) {
@@ -116,31 +124,40 @@ export default function ManageOrgPage() {
    return history;
  }, [logoPreview]);
 
- // Sync Scroll States
+ const handleScrollCheck = (ref, setPosState) => {
+    if (ref.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = ref.current;
+      const maxScroll = scrollWidth - clientWidth;
+      
+      setPosState({
+        left: scrollLeft <= 40, 
+        right: scrollLeft >= maxScroll - 40 || maxScroll <= 5
+      });
+    }
+  };
+
  useEffect(() => {
   if (staffScrollRef.current) {
     staffScrollRef.current.scrollLeft = 0;
-    setTimeout(() => handleScrollCheck(staffScrollRef, setStaffScrollPos), 150);
+    setStaffScrollPos({ left: true, right: false }); 
+    const timer = setTimeout(() => handleScrollCheck(staffScrollRef, setStaffScrollPos), 200);
+    return () => clearTimeout(timer);
   }
  }, [orgId, cases]);
 
  useEffect(() => {
   if (qrScrollRef.current) {
     qrScrollRef.current.scrollLeft = 0;
-    setTimeout(() => handleScrollCheck(qrScrollRef, setQrScrollPos), 150);
+    setQrScrollPos({ left: true, right: false }); 
+    const timer = setTimeout(() => handleScrollCheck(qrScrollRef, setQrScrollPos), 200);
+    return () => clearTimeout(timer);
   }
  }, [orgId, qrList]);
+
 const fetchOrgData = async (targetId = "") => {
     const sanitizedQuery = targetId.trim().replace(/[^\u0E00-\u0E7Fa-zA-Z0-9\s]/g, "");
     if (!sanitizedQuery) return;
-    
     setIsSearching(true);
-
-    if (!orgId) { 
-        setOrgId(""); 
-        setShowMobileEditPanel(false);
-        setShowMobileTimeline(false); 
-    }
 
     try {
       const res = await fetch(`${API_URL_ORG}?q=${encodeURIComponent(sanitizedQuery)}`);
@@ -183,19 +200,9 @@ const fetchOrgData = async (targetId = "") => {
 
  const filteredCases = useMemo(() => orgId ? cases.filter(item => item.org_id === orgId) : cases, [cases, orgId]);
 
- const handleScrollCheck = (ref, setPosState) => {
-    if (ref.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = ref.current;
-      setPosState({
-        left: scrollLeft <= 10,
-        right: scrollLeft + clientWidth >= scrollWidth - 10
-      });
-    }
-  };
-
  const scrollStaff = (direction) => {
    if (staffScrollRef.current) {
-     const scrollAmount = staffScrollRef.current.offsetWidth;
+     const scrollAmount = staffScrollRef.current.offsetWidth * 0.8;
      staffScrollRef.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
      setTimeout(() => handleScrollCheck(staffScrollRef, setStaffScrollPos), 500);
    }
@@ -203,7 +210,7 @@ const fetchOrgData = async (targetId = "") => {
 
  const scrollQr = (direction) => {
    if (qrScrollRef.current) {
-     const scrollAmount = qrScrollRef.current.offsetWidth;
+     const scrollAmount = qrScrollRef.current.offsetWidth * 0.8;
      qrScrollRef.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
      setTimeout(() => handleScrollCheck(qrScrollRef, setQrScrollPos), 500);
    }
@@ -268,7 +275,6 @@ const fetchOrgData = async (targetId = "") => {
    } finally {
      setIsSearching(false);
    }
-   await fetchOrgData(searchId, true);
  };
 
  const handleDelete = async () => {
@@ -326,7 +332,6 @@ const fetchOrgData = async (targetId = "") => {
        { id: 3, url: qrReportUrl, label: "QR จุดคัดกรอง" }
      ]);
    } else { setQrList([]); }
-   setQrScrollPos({ left: true, right: false });
  }, [qrReportUrl]);
 
  const TimelineComponent = () => (
@@ -355,7 +360,7 @@ const fetchOrgData = async (targetId = "") => {
          ))}
        </div>
      </div>
-     <div className="px-6 pb-6 relative z-10 max-h-[450px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300">
+     <div className="px-6 pb-6 relative z-10 max-h-[450px] overflow-y-auto scrollbar-hide">
        <div className="absolute left-[39px] top-4 bottom-12 w-[2px] bg-slate-100 z-0 rounded-full"></div>
        <div className="space-y-4 pt-2">
          {TIMELINE_DATA.map((item) => {
@@ -409,7 +414,8 @@ const fetchOrgData = async (targetId = "") => {
                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-20"><Search className="text-indigo-600" size={18} /></div>
                  <input type="text" className="input input-bordered w-full h-14 pl-11 pr-4 bg-white text-slate-900 rounded-2xl border-slate-200 focus:border-black shadow-sm outline-none font-bold transition-all" placeholder="ค้นหาชื่อ, ชื่อย่อ หรือ ID หน่วยงาน..." value={searchId} onChange={(e) => setSearchId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchOrgData(searchId)} />
                </div>
-                <button onClick={() => fetchOrgData(searchId)} className="btn h-12 sm:h-14 px-8 sm:px-10 !bg-black !text-white !font-bold !rounded-2xl hover:!bg-slate-800 border-none shrink-0 transition-all shadow-lg active:scale-95 text-sm sm:text-base">
+                {/* แก้ไขปุ่ม: เพิ่ม flex items-center justify-center */}
+                <button onClick={() => fetchOrgData(searchId)} className="btn h-12 sm:h-14 px-8 sm:px-10 !bg-black !text-white !font-bold !rounded-2xl hover:!bg-slate-800 border-none shrink-0 transition-all shadow-lg active:scale-95 text-sm sm:text-base flex items-center justify-center">
                  {isSearching ? <Loader2 className="animate-spin" size={18} /> : "ค้นหา"}
                </button>
              </div>
@@ -452,7 +458,7 @@ const fetchOrgData = async (targetId = "") => {
                      <button onClick={() => showMobileEditPanel ? setShowMobileEditPanel(false) : scrollToEdit()} className={`btn h-16 rounded-2xl border-none shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-xs font-black uppercase tracking-tight ${showMobileEditPanel ? 'bg-indigo-700 text-white' : 'bg-white text-slate-900 border-2 border-slate-100'}`}>
                        <Settings2 size={16} /> {showMobileEditPanel ? 'ปิดการจัดการ' : 'จัดการข้อมูล'}
                      </button>
-                     <button onClick={() => setShowMobileTimeline(!showMobileTimeline)} className={`btn h-16 rounded-2xl border-none shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-xs font-black uppercase tracking-tight ${showMobileTimeline ? 'bg-black text-white' : 'bg-white text-slate-900 border-2 border-slate-100'}`}>
+                     <button onClick={() => { setShowMobileTimeline(!showMobileTimeline); setShowMobileEditPanel(false); }} className={`btn h-16 rounded-2xl border-none shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-xs font-black uppercase tracking-tight ${showMobileTimeline ? 'bg-black text-white' : 'bg-white text-slate-900 border-2 border-slate-100'}`}>
                        <History size={16} /> {showMobileTimeline ? 'ปิดไทม์ไลน์' : 'ดูไทม์ไลน์'}
                      </button>
                  </div>
@@ -486,7 +492,7 @@ const fetchOrgData = async (targetId = "") => {
                                 </div>
                               )}
                              </div>
-                                                                         
+                                                                           
                             <div className="relative w-full">
                               <div className="flex justify-between items-end mb-2 px-1">
                                 <label className="text-xs font-bold text-slate-600 uppercase tracking-widest pb-1">ชื่อหน่วยงานเต็ม</label>
@@ -494,10 +500,8 @@ const fetchOrgData = async (targetId = "") => {
 
                               <div className="flex items-center gap-3 w-full">
                                <div className="relative flex-1 group">
-                                {/* Tooltip คลุม Input ทั้งหมด */}
-                                <div className={`tooltip tooltip-bottom before:max-w-[300px] w-full ${!orgName ? 'before:hidden' : ''}`} data-tip={orgName}>
+                                 <div className={`tooltip tooltip-bottom before:max-w-[300px] w-full ${!orgName ? 'before:hidden' : ''}`} data-tip={orgName}>
                                   <div className="relative w-full">
-                                  
                                     <input
                                       type="text"
                                       value={orgName}
@@ -505,10 +509,9 @@ const fetchOrgData = async (targetId = "") => {
                                       className="input input-bordered w-full rounded-2xl font-bold bg-white text-slate-900 border-slate-200 focus:border-black transition-all text-base shadow-sm h-14 px-5 pr-[115px] relative z-10"placeholder="ระบุชื่อหน่วยงาน..."
                                     />
                                   </div>
-                                </div>
+                                 </div>
 
-                                {/* ส่วนปุ่ม History และ Copy ด้านขวา */}
-                                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 z-20 bg-white/80 backdrop-blur-sm pl-2 rounded-r-2xl">
+                                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 z-20 bg-white/80 backdrop-blur-sm pl-2 rounded-r-2xl">
                                   <div className="relative flex items-center">
                                     <button
                                       type="button"
@@ -553,7 +556,7 @@ const fetchOrgData = async (targetId = "") => {
                                     <button type="button" onClick={() => copyToClipboard(orgName)} className="w-10 h-10 text-slate-400 hover:bg-slate-100 hover:text-indigo-600 rounded-xl flex items-center justify-center transition-all active:scale-95"><Copy size={20} /></button>
                                   </div>
                                 </div>
-                                <button type="button" onClick={() => setUpdateModal({ show: true, type: "name", title: "ชื่อหน่วยงาน", newValue: orgName, reason: "" })} className="btn h-14 w-14 bg-black text-white rounded-2xl border-none shadow-md hover:scale-105 transition-all flex items-center justify-center shrink-0"><Save size={20} /></button>
+                                 <button type="button" onClick={() => setUpdateModal({ show: true, type: "name", title: "ชื่อหน่วยงาน", newValue: orgName, reason: "" })} className="btn h-14 w-14 bg-black text-white rounded-2xl border-none shadow-md hover:scale-105 transition-all flex items-center justify-center shrink-0"><Save size={20} /></button>
                               </div>
 
                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
@@ -576,7 +579,6 @@ const fetchOrgData = async (targetId = "") => {
                          </div>
                      </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* 1. การส่งออก CSV */}
                       <div className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-sm border-2 border-white flex items-center justify-between hover:border-slate-200 transition-all">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-green-50 text-green-600 rounded-xl flex items-center justify-center border border-green-100 shrink-0">
@@ -588,7 +590,6 @@ const fetchOrgData = async (targetId = "") => {
                           </div>
                         </div>
                         
-                        {/* Custom Toggle Switch */}
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input 
                         type="checkbox" 
@@ -606,7 +607,6 @@ const fetchOrgData = async (targetId = "") => {
                     </label>
                       </div>
 
-                      {/* 2. Official Account */}
                       <div className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-sm border-2 border-white flex items-center justify-between hover:border-slate-200 transition-all">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-100 shrink-0">
@@ -618,7 +618,6 @@ const fetchOrgData = async (targetId = "") => {
                           </div>
                         </div>
 
-                        {/* Custom Toggle Switch (Blue) */}
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input 
                             type="checkbox" 
@@ -676,7 +675,7 @@ const fetchOrgData = async (targetId = "") => {
                             </div>
                           ))}
                         </div>
-                        {!staffScrollPos.right && (
+                        {!staffScrollPos.right && (cases.find((c) => c.org_id === orgId)?.members?.length || 0) > 1 && (
                           <button onClick={() => scrollStaff('right')} className="absolute -right-6 top-1/2 -translate-y-1/2 z-30 w-14 h-14 bg-white border-2 border-slate-100 rounded-full shadow-2xl flex items-center justify-center text-slate-700 hover:bg-black hover:text-white active:scale-90 transition-all duration-300">
                             <ChevronRight size={28} strokeWidth={3} />
                           </button>
@@ -725,7 +724,7 @@ const fetchOrgData = async (targetId = "") => {
                                   </div>
                                   <div className="flex w-full gap-4 justify-center mt-auto">
                                     <button onClick={() => { setGalleryMode('qr'); setActiveQrInfo(qr); setQrReportUrl(qr.url); setShowQrModal(true); }} className="w-12 h-12 bg-white text-slate-900 border-2 border-slate-100 rounded-2xl flex items-center justify-center transition-all hover:border-black hover:scale-105 active:scale-90 shadow-sm" title="ดูรูปขยาย"><Maximize2 size={20} strokeWidth={2.5} /></button>
-                                    <button onClick={() => handleEditExistingQr(qr)} className="w-12 h-12 bg-white text-slate-900 border-2 border-slate-100 rounded-2xl flex items-center justify-center transition-all hover:border-black hover:scale-105 active:scale-90 shadow-sm" title="แก้ไข"><PencilLine size={20} strokeWidth={2.5} /></button>
+                                    <button onClick={() => alert('Feature coming soon')} className="w-12 h-12 bg-white text-slate-900 border-2 border-slate-100 rounded-2xl flex items-center justify-center transition-all hover:border-black hover:scale-105 active:scale-90 shadow-sm" title="แก้ไข"><PencilLine size={20} strokeWidth={2.5} /></button>
                                   </div>
                                 </div>
                               )) : (
@@ -735,7 +734,7 @@ const fetchOrgData = async (targetId = "") => {
                               </div>
                             )}
                           </div>
-                          {!qrScrollPos.right && (
+                          {!qrScrollPos.right && qrList.length > 1 && (
                             <button onClick={() => scrollQr('right')} className="absolute -right-6 top-1/2 -translate-y-1/2 z-30 w-14 h-14 bg-white border-2 border-slate-100 rounded-full shadow-2xl flex items-center justify-center text-slate-700 hover:bg-indigo-600 hover:text-white active:scale-90 transition-all duration-300">
                               <ChevronRight size={28} strokeWidth={3} />
                             </button>
@@ -747,16 +746,17 @@ const fetchOrgData = async (targetId = "") => {
                      {cases.find(c => c.org_id === orgId)?.is_deleted ? (
                          <button 
                          onClick={() => setUpdateModal({ show: true, type: 'restore', title: 'กู้คืนหน่วยงาน', newValue: true, reason: "" })} 
-                         className="flex-1 btn h-14 sm:h-16 !rounded-2xl sm:!rounded-[2rem] !bg-[#00945e] hover:!bg-[#007a4d] !text-white !border-none font-bold shadow-xl transition-all active:scale-95 uppercase tracking-widest text-xs sm:text-sm"
+                         className="flex-1 btn h-14 sm:h-16 !rounded-full !bg-[#00945e] hover:!bg-[#007a4d] !text-white !border-none font-black shadow-xl transition-all active:scale-95 uppercase tracking-widest text-xs sm:text-base w-full"
                          >
-                         <RefreshCcw size={18} className={`sm:w-5 sm:h-5 ${isSearching ? "animate-spin" : ""}`} /> กู้คืนหน่วยงาน
+                         <RefreshCcw size={20} className={`sm:w-5 sm:h-5 ${isSearching ? "animate-spin" : ""}`} /> กู้คืนหน่วยงาน
                          </button>
                      ) : (
                          <button 
                          onClick={() => setShowDeleteModal(true)} 
-                         className="flex-1 btn h-14 sm:h-16 flex items-center justify-center gap-2 !rounded-2xl sm:!rounded-[2rem] !bg-rose-600 hover:!bg-rose-700 !text-white !border-none font-bold shadow-xl transition-all active:scale-95 uppercase tracking-widest text-xs sm:text-sm"
+                         className="btn w-full h-12 sm:h-14 !bg-[#e11d48] hover:!bg-[#be123c] !text-white !rounded-full !border-none font-bold text-base sm:text-lg shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 tracking-wide"
                          >
-                         <Trash2 size={18} className="sm:w-5 sm:h-5" /> ลบหน่วยงาน
+                         <Trash2 size={20} strokeWidth={2.5} />
+                         <span>ลบหน่วยงาน</span>
                          </button>
                      )}
                      </div>
@@ -784,7 +784,7 @@ const fetchOrgData = async (targetId = "") => {
              {galleryMode === 'qr' ? (
                 qrReportUrl ? <img src={qrReportUrl} className="max-w-full max-h-full object-contain transition-all duration-700" alt="Preview" /> : <QrCode size={100} className="text-slate-600" />
              ) : (
-                combinedPhotoHistory[currentPhotoIndex]?.url ? <img src={combinedPhotoHistory[currentPhotoIndex].url} className="max-w-full max-h-full object-contain transition-all duration-700 p-20" alt="Preview" /> : <ImageIcon size={100} className="text-slate-600" />
+               combinedPhotoHistory[currentPhotoIndex]?.url ? <img src={combinedPhotoHistory[currentPhotoIndex].url} className="max-w-full max-h-full object-contain transition-all duration-700 p-20" alt="Preview" /> : <ImageIcon size={100} className="text-slate-600" />
              )}
              {galleryMode === 'logo' && combinedPhotoHistory.length > 1 && (
                <>
@@ -904,7 +904,7 @@ const fetchOrgData = async (targetId = "") => {
             </div>
 
             <div className="flex-1 flex flex-col min-h-0 w-full md:w-[420px] bg-white overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-thin scrollbar-thumb-slate-300">
+              <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide">
                 <div className="pr-10"><h3 className="font-black text-2xl text-slate-900 tracking-tighter leading-none mb-1">QR Creator</h3><p className="text-xs text-slate-500 font-bold uppercase tracking-widest">ออกแบบใบแจ้งเหตุ</p></div>
 
                 <div className="space-y-3">
@@ -959,7 +959,6 @@ const fetchOrgData = async (targetId = "") => {
   <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
     <div className="bg-white w-full max-w-md rounded-[3rem] p-10 border-2 border-white shadow-2xl animate-in zoom-in duration-300 relative overflow-hidden">
       
-      {/* --- ส่วน Loading Overlay กลาง Modal --- */}
       {isSearching && (
         <div className="absolute inset-0 z-[100] bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center animate-in fade-in duration-200">
           <div className="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 flex flex-col items-center gap-4">
@@ -969,7 +968,6 @@ const fetchOrgData = async (targetId = "") => {
         </div>
       )}
 
-      {/* ปุ่มปิด (X) */}
       {!isSearching && (
         <button 
           onClick={() => setUpdateModal({ show: false, type: "", title: "", newValue: null, reason: "" })} 
@@ -979,7 +977,6 @@ const fetchOrgData = async (targetId = "") => {
         </button>
       )}
 
-      {/* เนื้อหา Modal */}
       <div className={`transition-all duration-300 ${isSearching ? 'blur-sm grayscale' : ''}`}>
         <div className={`w-20 h-20 ${updateModal.type === 'restore' ? 'bg-indigo-50 text-indigo-600' : 'bg-blue-50 text-blue-600'} rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner border border-slate-100`}>
           <AlertCircle size={40} />
