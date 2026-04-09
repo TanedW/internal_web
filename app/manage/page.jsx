@@ -245,7 +245,7 @@ const canModifyMembers = canDelete;
                   <input 
                     type="text" 
                     placeholder="ค้นหาสมาชิก..." 
-                    className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm font-medium text-sm"
+                    className="w-full pl-10 pr-4 py-3 bg-white border border-slate-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm font-semibold text-sm text-slate-900 placeholder:text-slate-500 placeholder:opacity-100 appearance-none"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -257,18 +257,20 @@ const canModifyMembers = canDelete;
             <h1 className="text-xl font-bold text-slate-900">รายชื่อผู้ติดต่อ</h1>
             <div className="mt-3 flex gap-3 items-center">
                 <div className="relative flex-1 group">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                        <Search className="h-4 w-4 text-slate-500" />
-                    </div>
-                    <input 
-                        type="text"
-                        className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm font-medium text-sm"
-                        placeholder="ค้นหา..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                      <Search className="h-4 w-4 text-slate-500" />
+                  </div>
+                  <input 
+                    type="text"
+                    className="w-full pl-10 pr-4 py-3 bg-white border border-slate-400 rounded-xl 
+                              focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 
+                              transition-all shadow-sm font-semibold text-sm text-slate-900
+                              placeholder:text-slate-600 placeholder:opacity-100 appearance-none"
+                    placeholder="ค้นหา..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
                 <button 
                     onClick={() => {
                         setEditingAdmin(null);
