@@ -26,7 +26,7 @@ const SuccessModal = ({ show, onClose }) => {
         <p className="text-slate-500 text-sm md:text-base font-medium mb-6">ปลดล็อกระบบ OTP เรียบร้อยแล้ว</p>
         <button 
           onClick={onClose}
-          className="w-full py-3.5 bg-[#0F172A] text-white rounded-xl font-bold hover:bg-black transition-all active:scale-[0.98]"
+          className="w-full py-3.5 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all active:scale-[0.98]"
         >
           ตกลง
         </button>

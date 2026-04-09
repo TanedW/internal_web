@@ -9,6 +9,7 @@ const ROLE_PERMISSIONS = {
   '/manage-rich-menu': ["admin", "editor", "editor_manage_menu"],
   '/search-org': ["admin", "editor", "editor_search_duplicate_org"],
   '/manage-file-search': ["admin", "editor", "editor_file_search"],
+  '/reset-otp': ["admin", "editor", "editor_reset_otp"],
 };
 
 export async function proxy(request) {
@@ -89,5 +90,6 @@ export const config = {
     '/manage-rich-menu/:path',
     '/search-org/:path',
     '/manage-file-search/:path',
+    '/reset-otp/:path',
   ],
 };
