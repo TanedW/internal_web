@@ -16,7 +16,7 @@ import {
   MessageSquareCode,
   Search,
   FolderSearch,
-  ShieldCheck
+  TimerReset
 } from "lucide-react";
 
 // --- Firebase Configuration ---
@@ -92,7 +92,7 @@ export const SIDEBAR_MENUS = [
   { title: "จัดการ Flex Message", href: "/manage-flex-message", icon: <MessageSquareCode size={20} />, roles: ["admin", "editor", "editor_manage_flex"] },
   { title: "ค้นหาหน่วยงานซ้ำ", href: "/search-org", icon: <Search size={20} />, roles: ["admin", "editor", "editor_search_duplicate_org"] },
   { title: "จัดการไฟล์ FAQ", href: "/manage-file-search", icon: <FolderSearch size={20} />, roles: ["admin", "editor", "editor_file_search"] },
-  { title: "Reset OTP", href: "/reset-otp", icon: <ShieldCheck size={20} />, roles: ["admin", "editor", "editor_reset_otp"] },
+  { title: "Reset OTP", href: "/reset-otp", icon: <TimerReset size={20} />, roles: ["admin", "editor", "editor_reset_otp"] },
 ];
 export default function Sidebar({
   isDesktopSidebarOpen,
@@ -424,7 +424,7 @@ const refreshAdminProfileInBackground = async () => {
                   {/* เพิ่มเมนู Reset OTP (Mobile) */}
                   {hasAccess(["admin", "editor", "editor_reset_otp"]) && (
                     <Link href="/reset-otp" className={getMenuClass("/reset-otp")} onClick={() => setIsMobileMenuOpen(false)}>
-                      <ShieldCheck size={20} /> <span className="text-[15px] font-bold">Reset OTP</span>
+                      <TimerReset size={20} /> <span className="text-[15px] font-bold">Reset OTP</span>
                     </Link>
                   )}
                 </nav>
@@ -532,7 +532,7 @@ const refreshAdminProfileInBackground = async () => {
               
               {hasAccess(["admin", "editor", "editor_reset_otp"]) && (
                 <Link href="/reset-otp" className={getMenuClass("/reset-otp")}>
-                  <ShieldCheck size={20} className="shrink-0" />
+                  <TimerReset size={20} className="shrink-0" />
                   {isDesktopSidebarOpen && <span className="font-bold text-[15px] whitespace-nowrap">Reset OTP</span>}
                 </Link>
               )}
