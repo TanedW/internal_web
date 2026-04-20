@@ -256,22 +256,81 @@ const handleToggleHideImage = async (imgId, currentStatus) => {
     }
   };
 
-  const handleUpdateImage = async () => {
-    if (!selectedImageToReplace || !newImageFile || !reason.trim()) return;
+// ปรับปรุงฟังก์ชันใน page.jsx
+const handleUpdateImage = async () => {
+    // 1. ตรวจสอบความพร้อมของข้อมูล
+    if (!selectedImageToReplace || !newImageFile || !reason.trim()) {
+        alert("กรุณาเลือกรูปที่ต้องการแทนที่ อัปโหลดไฟล์ใหม่ และระบุเหตุผลให้ครบถ้วน");
+        return;
+    }
+
     setIsSubmitting(true);
+
     try {
+        // --- STEP 1: อัปโหลดไฟล์ใหม่ไปยัง Cloud Storage ---
+        // แปลงไฟล์เป็น Base64 เพื่อส่งไปยัง File Upload API
         const base64String = await fileToBase64(newImageFile);
-        const payload = { folder_path: `attachment/case_${currentCase.id}`, image: base64String };
-        const response = await fetch(process.env.NEXT_PUBLIC_FILE_UPLOAD_API_URL, {
+        const uploadPayload = { 
+            folder_path: `attachment/case_${currentCase.id}`, 
+            image: base64String 
+        };
+
+        const uploadResponse = await fetch(process.env.NEXT_PUBLIC_FILE_UPLOAD_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload), 
+            body: JSON.stringify(uploadPayload),
         });
-        const result = await response.json();
-        if (response.ok) { setIsSuccess(true); }
-    } catch (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); }
-    finally { setIsSubmitting(false); }
-  };
+
+        const uploadResult = await uploadResponse.json();
+
+        if (!uploadResponse.ok) {
+            throw new Error(uploadResult.message || "Failed to upload file to storage");
+        }
+
+        // --- STEP 2: ดึง Link รูปภาพที่อัปโหลดสำเร็จ ---
+        // สำคัญ: อิงตาม Response จริงที่คุณส่งมา ต้องใช้ชื่อ 'photo_link'
+        const newFileUrl = uploadResult.photo_link; 
+
+        if (!newFileUrl) {
+            throw new Error("ไม่ได้รับ photo_link จากระบบฝากไฟล์");
+        }
+
+        // --- STEP 3: ส่งข้อมูลไปที่ Manage Case API (POST) เพื่อ Overwrite แถวเดิมใน DB ---
+        const adminId = localStorage.getItem("current_admin_id")?.replace(/['"]+/g, '') || "unknown_admin";
+
+        const dbPayload = {
+            current_admin_id: adminId,
+            photo_id: selectedImageToReplace.id,      // ID เดิมใน voice_attachment ที่จะถูกเขียนทับ
+            file_url: newFileUrl,       
+            old_url: selectedImageToReplace.url, // *** ส่ง URL เก่าที่มีอยู่ใน State ไปด้วย ***              // URL ใหม่ที่ได้จาก Step 2
+            description: reason,                      // เหตุผลจากขั้นตอนที่ 3
+            is_cover: selectedImageToReplace.isCover, // คงสถานะหน้าปก (ถ้าเดิมเป็นปก อันใหม่ก็เป็นปก)
+            viewed: 0,                                // รีเซ็ตยอดเข้าดูสำหรับไฟล์ใหม่
+            is_hidden: false                          // ให้แสดงผลทันทีหลังแทนที่
+        };
+
+        const dbResponse = await fetch(`${process.env.NEXT_PUBLIC_DB_MANAGE_CASE_API_URL}?id=${currentCase.dbId}`, {
+            method: 'POST', // Backend ของเราตั้ง Logic POST ไว้สำหรับการ Overwrite
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dbPayload)
+        });
+
+        const dbResult = await dbResponse.json();
+
+        if (dbResponse.ok) {
+            // บันทึกสำเร็จ: เปลี่ยนหน้า UI ไปที่หน้า Success (เครื่องหมายถูกสีเขียว)
+            setIsSuccess(true);
+        } else {
+            throw new Error(dbResult.message || "Failed to update database");
+        }
+
+    } catch (error) {
+        console.error("Update Process Error:", error);
+        alert(`เกิดข้อผิดพลาด: ${error.message}`);
+    } finally {
+        setIsSubmitting(false);
+    }
+};
 
   const resetForm = () => {
     setSearchId(""); setCurrentCase(null); setNewImageFile(null);
