@@ -295,13 +295,25 @@ const handleUpdateImage = async () => {
             throw new Error("ไม่ได้รับ photo_link จากระบบฝากไฟล์");
         }
 
+
+
+        // --- STEP 2: ดึง Link รูปภาพที่อัปโหลดสำเร็จ ---
+        const fullFileUrl = uploadResult.photo_link; 
+
+        if (!fullFileUrl) {
+            throw new Error("ไม่ได้รับ photo_link จากระบบฝากไฟล์");
+        }
+
+        
+        const cleanFileUrl = fullFileUrl.replace(STORAGE_BASE_URL, "");
+
         // --- STEP 3: ส่งข้อมูลไปที่ Manage Case API (POST) เพื่อ Overwrite แถวเดิมใน DB ---
         const adminId = localStorage.getItem("current_admin_id")?.replace(/['"]+/g, '') || "unknown_admin";
 
         const dbPayload = {
             current_admin_id: adminId,
             photo_id: selectedImageToReplace.id,      // ID เดิมใน voice_attachment ที่จะถูกเขียนทับ
-            file_url: newFileUrl,       
+            file_url: cleanFileUrl,     
             old_url: selectedImageToReplace.url, // *** ส่ง URL เก่าที่มีอยู่ใน State ไปด้วย ***              // URL ใหม่ที่ได้จาก Step 2
             description: reason,                      // เหตุผลจากขั้นตอนที่ 3
             is_cover: selectedImageToReplace.isCover, // คงสถานะหน้าปก (ถ้าเดิมเป็นปก อันใหม่ก็เป็นปก)
