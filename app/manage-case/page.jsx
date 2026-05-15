@@ -307,7 +307,7 @@ const handleUpdateImage = async () => {
         
         const cleanFileUrl = fullFileUrl.replace(STORAGE_BASE_URL, "");
 
-        // --- STEP 3: ส่งข้อมูลไปที่ Manage Case API (POST) เพื่อ Overwrite แถวเดิมใน DB ---
+        // --- STEP 3: ส่งข้อมูลไปที่ Manage Case API (PUT) เพื่อ Overwrite แถวเดิมใน DB ---
         const adminId = localStorage.getItem("current_admin_id")?.replace(/['"]+/g, '') || "unknown_admin";
 
         const dbPayload = {
@@ -322,7 +322,7 @@ const handleUpdateImage = async () => {
         };
 
         const dbResponse = await fetch(`${process.env.NEXT_PUBLIC_DB_MANAGE_CASE_API_URL}?id=${currentCase.dbId}`, {
-            method: 'POST', // Backend ของเราตั้ง Logic POST ไว้สำหรับการ Overwrite
+            method: 'PUT', // Backend ของเราตั้ง Logic PUT ไว้สำหรับการ Overwrite
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(dbPayload)
         });
