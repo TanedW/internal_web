@@ -61,15 +61,17 @@ const fileToBase64 = (file) => {
 };
 
 const getMediaTypeFromFile = (file) => {
-    if (!file) return 'unknown';
+    if (!file) return 2; // Default เป็นไฟล์ทั่วไปถ้าไม่มีข้อมูล
     const fileName = file.name || (typeof file === 'string' ? file : (file.url || file.photo || ""));
-    if (!fileName || typeof fileName !== 'string' || !fileName.includes('.')) return 'unknown';
+    if (!fileName || typeof fileName !== 'string' || !fileName.includes('.')) return 2;
+    
     const extension = fileName.split('.').pop().toLowerCase();
     const mimeType = MIME_TYPE_MAP[extension] || file.type || "";
-    if (mimeType.startsWith('image/')) return 'image';
-    if (mimeType.startsWith('video/')) return 'video';
-    if (mimeType.startsWith('audio/')) return 'audio';
-    return 'file';
+    
+    if (mimeType.startsWith('image/')) return 0; // 0 = ไม่มีหรือเป็นภาพ
+    if (mimeType.startsWith('video/')) return 1; // 1 = วิดีโอ
+    if (mimeType.startsWith('audio/')) return 3; // 3 = เสียง
+    return 2;                                    // 2 = ไฟล์ (เช่น .csv, .pdf, .docx)
 };
 
 const getFileStyle = (ext) => {
@@ -109,15 +111,22 @@ const FilePreviewRender = ({ file }) => {
     const style = getFileStyle(extension);
 
     switch (type) {
-        case 'image': return <img src={previewUrl} className="w-full h-full object-cover" alt="Preview" />;
-        case 'video': return <video src={previewUrl} className="w-full h-full object-cover" muted />;
-        default: return (
-            <div className={`w-full h-full flex flex-col items-center justify-center ${style.bg} p-4`}>
-                <FileText size={48} className={style.text} />
-                <span className={`text-xs font-bold uppercase mt-2 ${style.text}`}>.{extension || 'file'}</span>
+    case 0: return <img src={previewUrl} className="w-full h-full object-cover" alt="Preview" />;
+    case 1: return <video src={previewUrl} className="w-full h-full object-cover" muted />;
+    case 3: // 💡 เพิ่มเคสเสียง (Audio) ตรงนี้
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-amber-50 p-4">
+                <Music size={48} className="text-amber-500 mb-2" />
+                <audio src={previewUrl} controls className="w-full max-w-[240px] h-8 scale-90" />
             </div>
         );
-    }
+    default: return ( // เคส 2 (ไฟล์) และ 3 (เสียง) หรืออื่นๆ ให้แสดงเป็นไอคอนไฟล์
+        <div className={`w-full h-full flex flex-col items-center justify-center ${style.bg} p-4`}>
+            <FileText size={48} className={style.text} />
+            <span className={`text-xs font-bold uppercase mt-2 ${style.text}`}>.{extension || 'file'}</span>
+        </div>
+    );
+}
 };
 
 export default function ManageCase() {
@@ -182,7 +191,8 @@ const handleSearch = async (e, manualId = null) => {
                         const isCover = item.is_cover === true || item.is_cover === "true" || item.is_cover === 1; 
                         allImagesCombined.push({
                             id: item.id, 
-                            mediaType: getMediaTypeFromFile(item.photo), 
+                            // 💡 แก้ไขจุดนี้: ดึงค่า item.viewed จากฐานข้อมูลมาใช้เป็น mediaType ได้เลย ไม่ต้องสั่งคำนวณซ้ำ
+                            mediaType: item.viewed !== undefined ? Number(item.viewed) : 0, 
                             url: item.photo, 
                             status: item.is_hidden ? 'hidden' : 'active', 
                             isCover: isCover,
@@ -309,7 +319,12 @@ const handleUpdateImage = async () => {
 
         // --- STEP 3: ส่งข้อมูลไปที่ Manage Case API (PUT) เพื่อ Overwrite แถวเดิมใน DB ---
         const adminId = localStorage.getItem("current_admin_id")?.replace(/['"]+/g, '') || "unknown_admin";
+        const calculatedMediaType = getMediaTypeFromFile(newImageFile);
 
+        // 💡 เพิ่มบรรทัดนี้เพื่อดูว่าหน้าบ้านคำนวณได้เลขอะไร และไฟล์ที่ส่งเข้ามาคืออะไร
+        // console.log("Debug File:", newImageFile);
+        // console.log("Calculated Media Type:", calculatedMediaType);
+        
         const dbPayload = {
             current_admin_id: adminId,
             photo_id: selectedImageToReplace.id,      // ID เดิมใน voice_attachment ที่จะถูกเขียนทับ
@@ -317,7 +332,7 @@ const handleUpdateImage = async () => {
             old_url: selectedImageToReplace.url, // *** ส่ง URL เก่าที่มีอยู่ใน State ไปด้วย ***              // URL ใหม่ที่ได้จาก Step 2
             description: reason,                      // เหตุผลจากขั้นตอนที่ 3
             is_cover: selectedImageToReplace.isCover, // คงสถานะหน้าปก (ถ้าเดิมเป็นปก อันใหม่ก็เป็นปก)
-            viewed: 0,                                // รีเซ็ตยอดเข้าดูสำหรับไฟล์ใหม่
+            viewed: calculatedMediaType || 0,          
             is_hidden: false                          // ให้แสดงผลทันทีหลังแทนที่
         };
 
