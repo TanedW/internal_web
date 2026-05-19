@@ -4591,214 +4591,122 @@ export default function RichMenuDashboard() {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* ✅ จัดการลำดับการแสดงผลเมนู (ปรับ UI ตามภาพต้นแบบ) */}
-      {/* ========================================================================= */}
-      <section
-        id="hierarchy-section"
-        className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8"
-      >
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h2 className="text-[20px] font-black text-slate-900 flex items-center gap-2 m-0 tracking-tight">
-              <Users size={22} className="text-[#06C755]" />{" "}
-              จัดการลำดับการแสดงผลเมนู
-            </h2>
-            <p className="text-xs text-slate-500 mt-1">
-              กำหนดว่าใครจะเห็นเมนูไหน โดยแบ่งความสำคัญเป็น 3 ระดับ (Level 1 ถึง
-              3)
-            </p>
-          </div>
-        </div>
-
-        <div className="relative">
-          {/* Connecting Line (แสดงผลบน Desktop) */}
-          <div className="absolute left-[34px] top-6 bottom-4 w-0.5 bg-slate-100 z-0 hidden md:block"></div>
-
-          {/* ── LEVEL 1: DEFAULT MENU ── */}
-          <div className="mb-10 relative z-10">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-[10px] font-black px-3 py-1 rounded-full bg-slate-100 text-slate-600 uppercase tracking-widest border border-slate-200">
-                Level 1
-              </span>
-              <h3 className="font-bold text-slate-800 text-sm">เมนูเริ่มต้น</h3>
-              <span className="text-xs text-slate-400 hidden md:inline">
-                — แสดงเมื่อผู้ใช้ยังไม่ระบุพิกัด และไม่มีสิทธิ์พิเศษ
-              </span>
+      {/* ==================== MANAGE USERS MODAL ==================== */}
+      {usersModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setUsersModal(null)}
+          />
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col max-h-[88vh] overflow-hidden z-10">
+            <div className="p-5 border-b border-gray-100 flex justify-between items-start bg-slate-50/60">
+              <div>
+                <div className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full inline-flex items-center gap-1 mb-2">
+                  <MapPin size={9} /> {usersModal.name}
+                </div>
+                <h2 className="text-lg font-black text-gray-900">
+                  จัดการ Users
+                </h2>
+              </div>
+              <button
+                onClick={() => setUsersModal(null)}
+                className="p-2 bg-white border border-gray-200 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X size={16} />
+              </button>
             </div>
-
-            <div className="md:ml-[68px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row gap-6 items-center shadow-sm">
-              <div className="w-full sm:w-40 aspect-[16/9] bg-slate-100 rounded-xl overflow-hidden shrink-0">
-                <img
-                  src={defaultMenu.image_url}
-                  className="w-full h-full object-cover"
-                  alt="default"
+            <div className="p-4 border-b border-gray-100 bg-white">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                เพิ่ม User
+              </p>
+              <div className="flex gap-2">
+                <input
+                  value={newUserId}
+                  onChange={(e) => setNewUserId(e.target.value)}
+                  placeholder="LINE userId (Uxxxxxxxxxx)"
+                  className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-mono outline-none focus:bg-white focus:border-blue-400 transition-colors"
                 />
-              </div>
-              <div className="flex-1 w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <div className="font-bold text-slate-800">
-                    {defaultMenu.name}
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-mono">
-                    ID: {defaultMenu.richMenuId}
-                  </div>
-                  <div className="text-xs text-slate-500 mt-2 bg-slate-50 p-2 rounded-lg">
-                    เมนูนี้จะถูกแสดงเป็นค่าเริ่มต้นสำหรับผู้ใช้ทุกคนที่ยังไม่มีการจัดกลุ่ม
-                    (Tag)
-                  </div>
-                </div>
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <button
-                    onClick={() => openManageUsers(defaultMenu.richMenuId)}
-                    className="flex-1 sm:flex-none px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-center gap-2"
-                  >
-                    <Users size={14} /> ดูรายชื่อผู้ใช้งาน (0)
-                  </button>
-                  <button
-                    onClick={() => openMenuSelector("default")}
-                    className="flex-1 sm:flex-none px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-center gap-2"
-                  >
-                    <ArrowRightLeft size={14} /> เปลี่ยนเมนู
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ── LEVEL 2: PROVINCE/TAGS ── */}
-          <div className="mb-10 relative z-10">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <div className="flex items-center gap-3">
-                <span className="text-[10px] font-black px-3 py-1 rounded-full bg-blue-50 text-blue-600 uppercase tracking-widest border border-blue-100">
-                  Level 2
-                </span>
-                <h3 className="font-bold text-slate-800 text-sm">แยกตาม Tag</h3>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Search
-                    size={14}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                  />
-                  <input
-                    type="text"
-                    placeholder="ค้นหาพื้นที่ หรือ Tag..."
-                    value={tagSearchQuery}
-                    onChange={(e) => setTagSearchQuery(e.target.value)}
-                    className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs w-full sm:w-64 outline-none focus:bg-white"
-                  />
-                </div>
-                <button className="text-xs font-bold text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-xl border border-blue-100 flex items-center gap-1">
-                  <Plus size={14} /> เพิ่ม Tag
+                <input
+                  value={newUserDisplayName}
+                  onChange={(e) => setNewUserDisplayName(e.target.value)}
+                  placeholder="ชื่อ (ไม่บังคับ)"
+                  className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-xs outline-none focus:bg-white focus:border-blue-400 transition-colors w-28"
+                />
+                <button
+                  onClick={handleAddSegmentUser}
+                  disabled={!newUserId.trim() || addingUser}
+                  className="bg-slate-900 hover:bg-slate-700 disabled:bg-slate-200 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center gap-1"
+                >
+                  {addingUser ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <Plus size={13} />
+                  )}
+                  เพิ่ม
                 </button>
               </div>
             </div>
-
-            <div className="md:ml-[68px] grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {provinces.map((prov) =>
-                prov.mappings.map((mapping) => {
-                  const menuObj = getMenu(mapping.richMenuId);
-                  return (
-                    <div
-                      key={mapping.id}
-                      className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row gap-4 shadow-sm hover:border-blue-200 transition-all"
-                    >
-                      <div className="w-full sm:w-24 aspect-[16/9] bg-slate-100 rounded-xl overflow-hidden shrink-0">
-                        <img
-                          src={menuObj.image_url}
-                          className="w-full h-full object-cover"
-                          alt="menu"
-                        />
+            <div className="flex-1 overflow-y-auto p-4 bg-[#F8FAFC] space-y-2">
+              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+                รายชื่อ ({segmentUsers.length} คน)
+              </div>
+              {segmentUsersLoading ? (
+                <div className="flex justify-center items-center py-12">
+                  <Loader2 className="animate-spin text-blue-500" />
+                </div>
+              ) : segmentUsers.length === 0 ? (
+                <div className="text-center py-12 bg-white rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 text-sm">
+                  ยังไม่มี user ใน segment นี้
+                </div>
+              ) : (
+                segmentUsers.map((u) => (
+                  <div
+                    key={u.id}
+                    className="flex items-center justify-between p-3.5 rounded-xl bg-white shadow-sm border border-transparent hover:border-gray-200 transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center font-bold text-sm text-gray-500">
+                        {(u.display_name || u.line_user_id || "?")
+                          .charAt(0)
+                          .toUpperCase()}
                       </div>
-                      <div className="flex-1 flex flex-col justify-between gap-3">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="text-sm font-black text-slate-800">
-                              {menuObj.name}
-                            </div>
-                            <div className="text-[10px] text-slate-500 font-bold mt-0.5 flex items-center gap-1">
-                              <MapPin size={10} /> จังหวัด: {prov.name}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-lg font-black text-slate-700 leading-none">
-                              {mapping.userCount.toLocaleString()}
-                            </div>
-                            <div className="text-[9px] text-slate-400 uppercase font-bold tracking-widest">
-                              Users
-                            </div>
-                          </div>
+                      <div>
+                        <div className="text-sm font-bold text-gray-700">
+                          {u.display_name || (
+                            <span className="text-gray-400 italic text-xs">
+                              ไม่ทราบชื่อ
+                            </span>
+                          )}
                         </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => openManageUsers(mapping.richMenuId)}
-                            className="flex-1 py-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600"
-                          >
-                            ดูรายชื่อผู้ใช้งาน (0)
-                          </button>
-                          <button
-                            onClick={() =>
-                              openMenuSelector("mapping", prov.id, mapping.id)
-                            }
-                            className="flex-1 py-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600"
-                          >
-                            เปลี่ยนเมนู
-                          </button>
+                        <div className="text-[10px] text-gray-400 font-mono">
+                          {u.line_user_id}
+                          <span className="bg-gray-200 text-gray-600 px-1.5 rounded ml-1.5">
+                            {u.source}
+                          </span>
                         </div>
                       </div>
                     </div>
-                  );
-                }),
+                    <button
+                      onClick={() => handleRemoveSegmentUser(u.line_user_id)}
+                      className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))
               )}
             </div>
-          </div>
-
-          {/* ── LEVEL 3: OVERRIDE ── */}
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <span className="text-[10px] font-black px-3 py-1 rounded-full bg-rose-50 text-rose-600 uppercase tracking-widest border border-rose-100">
-                  Level 3
-                </span>
-                <h3 className="font-bold text-slate-800 text-sm">
-                  บังคับสิทธิ์รายบุคคล
-                </h3>
-              </div>
+            <div className="p-4 border-t border-gray-100 bg-white">
               <button
-                onClick={() => openManageUsers("GLOBAL")}
-                className="text-xs font-bold text-rose-600 hover:bg-rose-50 px-4 py-2 rounded-xl border border-rose-100 flex items-center gap-1.5"
+                onClick={() => setUsersModal(null)}
+                className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold"
               >
-                <Settings size={14} /> จัดการรายชื่อทั้งหมด
+                ปิด
               </button>
-            </div>
-
-            <div className="md:ml-[68px] bg-rose-50/50 border border-rose-100 rounded-2xl p-5 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-white rounded-full flex justify-center items-center text-rose-500 border border-rose-100 shadow-sm">
-                  <ShieldAlert size={20} />
-                </div>
-                <div>
-                  <div className="font-bold text-slate-800 text-sm">
-                    รายชื่อที่ถูกบังคับสิทธิ์ทั้งหมด
-                  </div>
-                  <div className="text-[11px] text-slate-500 mt-0.5">
-                    ปัจจุบันมีผู้ใช้{" "}
-                    <strong className="text-rose-600">
-                      {specificUsers.length} คน
-                    </strong>{" "}
-                    ที่ถูกตั้งค่าให้อยู่ในระดับนี้
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white rounded-xl px-4 py-2 text-xs font-bold text-slate-500 border border-slate-200">
-                สลับดูรายชื่อ →
-              </div>
             </div>
           </div>
         </div>
-      </section>
+      )}
     </div>
   );
 }
