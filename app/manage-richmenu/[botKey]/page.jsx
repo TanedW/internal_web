@@ -133,11 +133,12 @@ const TEMPLATES = [
   },
 ];
 
-
 // ── AvatarStack: แสดง avatar ตาม user count ──
-const AvatarStack = ({ count = 0, accent = '#3B82F6' }) => {
+const AvatarStack = ({ count = 0, accent = "#3B82F6" }) => {
   if (count === 0)
-    return <span className="text-[11px] text-gray-400 italic">ยังไม่มี user</span>;
+    return (
+      <span className="text-[11px] text-gray-400 italic">ยังไม่มี user</span>
+    );
   return (
     <div className="flex items-center gap-1.5">
       <div className="flex">
@@ -145,7 +146,11 @@ const AvatarStack = ({ count = 0, accent = '#3B82F6' }) => {
           <div
             key={i}
             className="w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold shadow-sm"
-            style={{ background: accent, color: '#fff', marginLeft: i > 0 ? -8 : 0 }}
+            style={{
+              background: accent,
+              color: "#fff",
+              marginLeft: i > 0 ? -8 : 0,
+            }}
           >
             U
           </div>
@@ -222,7 +227,7 @@ export default function RichMenuDashboard() {
   const [selectedJsonData, setSelectedJsonData] = useState(null);
 
   // --- ✅ Segment State ---
-  const [segmentSearch, setSegmentSearch] = useState('');
+  const [segmentSearch, setSegmentSearch] = useState("");
   const [segments, setSegments] = useState([]);
   const [expandedSegmentId, setExpandedSegmentId] = useState(null);
   const [segmentFormModal, setSegmentFormModal] = useState(null); // null | { mode:'create'|'edit', data? }
@@ -231,8 +236,8 @@ export default function RichMenuDashboard() {
   const [segmentUsers, setSegmentUsers] = useState([]);
   const [segmentUsersLoading, setSegmentUsersLoading] = useState(false);
   const [segmentMenus, setSegmentMenus] = useState({}); // { [segId]: [{id,rich_menu_id,rich_menu_name,...}] }
-  const [addMenuModal, setAddMenuModal] = useState(null);   // segment | null
-  const [addMenuSelectedId, setAddMenuSelectedId] = useState('');
+  const [addMenuModal, setAddMenuModal] = useState(null); // segment | null
+  const [addMenuSelectedId, setAddMenuSelectedId] = useState("");
   const [addingMenu, setAddingMenu] = useState(false);
   const [newUserId, setNewUserId] = useState("");
   const [newUserDisplayName, setNewUserDisplayName] = useState("");
@@ -635,8 +640,8 @@ export default function RichMenuDashboard() {
       }));
 
       const res = await fetch(`${API}?action=assign_segment_menu`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           segmentId: segId,
           richMenuId: addMenuSelectedId,
@@ -649,7 +654,7 @@ export default function RichMenuDashboard() {
       const data = await res.json();
       if (data.success) {
         setAddMenuModal(null);
-        setAddMenuSelectedId('');
+        setAddMenuSelectedId("");
         // sync ข้อมูลจริงจาก server (รวม id จริงของ entry ใหม่)
         await fetchSegmentUsers(segId);
         fetchSegments();
@@ -659,7 +664,7 @@ export default function RichMenuDashboard() {
           ...prev,
           [segId]: (prev[segId] || []).filter((m) => m.id !== tempEntry.id),
         }));
-        alert(data.error || 'เกิดข้อผิดพลาด');
+        alert(data.error || "เกิดข้อผิดพลาด");
       }
     } finally {
       setAddingMenu(false);
@@ -668,13 +673,13 @@ export default function RichMenuDashboard() {
 
   async function handleRemoveSegmentMenu(seg, menuEntryId) {
     const confirmed = await Swal.fire({
-      title: 'ลบเมนูนี้ออกจากพื้นที่?',
-      text: 'เมนูจะถูกถอดออกจากกลุ่มนี้',
-      icon: 'warning',
+      title: "ลบเมนูนี้ออกจากพื้นที่?",
+      text: "เมนูจะถูกถอดออกจากกลุ่มนี้",
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonText: 'ลบ',
-      cancelButtonText: 'ยกเลิก',
-      confirmButtonColor: '#EF4444',
+      confirmButtonText: "ลบ",
+      cancelButtonText: "ยกเลิก",
+      confirmButtonColor: "#EF4444",
     });
     if (!confirmed.isConfirmed) return;
     const segId = seg.id;
@@ -685,9 +690,14 @@ export default function RichMenuDashboard() {
     }));
     try {
       await fetch(`${API}?action=remove_segment_menu`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ segmentId: segId, menuEntryId, botKey: decodeURIComponent(botKey), adminEmail: user?.email }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          segmentId: segId,
+          menuEntryId,
+          botKey: decodeURIComponent(botKey),
+          adminEmail: user?.email,
+        }),
       });
       fetchSegments(); // อัพเดท badge count
     } catch {
@@ -3914,13 +3924,20 @@ export default function RichMenuDashboard() {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
                   <h2 className="text-[20px] font-black text-slate-900 flex items-center gap-2 m-0 tracking-tight">
-                    <Users size={22} className="text-[#06C755]" /> จัดการลำดับการแสดงผลเมนู
+                    <Users size={22} className="text-[#06C755]" />{" "}
+                    จัดการลำดับการแสดงผลเมนู
                   </h2>
-                  <p className="text-xs text-slate-500 mt-1">กำหนดว่าใครจะเห็นเมนูไหน โดยแบ่งความสำคัญเป็น 3 ระดับ (Level 1 ถึง 3)</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    กำหนดว่าใครจะเห็นเมนูไหน โดยแบ่งความสำคัญเป็น 3 ระดับ (Level
+                    1 ถึง 3)
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1 sm:w-48">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Search
+                      size={14}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
                     <input
                       type="text"
                       placeholder="ค้นหาพื้นที่..."
@@ -3931,8 +3948,12 @@ export default function RichMenuDashboard() {
                   </div>
                   <button
                     onClick={() => {
-                      setSegmentForm({ name: '', description: '', is_default: false });
-                      setSegmentFormModal({ mode: 'create' });
+                      setSegmentForm({
+                        name: "",
+                        description: "",
+                        is_default: false,
+                      });
+                      setSegmentFormModal({ mode: "create" });
                     }}
                     className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors bg-blue-50 px-3 py-2 rounded-xl border border-blue-100 shadow-sm shrink-0"
                   >
@@ -3944,31 +3965,67 @@ export default function RichMenuDashboard() {
               {/* ── Body ── */}
               {(() => {
                 const PROV_PALETTE = [
-                  { accent: '#3B82F6', light: '#EFF6FF', badge: '#DBEAFE', badgeText: '#1D4ED8', ring: 'rgba(59,130,246,0.12)' },
-                  { accent: '#8B5CF6', light: '#F5F3FF', badge: '#EDE9FE', badgeText: '#5B21B6', ring: 'rgba(139,92,246,0.12)' },
-                  { accent: '#06C755', light: '#F0FFF4', badge: '#DCFCE7', badgeText: '#166534', ring: 'rgba(6,199,85,0.12)' },
-                  { accent: '#F59E0B', light: '#FFFBEB', badge: '#FEF3C7', badgeText: '#92400E', ring: 'rgba(245,158,11,0.12)' },
-                  { accent: '#EF4444', light: '#FEF2F2', badge: '#FEE2E2', badgeText: '#991B1B', ring: 'rgba(239,68,68,0.12)' },
+                  {
+                    accent: "#3B82F6",
+                    light: "#EFF6FF",
+                    badge: "#DBEAFE",
+                    badgeText: "#1D4ED8",
+                    ring: "rgba(59,130,246,0.12)",
+                  },
+                  {
+                    accent: "#8B5CF6",
+                    light: "#F5F3FF",
+                    badge: "#EDE9FE",
+                    badgeText: "#5B21B6",
+                    ring: "rgba(139,92,246,0.12)",
+                  },
+                  {
+                    accent: "#06C755",
+                    light: "#F0FFF4",
+                    badge: "#DCFCE7",
+                    badgeText: "#166534",
+                    ring: "rgba(6,199,85,0.12)",
+                  },
+                  {
+                    accent: "#F59E0B",
+                    light: "#FFFBEB",
+                    badge: "#FEF3C7",
+                    badgeText: "#92400E",
+                    ring: "rgba(245,158,11,0.12)",
+                  },
+                  {
+                    accent: "#EF4444",
+                    light: "#FEF2F2",
+                    badge: "#FEE2E2",
+                    badgeText: "#991B1B",
+                    ring: "rgba(239,68,68,0.12)",
+                  },
                 ];
 
                 const filtered = segments.filter((s) =>
-                  s.name.toLowerCase().includes(segmentSearch.toLowerCase())
+                  s.name.toLowerCase().includes(segmentSearch.toLowerCase()),
                 );
 
-                if (segments.length === 0) return (
-                  <div className="py-16 text-center bg-white rounded-2xl border-2 border-dashed border-slate-200 text-slate-400">
-                    <Users size={32} className="mx-auto mb-3 opacity-30" />
-                    <p className="font-bold text-slate-600">ยังไม่มีการตั้งค่าพื้นที่</p>
-                    <p className="text-sm mt-1">กดปุ่ม "เพิ่มพื้นที่" เพื่อเริ่มต้น</p>
-                  </div>
-                );
+                if (segments.length === 0)
+                  return (
+                    <div className="py-16 text-center bg-white rounded-2xl border-2 border-dashed border-slate-200 text-slate-400">
+                      <Users size={32} className="mx-auto mb-3 opacity-30" />
+                      <p className="font-bold text-slate-600">
+                        ยังไม่มีการตั้งค่าพื้นที่
+                      </p>
+                      <p className="text-sm mt-1">
+                        กดปุ่ม "เพิ่มพื้นที่" เพื่อเริ่มต้น
+                      </p>
+                    </div>
+                  );
 
-                if (filtered.length === 0) return (
-                  <div className="py-12 text-center text-slate-400">
-                    <Search size={28} className="mx-auto mb-3 opacity-30" />
-                    <p className="font-bold">ไม่พบพื้นที่ที่ค้นหา</p>
-                  </div>
-                );
+                if (filtered.length === 0)
+                  return (
+                    <div className="py-12 text-center text-slate-400">
+                      <Search size={28} className="mx-auto mb-3 opacity-30" />
+                      <p className="font-bold">ไม่พบพื้นที่ที่ค้นหา</p>
+                    </div>
+                  );
 
                 return (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -3976,33 +4033,48 @@ export default function RichMenuDashboard() {
                       const pal = PROV_PALETTE[segIdx % PROV_PALETTE.length];
                       // รายการเมนูทั้งหมดของ segment นี้
                       const segMenuList = segmentMenus[seg.id];
-                      const displayMenus = segMenuList !== undefined
-                        ? segMenuList
-                        : (seg.active_rich_menu_id
-                            ? [{ id: null, rich_menu_id: seg.active_rich_menu_id, rich_menu_name: seg.active_rich_menu_name, is_active: true }]
-                            : []);
+                      const displayMenus =
+                        segMenuList !== undefined
+                          ? segMenuList
+                          : seg.active_rich_menu_id
+                            ? [
+                                {
+                                  id: null,
+                                  rich_menu_id: seg.active_rich_menu_id,
+                                  rich_menu_name: seg.active_rich_menu_name,
+                                  is_active: true,
+                                },
+                              ]
+                            : [];
                       // เมนูแรก (active) สำหรับแสดงรูปหลักของการ์ด
                       const primaryEntry = displayMenus[0] || null;
                       const primaryImgSrc = primaryEntry
-                        ? (menus.find((m) => m.richMenuId === primaryEntry.rich_menu_id)?.image_url
-                            || `${API}?action=image&botKey=${encodeURIComponent(botKey)}&menuId=${primaryEntry.rich_menu_id}`)
+                        ? menus.find(
+                            (m) => m.richMenuId === primaryEntry.rich_menu_id,
+                          )?.image_url ||
+                          `${API}?action=image&botKey=${encodeURIComponent(botKey)}&menuId=${primaryEntry.rich_menu_id}`
                         : null;
-                      const menuCount = segmentMenus[seg.id] !== undefined
-                        ? segmentMenus[seg.id].length
-                        : (seg.active_menu_count ?? (seg.active_rich_menu_name ? 1 : 0));
+                      const menuCount =
+                        segmentMenus[seg.id] !== undefined
+                          ? segmentMenus[seg.id].length
+                          : (seg.active_menu_count ??
+                            (seg.active_rich_menu_name ? 1 : 0));
 
                       return (
                         <div
                           key={seg.id}
                           className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm flex flex-col"
-                          style={{ transition: 'border-color 0.2s, box-shadow 0.2s' }}
+                          style={{
+                            transition: "border-color 0.2s, box-shadow 0.2s",
+                          }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = pal.accent + '80';
+                            e.currentTarget.style.borderColor =
+                              pal.accent + "80";
                             e.currentTarget.style.boxShadow = `0 4px 20px ${pal.ring}`;
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = '#E2E8F0';
-                            e.currentTarget.style.boxShadow = '';
+                            e.currentTarget.style.borderColor = "#E2E8F0";
+                            e.currentTarget.style.boxShadow = "";
                           }}
                         >
                           {/* ── รูปเมนูหลัก (Banner) ── */}
@@ -4012,12 +4084,22 @@ export default function RichMenuDashboard() {
                                 src={primaryImgSrc}
                                 alt={primaryEntry?.rich_menu_name || seg.name}
                                 className="w-full h-full object-cover group-hover/img:scale-[1.02] transition-transform duration-500"
-                                onError={(e) => { e.target.style.display = 'none'; }}
+                                onError={(e) => {
+                                  e.target.style.display = "none";
+                                }}
                               />
                             ) : (
-                              <div className="w-full h-full flex flex-col items-center justify-center gap-2" style={{ color: pal.accent + '80' }}>
+                              <div
+                                className="w-full h-full flex flex-col items-center justify-center gap-2"
+                                style={{ color: pal.accent + "80" }}
+                              >
                                 <ImageIcon size={32} />
-                                <span className="text-xs font-bold" style={{ color: pal.accent }}>ยังไม่มีเมนู</span>
+                                <span
+                                  className="text-xs font-bold"
+                                  style={{ color: pal.accent }}
+                                >
+                                  ยังไม่มีเมนู
+                                </span>
                               </div>
                             )}
 
@@ -4026,24 +4108,29 @@ export default function RichMenuDashboard() {
                               className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-all flex items-center justify-center cursor-pointer"
                               onClick={() => {
                                 if (primaryEntry) {
-                                  setAssignSelectedMenuId(primaryEntry.rich_menu_id);
+                                  setAssignSelectedMenuId(
+                                    primaryEntry.rich_menu_id,
+                                  );
                                   setAssignMenuModal(seg);
                                 } else {
-                                  setAddMenuSelectedId('');
+                                  setAddMenuSelectedId("");
                                   setAddMenuModal(seg);
                                 }
                               }}
                             >
                               <div className="bg-white text-slate-800 px-4 py-2.5 rounded-xl text-sm font-bold shadow-xl opacity-0 hover:opacity-100 transform translate-y-2 hover:translate-y-0 transition-all flex items-center gap-2">
                                 <ArrowRightLeft size={15} />
-                                {primaryEntry ? 'เปลี่ยนเมนู' : 'เพิ่มเมนู'}
+                                {primaryEntry ? "เปลี่ยนเมนู" : "เพิ่มเมนู"}
                               </div>
                             </div>
 
                             {/* Badge: จำนวนเมนู */}
                             <div
                               className="absolute top-2 right-2 flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full shadow-sm"
-                              style={{ background: pal.badge, color: pal.badgeText }}
+                              style={{
+                                background: pal.badge,
+                                color: pal.badgeText,
+                              }}
                             >
                               <LayoutGrid size={10} /> {menuCount} เมนู
                             </div>
@@ -4052,7 +4139,10 @@ export default function RichMenuDashboard() {
                             {seg.is_default && (
                               <div
                                 className="absolute top-2 left-2 flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full shadow-sm uppercase tracking-widest"
-                                style={{ background: pal.accent, color: '#fff' }}
+                                style={{
+                                  background: pal.accent,
+                                  color: "#fff",
+                                }}
                               >
                                 Default
                               </div>
@@ -4060,26 +4150,40 @@ export default function RichMenuDashboard() {
                           </div>
 
                           {/* ── ข้อมูลหลักของการ์ด ── */}
-                          <div className="p-5 flex-1 flex flex-col" style={{ background: '#F8FAFC' }}>
+                          <div
+                            className="p-5 flex-1 flex flex-col"
+                            style={{ background: "#F8FAFC" }}
+                          >
                             {/* ชื่อพื้นที่ + user count */}
                             <div className="flex justify-between items-start mb-3">
                               <div className="flex items-center gap-2 min-w-0">
                                 <div
                                   className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                                  style={{ background: pal.light, color: pal.accent }}
+                                  style={{
+                                    background: pal.light,
+                                    color: pal.accent,
+                                  }}
                                 >
                                   <MapPin size={15} strokeWidth={2.5} />
                                 </div>
                                 <div className="min-w-0">
-                                  <div className="font-black text-slate-900 text-base truncate">{seg.name}</div>
+                                  <div className="font-black text-slate-900 text-base truncate">
+                                    {seg.name}
+                                  </div>
                                   {seg.description && (
-                                    <p className="text-[11px] text-slate-400 truncate mt-0.5">{seg.description}</p>
+                                    <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                                      {seg.description}
+                                    </p>
                                   )}
                                 </div>
                               </div>
                               <div className="text-right shrink-0 ml-3">
-                                <div className="text-xl font-black text-slate-700 leading-none">{(seg.user_count ?? 0).toLocaleString()}</div>
-                                <div className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mt-0.5">Users</div>
+                                <div className="text-xl font-black text-slate-700 leading-none">
+                                  {(seg.user_count ?? 0).toLocaleString()}
+                                </div>
+                                <div className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mt-0.5">
+                                  Users
+                                </div>
                               </div>
                             </div>
 
@@ -4090,7 +4194,11 @@ export default function RichMenuDashboard() {
                                   <span
                                     key={entry.id || entry.rich_menu_id}
                                     className="text-[10px] font-bold px-2 py-0.5 rounded-full border"
-                                    style={{ background: pal.light, color: pal.accent, borderColor: pal.accent + '40' }}
+                                    style={{
+                                      background: pal.light,
+                                      color: pal.accent,
+                                      borderColor: pal.accent + "40",
+                                    }}
                                   >
                                     {entry.rich_menu_name || entry.rich_menu_id}
                                   </span>
@@ -4101,17 +4209,29 @@ export default function RichMenuDashboard() {
                             {/* ── Action buttons ── */}
                             <div className="mt-auto pt-4 border-t border-slate-200 flex flex-row gap-2">
                               <button
-                                onClick={() => { setUsersModal(seg); fetchSegmentUsers(seg.id); }}
+                                onClick={() => {
+                                  setUsersModal(seg);
+                                  fetchSegmentUsers(seg.id);
+                                }}
                                 className="flex-1 py-2.5 px-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
                               >
-                                <Users size={14} className="text-slate-400 shrink-0" />
+                                <Users
+                                  size={14}
+                                  className="text-slate-400 shrink-0"
+                                />
                                 จัดการ User ({seg.user_count ?? 0})
                               </button>
                               <button
-                                onClick={() => { setAddMenuSelectedId(''); setAddMenuModal(seg); }}
+                                onClick={() => {
+                                  setAddMenuSelectedId("");
+                                  setAddMenuModal(seg);
+                                }}
                                 className="flex-1 py-2.5 px-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
                               >
-                                <Plus size={14} className="text-slate-400 shrink-0" />
+                                <Plus
+                                  size={14}
+                                  className="text-slate-400 shrink-0"
+                                />
                                 เพิ่มเมนู
                               </button>
                               {/* เมนู kebab (แก้ไข/ลบ) */}
@@ -4121,7 +4241,17 @@ export default function RichMenuDashboard() {
                                 </button>
                                 <div className="absolute right-0 bottom-full mb-1 w-40 bg-white border border-slate-200 rounded-xl shadow-xl z-20 overflow-hidden hidden group-hover/menu:block">
                                   <button
-                                    onClick={() => { setSegmentForm({ name: seg.name, description: seg.description || '', is_default: seg.is_default }); setSegmentFormModal({ mode: 'edit', data: seg }); }}
+                                    onClick={() => {
+                                      setSegmentForm({
+                                        name: seg.name,
+                                        description: seg.description || "",
+                                        is_default: seg.is_default,
+                                      });
+                                      setSegmentFormModal({
+                                        mode: "edit",
+                                        data: seg,
+                                      });
+                                    }}
                                     className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-amber-700 hover:bg-amber-50 transition-colors"
                                   >
                                     <Pencil size={12} /> แก้ไขพื้นที่
@@ -4143,26 +4273,34 @@ export default function RichMenuDashboard() {
                 );
               })()}
             </section>
-
           </div>
         </div>
       </div>
 
-
       {/* ==================== ADD MENU MODAL ==================== */}
       {addMenuModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setAddMenuModal(null)} />
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setAddMenuModal(null)}
+          />
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col max-h-[88vh] overflow-hidden z-10">
             <div className="p-5 border-b border-gray-100 flex justify-between items-start bg-slate-50/60">
               <div>
                 <div className="text-[10px] font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded-full inline-flex items-center gap-1 mb-2">
                   <MapPin size={9} /> {addMenuModal.name}
                 </div>
-                <h2 className="text-lg font-black text-gray-900">เพิ่มเมนูสำหรับพื้นที่นี้</h2>
-                <p className="text-xs text-gray-400 mt-0.5">เลือกเมนูที่ต้องการเพิ่มเข้ากลุ่มนี้</p>
+                <h2 className="text-lg font-black text-gray-900">
+                  เพิ่มเมนูสำหรับพื้นที่นี้
+                </h2>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  เลือกเมนูที่ต้องการเพิ่มเข้ากลุ่มนี้
+                </p>
               </div>
-              <button onClick={() => setAddMenuModal(null)} className="p-2 bg-white border border-gray-200 hover:bg-gray-100 rounded-full transition-colors">
+              <button
+                onClick={() => setAddMenuModal(null)}
+                className="p-2 bg-white border border-gray-200 hover:bg-gray-100 rounded-full transition-colors"
+              >
                 <X size={16} />
               </button>
             </div>
@@ -4173,40 +4311,69 @@ export default function RichMenuDashboard() {
                 เลือกเมนู ({menus.length} รายการ)
               </div>
               {menus.length === 0 && (
-                <p className="text-center text-sm text-slate-400 py-8">ไม่มีเมนูในระบบ กรุณาอัปโหลดเมนูก่อน</p>
+                <p className="text-center text-sm text-slate-400 py-8">
+                  ไม่มีเมนูในระบบ กรุณาอัปโหลดเมนูก่อน
+                </p>
               )}
               {menus.map((menu) => {
                 const isSelected = menu.richMenuId === addMenuSelectedId;
-                const alreadyAdded = (segmentMenus[addMenuModal.id] || []).some((m) => m.rich_menu_id === menu.richMenuId);
+                const alreadyAdded = (segmentMenus[addMenuModal.id] || []).some(
+                  (m) => m.rich_menu_id === menu.richMenuId,
+                );
                 return (
                   <button
                     key={menu.richMenuId}
-                    onClick={() => !alreadyAdded && setAddMenuSelectedId(menu.richMenuId)}
+                    onClick={() =>
+                      !alreadyAdded && setAddMenuSelectedId(menu.richMenuId)
+                    }
                     disabled={alreadyAdded}
                     className={`w-full flex items-center gap-3 p-3.5 rounded-xl border-2 text-left transition-all ${
-                      alreadyAdded ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
-                      : isSelected ? 'border-green-400 bg-green-50/60 shadow-sm'
-                      : 'border-transparent hover:border-gray-200 bg-white shadow-sm'
+                      alreadyAdded
+                        ? "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
+                        : isSelected
+                          ? "border-green-400 bg-green-50/60 shadow-sm"
+                          : "border-transparent hover:border-gray-200 bg-white shadow-sm"
                     }`}
                   >
                     <div className="w-20 h-7 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
-                      {menu.image_url && <img src={menu.image_url} alt="" className="w-full h-full object-cover" />}
+                      {menu.image_url && (
+                        <img
+                          src={menu.image_url}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className={`text-sm font-bold truncate ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>{menu.name}</span>
-                        {alreadyAdded && <span className="text-[9px] px-1.5 py-0.5 bg-gray-200 text-gray-500 font-black rounded-full shrink-0">มีแล้ว</span>}
+                        <span
+                          className={`text-sm font-bold truncate ${isSelected ? "text-gray-900" : "text-gray-700"}`}
+                        >
+                          {menu.name}
+                        </span>
+                        {alreadyAdded && (
+                          <span className="text-[9px] px-1.5 py-0.5 bg-gray-200 text-gray-500 font-black rounded-full shrink-0">
+                            มีแล้ว
+                          </span>
+                        )}
                       </div>
-                      <p className="text-[10px] text-gray-400 font-mono truncate mt-0.5">{menu.richMenuId}</p>
+                      <p className="text-[10px] text-gray-400 font-mono truncate mt-0.5">
+                        {menu.richMenuId}
+                      </p>
                     </div>
-                    {isSelected && <Check size={16} className="text-green-500 shrink-0" />}
+                    {isSelected && (
+                      <Check size={16} className="text-green-500 shrink-0" />
+                    )}
                   </button>
                 );
               })}
             </div>
 
             <div className="p-5 border-t border-gray-100 bg-white flex gap-3">
-              <button onClick={() => setAddMenuModal(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-slate-600 font-bold text-sm hover:bg-gray-50 transition-all">
+              <button
+                onClick={() => setAddMenuModal(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-slate-600 font-bold text-sm hover:bg-gray-50 transition-all"
+              >
                 ยกเลิก
               </button>
               <button
@@ -4214,8 +4381,12 @@ export default function RichMenuDashboard() {
                 disabled={!addMenuSelectedId || addingMenu}
                 className="flex-1 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 disabled:bg-slate-200 text-white font-bold text-sm flex items-center justify-center gap-2 transition-all"
               >
-                {addingMenu ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-                {addingMenu ? 'กำลังเพิ่ม...' : 'เพิ่มเมนูนี้'}
+                {addingMenu ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <Plus size={15} />
+                )}
+                {addingMenu ? "กำลังเพิ่ม..." : "เพิ่มเมนูนี้"}
               </button>
             </div>
           </div>
@@ -4225,31 +4396,50 @@ export default function RichMenuDashboard() {
       {/* ==================== SEGMENT FORM MODAL ==================== */}
       {segmentFormModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setSegmentFormModal(null)} />
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setSegmentFormModal(null)}
+          />
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden z-10">
             <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-slate-50/60">
               <h2 className="text-lg font-black text-gray-900">
-                {segmentFormModal.mode === 'edit' ? 'แก้ไขพื้นที่' : 'เพิ่มพื้นที่ใหม่'}
+                {segmentFormModal.mode === "edit"
+                  ? "แก้ไขพื้นที่"
+                  : "เพิ่มพื้นที่ใหม่"}
               </h2>
-              <button onClick={() => setSegmentFormModal(null)} className="p-2 bg-white border border-gray-200 hover:bg-gray-100 rounded-full transition-colors">
+              <button
+                onClick={() => setSegmentFormModal(null)}
+                className="p-2 bg-white border border-gray-200 hover:bg-gray-100 rounded-full transition-colors"
+              >
                 <X size={16} />
               </button>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="text-[11px] font-bold text-slate-500 mb-1.5 block">ชื่อพื้นที่ / จังหวัด</label>
+                <label className="text-[11px] font-bold text-slate-500 mb-1.5 block">
+                  ชื่อพื้นที่ / จังหวัด
+                </label>
                 <input
                   value={segmentForm.name}
-                  onChange={(e) => setSegmentForm({ ...segmentForm, name: e.target.value })}
+                  onChange={(e) =>
+                    setSegmentForm({ ...segmentForm, name: e.target.value })
+                  }
                   placeholder="เช่น กรุงเทพ, เชียงใหม่, ยะลา"
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:bg-white focus:border-blue-400 transition-colors"
                 />
               </div>
               <div>
-                <label className="text-[11px] font-bold text-slate-500 mb-1.5 block">คำอธิบาย (ไม่บังคับ)</label>
+                <label className="text-[11px] font-bold text-slate-500 mb-1.5 block">
+                  คำอธิบาย (ไม่บังคับ)
+                </label>
                 <input
                   value={segmentForm.description}
-                  onChange={(e) => setSegmentForm({ ...segmentForm, description: e.target.value })}
+                  onChange={(e) =>
+                    setSegmentForm({
+                      ...segmentForm,
+                      description: e.target.value,
+                    })
+                  }
                   placeholder="อธิบายกลุ่มผู้ใช้งานนี้..."
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:bg-white focus:border-blue-400 transition-colors"
                 />
@@ -4258,18 +4448,30 @@ export default function RichMenuDashboard() {
                 <input
                   type="checkbox"
                   checked={segmentForm.is_default}
-                  onChange={(e) => setSegmentForm({ ...segmentForm, is_default: e.target.checked })}
+                  onChange={(e) =>
+                    setSegmentForm({
+                      ...segmentForm,
+                      is_default: e.target.checked,
+                    })
+                  }
                   className="w-5 h-5 cursor-pointer"
-                  style={{ accentColor: '#22C55E' }}
+                  style={{ accentColor: "#22C55E" }}
                 />
                 <div>
-                  <div className="text-sm font-bold text-slate-700">ตั้งเป็นกลุ่มเริ่มต้น (Default)</div>
-                  <div className="text-xs text-slate-400 mt-0.5">ผู้ใช้ที่ไม่ได้อยู่ในกลุ่มอื่น จะเห็น Rich Menu ของกลุ่มนี้</div>
+                  <div className="text-sm font-bold text-slate-700">
+                    ตั้งเป็นกลุ่มเริ่มต้น (Default)
+                  </div>
+                  <div className="text-xs text-slate-400 mt-0.5">
+                    ผู้ใช้ที่ไม่ได้อยู่ในกลุ่มอื่น จะเห็น Rich Menu ของกลุ่มนี้
+                  </div>
                 </div>
               </label>
             </div>
             <div className="p-5 border-t border-gray-100 flex gap-3">
-              <button onClick={() => setSegmentFormModal(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-slate-600 font-bold text-sm hover:bg-gray-50 transition-all">
+              <button
+                onClick={() => setSegmentFormModal(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-slate-600 font-bold text-sm hover:bg-gray-50 transition-all"
+              >
                 ยกเลิก
               </button>
               <button
@@ -4277,8 +4479,12 @@ export default function RichMenuDashboard() {
                 disabled={!segmentForm.name.trim() || savingSegment}
                 className="flex-1 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-700 disabled:bg-slate-200 text-white font-bold text-sm flex items-center justify-center gap-2 transition-all"
               >
-                {savingSegment ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={15} />}
-                {savingSegment ? 'กำลังบันทึก...' : 'บันทึก'}
+                {savingSegment ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <CheckCircle size={15} />
+                )}
+                {savingSegment ? "กำลังบันทึก..." : "บันทึก"}
               </button>
             </div>
           </div>
@@ -4288,16 +4494,24 @@ export default function RichMenuDashboard() {
       {/* ==================== ASSIGN MENU MODAL ==================== */}
       {assignMenuModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setAssignMenuModal(null)} />
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setAssignMenuModal(null)}
+          />
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col max-h-[88vh] overflow-hidden z-10">
             <div className="p-5 border-b border-gray-100 flex justify-between items-start bg-slate-50/60">
               <div>
                 <div className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full inline-flex items-center gap-1 mb-2">
                   <MapPin size={9} /> {assignMenuModal.name}
                 </div>
-                <h2 className="text-lg font-black text-gray-900">Assign เมนู</h2>
+                <h2 className="text-lg font-black text-gray-900">
+                  Assign เมนู
+                </h2>
               </div>
-              <button onClick={() => setAssignMenuModal(null)} className="p-2 bg-white border border-gray-200 hover:bg-gray-100 rounded-full transition-colors">
+              <button
+                onClick={() => setAssignMenuModal(null)}
+                className="p-2 bg-white border border-gray-200 hover:bg-gray-100 rounded-full transition-colors"
+              >
                 <X size={16} />
               </button>
             </div>
@@ -4306,34 +4520,58 @@ export default function RichMenuDashboard() {
                 เลือกเมนู ({menus.length} รายการ)
               </div>
               {menus.length === 0 && (
-                <p className="text-center text-sm text-slate-400 py-8">ไม่มีเมนูในระบบ กรุณาอัปโหลดเมนูก่อน</p>
+                <p className="text-center text-sm text-slate-400 py-8">
+                  ไม่มีเมนูในระบบ กรุณาอัปโหลดเมนูก่อน
+                </p>
               )}
               {menus.map((menu) => {
                 const isSelected = menu.richMenuId === assignSelectedMenuId;
-                const isCurrent = menu.richMenuId === assignMenuModal.active_rich_menu_id;
+                const isCurrent =
+                  menu.richMenuId === assignMenuModal.active_rich_menu_id;
                 return (
                   <button
                     key={menu.richMenuId}
                     onClick={() => setAssignSelectedMenuId(menu.richMenuId)}
-                    className={`w-full flex items-center gap-3 p-3.5 rounded-xl border-2 text-left transition-all ${isSelected ? 'border-blue-400 bg-blue-50/60 shadow-sm' : 'border-transparent hover:border-gray-200 bg-white shadow-sm'}`}
+                    className={`w-full flex items-center gap-3 p-3.5 rounded-xl border-2 text-left transition-all ${isSelected ? "border-blue-400 bg-blue-50/60 shadow-sm" : "border-transparent hover:border-gray-200 bg-white shadow-sm"}`}
                   >
                     <div className="w-20 h-7 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
-                      {menu.image_url && <img src={menu.image_url} alt="" className="w-full h-full object-cover" />}
+                      {menu.image_url && (
+                        <img
+                          src={menu.image_url}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className={`text-sm font-bold truncate ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>{menu.name}</span>
-                        {isCurrent && <span className="text-[9px] px-1.5 py-0.5 bg-green-100 text-green-700 font-black rounded-full shrink-0">ใช้อยู่</span>}
+                        <span
+                          className={`text-sm font-bold truncate ${isSelected ? "text-gray-900" : "text-gray-700"}`}
+                        >
+                          {menu.name}
+                        </span>
+                        {isCurrent && (
+                          <span className="text-[9px] px-1.5 py-0.5 bg-green-100 text-green-700 font-black rounded-full shrink-0">
+                            ใช้อยู่
+                          </span>
+                        )}
                       </div>
-                      <p className="text-[10px] text-gray-400 font-mono truncate mt-0.5">{menu.richMenuId}</p>
+                      <p className="text-[10px] text-gray-400 font-mono truncate mt-0.5">
+                        {menu.richMenuId}
+                      </p>
                     </div>
-                    {isSelected && <Check size={16} className="text-blue-500 shrink-0" />}
+                    {isSelected && (
+                      <Check size={16} className="text-blue-500 shrink-0" />
+                    )}
                   </button>
                 );
               })}
             </div>
             <div className="p-5 border-t border-gray-100 bg-white flex gap-3">
-              <button onClick={() => setAssignMenuModal(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-slate-600 font-bold text-sm hover:bg-gray-50 transition-all">
+              <button
+                onClick={() => setAssignMenuModal(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-slate-600 font-bold text-sm hover:bg-gray-50 transition-all"
+              >
                 ยกเลิก
               </button>
               <button
@@ -4341,105 +4579,226 @@ export default function RichMenuDashboard() {
                 disabled={!assignSelectedMenuId || assigningMenu}
                 className="flex-1 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-700 disabled:bg-slate-200 text-white font-bold text-sm flex items-center justify-center gap-2 transition-all"
               >
-                {assigningMenu ? <Loader2 size={15} className="animate-spin" /> : <ArrowRightLeft size={15} />}
-                {assigningMenu ? 'กำลัง Assign...' : 'Assign เมนูนี้'}
+                {assigningMenu ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <ArrowRightLeft size={15} />
+                )}
+                {assigningMenu ? "กำลัง Assign..." : "Assign เมนูนี้"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ==================== MANAGE USERS MODAL ==================== */}
-      {usersModal && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setUsersModal(null)} />
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col max-h-[88vh] overflow-hidden z-10">
-            <div className="p-5 border-b border-gray-100 flex justify-between items-start bg-slate-50/60">
-              <div>
-                <div className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full inline-flex items-center gap-1 mb-2">
-                  <MapPin size={9} /> {usersModal.name}
-                </div>
-                <h2 className="text-lg font-black text-gray-900">จัดการ Users</h2>
-              </div>
-              <button onClick={() => setUsersModal(null)} className="p-2 bg-white border border-gray-200 hover:bg-gray-100 rounded-full transition-colors">
-                <X size={16} />
-              </button>
+      {/* ========================================================================= */}
+      {/* ✅ จัดการลำดับการแสดงผลเมนู (ปรับ UI ตามภาพต้นแบบ) */}
+      {/* ========================================================================= */}
+      <section
+        id="hierarchy-section"
+        className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8"
+      >
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div>
+            <h2 className="text-[20px] font-black text-slate-900 flex items-center gap-2 m-0 tracking-tight">
+              <Users size={22} className="text-[#06C755]" />{" "}
+              จัดการลำดับการแสดงผลเมนู
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              กำหนดว่าใครจะเห็นเมนูไหน โดยแบ่งความสำคัญเป็น 3 ระดับ (Level 1 ถึง
+              3)
+            </p>
+          </div>
+        </div>
+
+        <div className="relative">
+          {/* Connecting Line (แสดงผลบน Desktop) */}
+          <div className="absolute left-[34px] top-6 bottom-4 w-0.5 bg-slate-100 z-0 hidden md:block"></div>
+
+          {/* ── LEVEL 1: DEFAULT MENU ── */}
+          <div className="mb-10 relative z-10">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-[10px] font-black px-3 py-1 rounded-full bg-slate-100 text-slate-600 uppercase tracking-widest border border-slate-200">
+                Level 1
+              </span>
+              <h3 className="font-bold text-slate-800 text-sm">เมนูเริ่มต้น</h3>
+              <span className="text-xs text-slate-400 hidden md:inline">
+                — แสดงเมื่อผู้ใช้ยังไม่ระบุพิกัด และไม่มีสิทธิ์พิเศษ
+              </span>
             </div>
-            <div className="p-4 border-b border-gray-100 bg-white">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">เพิ่ม User</p>
-              <div className="flex gap-2">
-                <input
-                  value={newUserId}
-                  onChange={(e) => setNewUserId(e.target.value)}
-                  placeholder="LINE userId (Uxxxxxxxxxx)"
-                  className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-mono outline-none focus:bg-white focus:border-blue-400 transition-colors"
+
+            <div className="md:ml-[68px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row gap-6 items-center shadow-sm">
+              <div className="w-full sm:w-40 aspect-[16/9] bg-slate-100 rounded-xl overflow-hidden shrink-0">
+                <img
+                  src={defaultMenu.image_url}
+                  className="w-full h-full object-cover"
+                  alt="default"
                 />
-                <input
-                  value={newUserDisplayName}
-                  onChange={(e) => setNewUserDisplayName(e.target.value)}
-                  placeholder="ชื่อ (ไม่บังคับ)"
-                  className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-xs outline-none focus:bg-white focus:border-blue-400 transition-colors w-28"
-                />
-                <button
-                  onClick={handleAddSegmentUser}
-                  disabled={!newUserId.trim() || addingUser}
-                  className="bg-slate-900 hover:bg-slate-700 disabled:bg-slate-200 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center gap-1"
-                >
-                  {addingUser ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
-                  เพิ่ม
+              </div>
+              <div className="flex-1 w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <div className="font-bold text-slate-800">
+                    {defaultMenu.name}
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-mono">
+                    ID: {defaultMenu.richMenuId}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-2 bg-slate-50 p-2 rounded-lg">
+                    เมนูนี้จะถูกแสดงเป็นค่าเริ่มต้นสำหรับผู้ใช้ทุกคนที่ยังไม่มีการจัดกลุ่ม
+                    (Tag)
+                  </div>
+                </div>
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <button
+                    onClick={() => openManageUsers(defaultMenu.richMenuId)}
+                    className="flex-1 sm:flex-none px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-center gap-2"
+                  >
+                    <Users size={14} /> ดูรายชื่อผู้ใช้งาน (0)
+                  </button>
+                  <button
+                    onClick={() => openMenuSelector("default")}
+                    className="flex-1 sm:flex-none px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-center gap-2"
+                  >
+                    <ArrowRightLeft size={14} /> เปลี่ยนเมนู
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── LEVEL 2: PROVINCE/TAGS ── */}
+          <div className="mb-10 relative z-10">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-black px-3 py-1 rounded-full bg-blue-50 text-blue-600 uppercase tracking-widest border border-blue-100">
+                  Level 2
+                </span>
+                <h3 className="font-bold text-slate-800 text-sm">แยกตาม Tag</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search
+                    size={14}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+                  <input
+                    type="text"
+                    placeholder="ค้นหาพื้นที่ หรือ Tag..."
+                    value={tagSearchQuery}
+                    onChange={(e) => setTagSearchQuery(e.target.value)}
+                    className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs w-full sm:w-64 outline-none focus:bg-white"
+                  />
+                </div>
+                <button className="text-xs font-bold text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-xl border border-blue-100 flex items-center gap-1">
+                  <Plus size={14} /> เพิ่ม Tag
                 </button>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 bg-[#F8FAFC] space-y-2">
-              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
-                รายชื่อ ({segmentUsers.length} คน)
-              </div>
-              {segmentUsersLoading ? (
-                <div className="flex justify-center items-center py-12">
-                  <Loader2 className="animate-spin text-blue-500" />
-                </div>
-              ) : segmentUsers.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 text-sm">
-                  ยังไม่มี user ใน segment นี้
-                </div>
-              ) : (
-                segmentUsers.map((u) => (
-                  <div
-                    key={u.id}
-                    className="flex items-center justify-between p-3.5 rounded-xl bg-white shadow-sm border border-transparent hover:border-gray-200 transition-all"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center font-bold text-sm text-gray-500">
-                        {(u.display_name || u.line_user_id || '?').charAt(0).toUpperCase()}
+
+            <div className="md:ml-[68px] grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {provinces.map((prov) =>
+                prov.mappings.map((mapping) => {
+                  const menuObj = getMenu(mapping.richMenuId);
+                  return (
+                    <div
+                      key={mapping.id}
+                      className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row gap-4 shadow-sm hover:border-blue-200 transition-all"
+                    >
+                      <div className="w-full sm:w-24 aspect-[16/9] bg-slate-100 rounded-xl overflow-hidden shrink-0">
+                        <img
+                          src={menuObj.image_url}
+                          className="w-full h-full object-cover"
+                          alt="menu"
+                        />
                       </div>
-                      <div>
-                        <div className="text-sm font-bold text-gray-700">
-                          {u.display_name || <span className="text-gray-400 italic text-xs">ไม่ทราบชื่อ</span>}
+                      <div className="flex-1 flex flex-col justify-between gap-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="text-sm font-black text-slate-800">
+                              {menuObj.name}
+                            </div>
+                            <div className="text-[10px] text-slate-500 font-bold mt-0.5 flex items-center gap-1">
+                              <MapPin size={10} /> จังหวัด: {prov.name}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg font-black text-slate-700 leading-none">
+                              {mapping.userCount.toLocaleString()}
+                            </div>
+                            <div className="text-[9px] text-slate-400 uppercase font-bold tracking-widest">
+                              Users
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-[10px] text-gray-400 font-mono">
-                          {u.line_user_id}
-                          <span className="bg-gray-200 text-gray-600 px-1.5 rounded ml-1.5">{u.source}</span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => openManageUsers(mapping.richMenuId)}
+                            className="flex-1 py-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600"
+                          >
+                            ดูรายชื่อผู้ใช้งาน (0)
+                          </button>
+                          <button
+                            onClick={() =>
+                              openMenuSelector("mapping", prov.id, mapping.id)
+                            }
+                            className="flex-1 py-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600"
+                          >
+                            เปลี่ยนเมนู
+                          </button>
                         </div>
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleRemoveSegmentUser(u.line_user_id)}
-                      className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))
+                  );
+                }),
               )}
             </div>
-            <div className="p-4 border-t border-gray-100 bg-white">
-              <button onClick={() => setUsersModal(null)} className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold">
-                ปิด
+          </div>
+
+          {/* ── LEVEL 3: OVERRIDE ── */}
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-black px-3 py-1 rounded-full bg-rose-50 text-rose-600 uppercase tracking-widest border border-rose-100">
+                  Level 3
+                </span>
+                <h3 className="font-bold text-slate-800 text-sm">
+                  บังคับสิทธิ์รายบุคคล
+                </h3>
+              </div>
+              <button
+                onClick={() => openManageUsers("GLOBAL")}
+                className="text-xs font-bold text-rose-600 hover:bg-rose-50 px-4 py-2 rounded-xl border border-rose-100 flex items-center gap-1.5"
+              >
+                <Settings size={14} /> จัดการรายชื่อทั้งหมด
               </button>
+            </div>
+
+            <div className="md:ml-[68px] bg-rose-50/50 border border-rose-100 rounded-2xl p-5 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-white rounded-full flex justify-center items-center text-rose-500 border border-rose-100 shadow-sm">
+                  <ShieldAlert size={20} />
+                </div>
+                <div>
+                  <div className="font-bold text-slate-800 text-sm">
+                    รายชื่อที่ถูกบังคับสิทธิ์ทั้งหมด
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">
+                    ปัจจุบันมีผู้ใช้{" "}
+                    <strong className="text-rose-600">
+                      {specificUsers.length} คน
+                    </strong>{" "}
+                    ที่ถูกตั้งค่าให้อยู่ในระดับนี้
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl px-4 py-2 text-xs font-bold text-slate-500 border border-slate-200">
+                สลับดูรายชื่อ →
+              </div>
             </div>
           </div>
         </div>
-      )}
+      </section>
     </div>
   );
 }
