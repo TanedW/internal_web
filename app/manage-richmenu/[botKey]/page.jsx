@@ -1377,8 +1377,8 @@ export default function RichMenuDashboard() {
                 className="php-qa-btn"
               >
                 <div className="php-qa-content">
-                  <h3>จัดการเมนูกลุ่มจังหวัด</h3>
-                  <p>ตั้งค่าเมนูให้เหมาะสมกับแต่ละจังหวัดและประเภทบุคคล</p>
+                  <h3>จัดการลำดับการแสดงผลเมนู</h3>
+                  <p>ตั้งค่าเมนูให้เหมาะสมกับแต่ละประเภทบุคคล</p>
                 </div>
                 <div
                   className="php-qa-icon"
@@ -3914,9 +3914,9 @@ export default function RichMenuDashboard() {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
                   <h2 className="text-[20px] font-black text-slate-900 flex items-center gap-2 m-0 tracking-tight">
-                    <Users size={22} className="text-[#06C755]" /> จัดการเมนูส่วนจังหวัด
+                    <Users size={22} className="text-[#06C755]" /> จัดการลำดับการแสดงผลเมนู
                   </h2>
-                  <p className="text-xs text-slate-500 mt-1">กำหนดเมนูที่ผู้ใช้แต่ละกลุ่มพื้นที่จะเห็น</p>
+                  <p className="text-xs text-slate-500 mt-1">กำหนดว่าใครจะเห็นเมนูไหน โดยแบ่งความสำคัญเป็น 3 ระดับ (Level 1 ถึง 3)</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1 sm:w-48">
