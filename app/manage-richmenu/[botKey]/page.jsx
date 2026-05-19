@@ -1377,7 +1377,7 @@ export default function RichMenuDashboard() {
                 className="php-qa-btn"
               >
                 <div className="php-qa-content">
-                  <h3>จัดการเมนูส่วนจังหวัด</h3>
+                  <h3>จัดการเมนูกลุ่มจังหวัด</h3>
                   <p>ตั้งค่าเมนูให้เหมาะสมกับแต่ละจังหวัดและประเภทบุคคล</p>
                 </div>
                 <div
