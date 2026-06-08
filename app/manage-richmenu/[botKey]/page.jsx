@@ -3971,12 +3971,12 @@ export default function RichMenuDashboard() {
 
           return (
             <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm flex flex-col sm:flex-row">
-              {/* รูปเมนู — fixed height, จัดตรงกลาง */}
-              <div className="sm:w-[42%] shrink-0 bg-slate-100 border-b sm:border-b-0 sm:border-r border-slate-200 flex items-center justify-center overflow-hidden" style={{ minHeight: 160 }}>
+              {/* รูปเมนู — aspect ratio เต็ม 2500x843 */}
+              <div className="sm:w-[48%] shrink-0 bg-slate-100 border-b sm:border-b-0 sm:border-r border-slate-200 self-stretch flex items-center">
                 {defaultImgSrc ? (
-                  <img src={defaultImgSrc} alt="default menu" className="w-full h-full object-cover" style={{ maxHeight: 220 }} />
+                  <img src={defaultImgSrc} alt="default menu" className="w-full object-contain" style={{ aspectRatio: "2500/843" }} />
                 ) : (
-                  <div className="flex flex-col items-center gap-2 text-slate-300 py-10">
+                  <div className="w-full flex flex-col items-center gap-2 text-slate-300 py-10" style={{ aspectRatio: "2500/843" }}>
                     <ImageIcon size={32} />
                     <span className="text-xs">Welcome Default Menu</span>
                   </div>
