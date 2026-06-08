@@ -39,6 +39,9 @@ import {
   Trash2,
   Loader2,
   Plus,
+  Tag,
+  GripVertical,
+  ShieldAlert,
 } from "lucide-react";
 import "../richmenu-dashboard.css";
 
@@ -3924,46 +3927,35 @@ export default function RichMenuDashboard() {
 <section id="segment-section" className="php-card">
 
   {/* ── Header ── */}
-  <div className="mb-8">
-    <h2 className="text-[20px] font-black text-slate-900 flex items-center gap-2 m-0 tracking-tight">
-      <Users size={22} className="text-[#06C755]" /> จัดการลำดับการแสดงผลเมนู
-    </h2>
-    <p className="text-xs text-slate-500 mt-1">
-      กำหนดว่าใครจะเห็นเมนูไหน โดยแบ่งความสำคัญเป็น 3 ระดับ (Level 1 ถึง 3)
-    </p>
+  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+    <div>
+      <h2 className="text-[20px] font-black text-slate-900 flex items-center gap-2 m-0 tracking-tight">
+        <Users size={22} className="text-[#06C755]" /> จัดการลำดับการแสดงผลเมนู
+      </h2>
+      <p className="text-xs text-slate-500 mt-1">
+        กำหนดว่าใครจะเห็นเมนูไหน โดยแบ่งความสำคัญเป็น 3 ระดับ (Level 1 ถึง 3)
+      </p>
+    </div>
   </div>
 
-  <div className="flex gap-4">
+  <div className="relative">
+    {/* เส้นแนวตั้ง timeline */}
+    <div className="absolute left-[34px] top-8 bottom-4 w-0.5 bg-slate-200 z-0 hidden md:block"></div>
 
-    {/* ── เส้นแนวตั้ง (timeline line) ── */}
-    <div className="flex flex-col items-center pt-1.5" style={{ minWidth: 16 }}>
-      <div className="w-px h-3 bg-slate-200" />
-      <div className="w-2 h-2 rounded-full bg-slate-300 shrink-0" />
-      <div className="w-px flex-1 bg-slate-200" />
-      <div className="w-2 h-2 rounded-full bg-slate-300 shrink-0" />
-      <div className="w-px flex-1 bg-slate-200" />
-      <div className="w-2 h-2 rounded-full bg-slate-300 shrink-0" />
-      <div className="w-px h-3 bg-slate-200" />
-    </div>
+    {/* ══════════════════════════════════
+        LEVEL 1 — เมนูเริ่มต้น (Default)
+    ══════════════════════════════════ */}
+    <div className="mb-10 relative z-10">
+      <div className="flex items-center gap-3 mb-4">
+        <span className="text-[10px] font-black px-2.5 py-1.5 rounded-lg bg-slate-200 text-slate-600 uppercase tracking-widest border border-slate-300">
+          LEVEL 1
+        </span>
+        <span className="font-bold text-slate-800 text-base">เมนูเริ่มต้น</span>
+        <span className="text-xs text-slate-400 hidden md:inline">— แสดงเมื่อผู้ใช้ยังไม่เข้าเกณฑ์กลุ่มใดเลย</span>
+      </div>
 
-    <div className="flex-1 flex flex-col gap-8">
-
-      {/* ══════════════════════════════════
-          LEVEL 1 — เมนูเริ่มต้น (Default)
-      ══════════════════════════════════ */}
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-500 tracking-widest">
-            LEVEL 1
-          </span>
-          <span className="text-sm font-bold text-slate-800">เมนูเริ่มต้น</span>
-          <span className="text-xs text-slate-400">
-            — แสดงเมื่อผู้ใช้ยังไม่ระบุกัด และไม่มีสิทธิ์พิเศษ
-          </span>
-        </div>
-
+      <div className="md:ml-[68px]">
         {(() => {
-          // หา segment ที่ is_default = true
           const defaultSeg = segments.find((s) => s.is_default);
           const defaultMenuEntry = defaultSeg
             ? (segmentMenus[defaultSeg.id] || [])[0] ||
@@ -3977,9 +3969,9 @@ export default function RichMenuDashboard() {
             : null;
 
           return (
-            <div className="border border-slate-200 rounded-2xl overflow-hidden grid grid-cols-2 bg-white">
+            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm flex flex-col lg:flex-row">
               {/* รูปเมนู */}
-              <div className="bg-slate-50 border-r border-slate-100 flex items-center justify-center min-h-[140px]">
+              <div className="w-full lg:w-[45%] aspect-[2500/843] bg-slate-100 relative border-b lg:border-b-0 lg:border-r border-slate-200 shrink-0 flex items-center justify-center min-h-[120px]">
                 {defaultImgSrc ? (
                   <img src={defaultImgSrc} alt="default menu" className="w-full h-full object-cover" />
                 ) : (
@@ -3990,22 +3982,24 @@ export default function RichMenuDashboard() {
                 )}
               </div>
               {/* ข้อมูล */}
-              <div className="p-4 flex flex-col gap-3">
-                <div>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Globe size={13} className="text-slate-400" />
-                    <span className="text-sm font-bold text-slate-800">
-                      {defaultSeg?.name || "เมนูเริ่มต้น"}
-                    </span>
+              <div className="p-5 lg:p-6 flex flex-col justify-center flex-1 bg-[#F8FAFC]">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-500 border border-slate-200 shrink-0 shadow-sm">
+                    <Globe size={18} />
                   </div>
-                  <div className="text-[10px] font-mono text-slate-400">
-                    ID: {defaultMenuEntry?.rich_menu_id || "menu-default"}
+                  <div>
+                    <div className="text-base font-bold text-slate-800">
+                      {defaultSeg?.name || "เมนูเริ่มต้น (Default)"}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                      ID: {defaultMenuEntry?.rich_menu_id || "menu-default"}
+                    </div>
                   </div>
                 </div>
-                <div className="text-xs text-slate-500 bg-slate-50 rounded-lg p-2.5 border border-slate-100 leading-relaxed">
-                  เมนูนี้จะถูกแสดงเป็นค่าเริ่มต้นสำหรับผู้ใช้ทุกคนที่ยังไม่มีการจัดกลุ่ม (Tag) หรือไม่มีสิทธิ์พิเศษ
+                <div className="text-xs text-slate-600 font-medium mb-5 leading-relaxed bg-slate-100 p-3 rounded-xl border border-slate-200/60">
+                  เมนูนี้จะถูกแสดงเป็นค่าเริ่มต้นสำหรับผู้ใช้ทุกคนที่ยังไม่มีการจัดกลุ่ม (Tag) หรือไม่มีสิทธิพิเศษ
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="mt-auto flex flex-col sm:flex-row gap-2">
                   <button
                     onClick={() => {
                       if (defaultSeg) {
@@ -4013,9 +4007,9 @@ export default function RichMenuDashboard() {
                         fetchSegmentUsers(defaultSeg.id);
                       }
                     }}
-                    className="flex items-center justify-center gap-1.5 text-[11px] font-bold py-2 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
+                    className="flex-1 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 text-sm font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
                   >
-                    <Users size={12} className="text-slate-400" />
+                    <Users size={15} className="text-slate-400" />
                     ดูรายชื่อผู้ใช้งาน ({defaultSeg?.user_count ?? 0})
                   </button>
                   <button
@@ -4025,9 +4019,9 @@ export default function RichMenuDashboard() {
                         setAssignMenuModal(defaultSeg);
                       }
                     }}
-                    className="flex items-center justify-center gap-1.5 text-[11px] font-bold py-2 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
+                    className="flex-1 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 text-sm font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
                   >
-                    <ArrowRightLeft size={12} className="text-slate-400" />
+                    <ArrowRightLeft size={15} className="text-slate-400" />
                     เปลี่ยนเมนู
                   </button>
                 </div>
@@ -4036,44 +4030,44 @@ export default function RichMenuDashboard() {
           );
         })()}
       </div>
+    </div>
 
-      {/* ══════════════════════════════════
-          LEVEL 2 — แยกตาม Tag / Segment
-      ══════════════════════════════════ */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-500 tracking-widest">
-              LEVEL 2
-            </span>
-            <span className="text-sm font-bold text-slate-800">แยกตาม Tag</span>
-            <span className="text-xs text-slate-400">
-              — แสดงตาม Tag อัตโนมัติที่ได้จากการแจ้งพิกัด
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="ค้นหาพื้นที่ หรือ Tag..."
-                value={segmentSearch}
-                onChange={(e) => setSegmentSearch(e.target.value)}
-                className="pl-7 pr-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-white outline-none focus:border-slate-400 w-48"
-              />
-            </div>
-            <button
-              onClick={() => {
-                setSegmentForm({ name: "", description: "", is_default: false });
-                setSegmentFormModal({ mode: "create" });
-              }}
-              className="flex items-center gap-1 text-xs font-bold py-1.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
-            >
-              <Plus size={13} /> เพิ่ม Tag
-            </button>
-          </div>
+    {/* ══════════════════════════════════
+        LEVEL 2 — แยกตาม Tag / Segment (Table)
+    ══════════════════════════════════ */}
+    <div className="mb-10 relative z-10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-black px-2.5 py-1.5 rounded-lg bg-blue-100 text-blue-600 uppercase tracking-widest border border-blue-200">
+            LEVEL 2
+          </span>
+          <span className="font-bold text-slate-800 text-base">แยกตามกลุ่ม (Groups & Tags)</span>
+          <span className="text-xs text-slate-400 hidden lg:inline">— แสดงตาม Tag อัตโนมัติ (เรียงตาม Priority)</span>
         </div>
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 sm:w-56">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="ค้นหาพื้นที่ หรือ Tag..."
+              value={segmentSearch}
+              onChange={(e) => setSegmentSearch(e.target.value)}
+              className="w-full pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400/20 shadow-sm transition-all"
+            />
+          </div>
+          <button
+            onClick={() => {
+              setSegmentForm({ name: "", description: "", is_default: false });
+              setSegmentFormModal({ mode: "create" });
+            }}
+            className="text-xs font-bold text-white hover:bg-blue-700 flex items-center gap-1.5 transition-colors bg-blue-600 px-4 py-2 rounded-xl shadow-sm shrink-0"
+          >
+            <Plus size={13} /> เพิ่มกลุ่ม
+          </button>
+        </div>
+      </div>
 
+      <div className="md:ml-[68px]">
         {(() => {
           const nonDefault = segments.filter(
             (s) => !s.is_default && s.name.toLowerCase().includes(segmentSearch.toLowerCase())
@@ -4083,151 +4077,162 @@ export default function RichMenuDashboard() {
             return (
               <div className="py-10 text-center bg-white rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 text-sm">
                 <Users size={28} className="mx-auto mb-2 opacity-30" />
-                {segmentSearch ? "ไม่พบ Tag ที่ค้นหา" : "ยังไม่มี Tag — กด \"เพิ่ม Tag\" เพื่อเริ่มต้น"}
+                {segmentSearch ? "ไม่พบ Tag ที่ค้นหา" : "ยังไม่มี Tag — กด \"เพิ่มกลุ่ม\" เพื่อเริ่มต้น"}
               </div>
             );
           }
 
-          const CARD_COLORS = [
-            { bg: "#eaf3de", text: "#3B6D11" },
-            { bg: "#FCEBEB", text: "#A32D2D" },
-            { bg: "#EFF6FF", text: "#185FA5" },
-            { bg: "#FFFBEB", text: "#854F0B" },
-            { bg: "#F5F3FF", text: "#534AB7" },
-          ];
-
           return (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {nonDefault.map((seg, idx) => {
-                const col = CARD_COLORS[idx % CARD_COLORS.length];
-                const segMenuList = segmentMenus[seg.id];
-                const primaryEntry =
-                  segMenuList?.[0] ||
-                  (seg.active_rich_menu_id
-                    ? { rich_menu_id: seg.active_rich_menu_id, rich_menu_name: seg.active_rich_menu_name }
-                    : null);
-                const primaryImgSrc = primaryEntry
-                  ? menus.find((m) => m.richMenuId === primaryEntry.rich_menu_id)?.image_url ||
-                    `${API}?action=image&botKey=${encodeURIComponent(botKey)}&menuId=${primaryEntry.rich_menu_id}`
-                  : null;
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+              {/* Table Header */}
+              <div className="hidden md:grid md:grid-cols-[35%_1fr_210px] gap-2 bg-slate-50 border-b border-slate-200 px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider items-center">
+                <div className="pl-8 min-w-0">ชื่อกลุ่ม / TAG เงื่อนไข</div>
+                <div className="min-w-0">เมนูที่ใช้แสดงผล</div>
+                <div className="text-right pr-2 min-w-0">จัดการ</div>
+              </div>
 
-                return (
-                  <div key={seg.id} className="border border-slate-200 rounded-2xl overflow-hidden bg-white">
-                    {/* รูปเมนู banner */}
+              <div className="max-h-[450px] overflow-y-auto">
+                {nonDefault.map((seg, idx) => {
+                  const segMenuList = segmentMenus[seg.id];
+                  const primaryEntry =
+                    segMenuList?.[0] ||
+                    (seg.active_rich_menu_id
+                      ? { rich_menu_id: seg.active_rich_menu_id, rich_menu_name: seg.active_rich_menu_name }
+                      : null);
+                  const primaryImgSrc = primaryEntry
+                    ? menus.find((m) => m.richMenuId === primaryEntry.rich_menu_id)?.image_url ||
+                      `${API}?action=image&botKey=${encodeURIComponent(botKey)}&menuId=${primaryEntry.rich_menu_id}`
+                    : null;
+                  const menuObj = primaryEntry
+                    ? menus.find((m) => m.richMenuId === primaryEntry.rich_menu_id)
+                    : null;
+
+                  return (
                     <div
-                      className="h-24 flex items-center justify-center text-base font-bold relative group/img cursor-pointer"
-                      style={primaryImgSrc ? {} : { background: col.bg, color: col.text }}
-                      onClick={() => {
-                        setAssignSelectedMenuId(primaryEntry?.rich_menu_id || "");
-                        setAssignMenuModal(seg);
-                      }}
+                      key={seg.id}
+                      className="group/row flex flex-col md:grid md:grid-cols-[35%_1fr_210px] gap-3 md:gap-2 md:items-center px-4 py-3 border-b border-slate-100 last:border-b-0 hover:bg-blue-50/50 transition-colors"
                     >
-                      {primaryImgSrc ? (
-                        <img src={primaryImgSrc} alt={seg.name} className="w-full h-full object-cover" />
-                      ) : (
-                        seg.name
-                      )}
-                      <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-all flex items-center justify-center">
-                        <div className="bg-white text-slate-800 text-xs font-bold px-3 py-1.5 rounded-xl shadow-md opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center gap-1.5">
-                          <ArrowRightLeft size={12} /> เปลี่ยนเมนู
+                      {/* Col 1: ชื่อกลุ่ม / Tag */}
+                      <div className="flex items-center gap-3 pr-2 min-w-0">
+                        <GripVertical size={16} className="text-slate-300 cursor-grab hover:text-slate-500 hidden md:block shrink-0" />
+                        <div className="text-[10px] font-black text-slate-400 bg-slate-100 w-6 h-6 flex items-center justify-center rounded-md shrink-0 group-hover/row:bg-blue-100 group-hover/row:text-blue-600 transition-colors">
+                          {idx + 1}
                         </div>
-                      </div>
-                    </div>
-                    {/* footer */}
-                    <div className="p-3 flex flex-col gap-2.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1 text-[11px] text-slate-500">
-                          <MapPin size={11} /> จังหวัด: {seg.name}
-                        </div>
-                        <div className="text-right">
-                          <div className="text-lg font-black text-slate-700 leading-none">
-                            {(seg.user_count ?? 0).toLocaleString()}
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-800 text-sm truncate" title={seg.name}>
+                            {seg.name}
                           </div>
-                          <div className="text-[9px] text-slate-400 uppercase tracking-widest">USERS</div>
+                          <div className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5 bg-slate-100 px-1.5 py-0.5 rounded-md inline-flex max-w-full">
+                            <Tag size={9} className="text-slate-400 shrink-0" />
+                            <span className="truncate">{seg.description || seg.name}</span>
+                          </div>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-1.5">
+
+                      {/* Col 2: เมนูที่ใช้แสดงผล */}
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="md:hidden text-[10px] font-bold text-slate-400 uppercase">เมนู:</div>
+                        <div className="w-32 md:w-40 aspect-[2500/843] bg-slate-100 rounded-md border border-slate-200 shrink-0 overflow-hidden shadow-sm flex items-center justify-center">
+                          {primaryImgSrc ? (
+                            <img src={primaryImgSrc} alt={seg.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-[10px] text-slate-400">ไม่มีรูป</span>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-bold text-slate-700 truncate">
+                            {menuObj?.name || primaryEntry?.rich_menu_name || seg.name}
+                          </div>
+                          <div className="text-[9px] text-slate-400 font-mono hidden lg:block truncate">
+                            {primaryEntry?.rich_menu_id || ""}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Col 3: ปุ่มจัดการ */}
+                      <div className="flex items-center justify-end gap-2 shrink-0 mt-2 md:mt-0 min-w-0">
                         <button
                           onClick={() => {
                             setUsersModal(seg);
                             fetchSegmentUsers(seg.id);
                           }}
-                          className="flex items-center justify-center gap-1 text-[11px] font-bold py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
+                          className="flex-1 md:flex-none py-2 px-3 bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center justify-center gap-1.5"
                         >
-                          <Users size={11} className="text-slate-400" />
-                          ดูรายชื่อผู้ใช้งาน ({seg.user_count ?? 0})
+                          <Users size={13} />
+                          <span className="flex items-center gap-1.5">
+                            ผู้ใช้
+                            <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md text-[10px]">
+                              {seg.user_count ?? 0}
+                            </span>
+                          </span>
                         </button>
                         <button
                           onClick={() => {
                             setAssignSelectedMenuId(primaryEntry?.rich_menu_id || "");
                             setAssignMenuModal(seg);
                           }}
-                          className="flex items-center justify-center gap-1 text-[11px] font-bold py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
+                          className="flex-1 md:flex-none py-2 px-3 bg-[#0F172A] hover:bg-blue-600 text-white rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center justify-center gap-1.5"
                         >
-                          <ArrowRightLeft size={11} className="text-slate-400" />
-                          เปลี่ยนเมนู
+                          <ArrowRightLeft size={13} />
+                          <span className="md:hidden xl:inline">เปลี่ยน</span>
                         </button>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           );
         })()}
       </div>
+    </div>
 
-      {/* ══════════════════════════════════
-          LEVEL 3 — บังคับสิทธิ์รายบุคคล
-      ══════════════════════════════════ */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded border tracking-widest"
-              style={{ background: "#FCEBEB", borderColor: "#F09595", color: "#A32D2D" }}>
-              LEVEL 3
-            </span>
-            <span className="text-sm font-bold text-slate-800">บังคับสิทธิ์รายบุคคล</span>
-            <span className="text-xs text-slate-400">
-              — ระดับสูงสุด บังคับให้เห็นเมนูที่กำหนด ข้ามกฏทั้งหมดทันที
-            </span>
-          </div>
-          <button
-            onClick={() => {
-              setSegmentForm({ name: "", description: "", is_default: false });
-              setSegmentFormModal({ mode: "create" });
-            }}
-            className="flex items-center gap-1.5 text-xs font-bold py-1.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors shrink-0"
-          >
-            <Settings size={13} className="text-slate-400" />
-            จัดการรายชื่อทั้งหมด
-          </button>
+    {/* ══════════════════════════════════
+        LEVEL 3 — บังคับสิทธิ์รายบุคคล
+    ══════════════════════════════════ */}
+    <div className="relative z-10">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-black px-2.5 py-1.5 rounded-lg bg-rose-100 text-rose-600 uppercase tracking-widest border border-rose-200">
+            LEVEL 3
+          </span>
+          <span className="font-bold text-slate-800 text-base">บังคับสิทธิ์รายบุคคล</span>
         </div>
+        <button
+          onClick={() => {
+            setSegmentForm({ name: "", description: "", is_default: false });
+            setSegmentFormModal({ mode: "create" });
+          }}
+          className="text-xs font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1.5 transition-colors bg-white px-4 py-2 rounded-xl border border-rose-200 shadow-sm"
+        >
+          <Settings size={13} />
+          จัดการรายชื่อทั้งหมด
+        </button>
+      </div>
 
-        <div className="border border-slate-200 rounded-2xl bg-white p-4 flex items-center gap-4">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: "#FCEBEB" }}>
-            <Star size={16} style={{ color: "#A32D2D" }} />
-          </div>
-          <div className="flex-1">
-            <div className="text-sm font-bold text-slate-800">รายชื่อที่ถูกบังคับสิทธิ์ทั้งหมด</div>
-            <div className="text-xs text-slate-500 mt-0.5">
-              ปัจจุบันมีผู้ใช้{" "}
-              <span className="font-bold" style={{ color: "#A32D2D" }}>
-                {segments.reduce((sum, s) => sum + (s.user_count ?? 0), 0)} คน
-              </span>{" "}
-              ที่ถูกตั้งค่าให้อยู่ในระดับนี้
+      <div className="md:ml-[68px]">
+        <div className="bg-[#F8FAFC] border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white border border-rose-100 rounded-full flex justify-center items-center text-rose-500 shrink-0 shadow-sm">
+                <ShieldAlert size={24} />
+              </div>
+              <div>
+                <div className="font-bold text-slate-800 text-base">รายชื่อที่ถูกบังคับสิทธิ์ (Override)</div>
+                <div className="text-xs text-slate-500 mt-1">
+                  ผู้ใช้{" "}
+                  <strong className="text-rose-600">
+                    {segments.reduce((sum, s) => sum + (s.user_count ?? 0), 0)} คน
+                  </strong>{" "}
+                  ถูกบังคับให้เห็นเมนูข้ามกฎทั้งหมด
+                </div>
+              </div>
             </div>
-          </div>
-          {/* toggle ส/น */}
-          <div className="flex gap-1.5 shrink-0">
-            <button className="w-8 h-7 rounded-lg border border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-500 hover:bg-slate-100 transition-colors">ส</button>
-            <button className="w-8 h-7 rounded-lg border border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-500 hover:bg-slate-100 transition-colors">น</button>
           </div>
         </div>
       </div>
-
     </div>
+
   </div>
 
 </section>
