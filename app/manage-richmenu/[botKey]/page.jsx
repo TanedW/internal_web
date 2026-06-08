@@ -4032,7 +4032,7 @@ export default function RichMenuDashboard() {
         <span className="shrink-0 text-[10px] font-black px-2.5 py-1 rounded-lg bg-blue-100 text-blue-600 uppercase tracking-widest border border-blue-200">
           LEVEL 2
         </span>
-        <span className="font-bold text-slate-800 text-sm">แยกตามกลุ่ม (Groups & Tags)</span>
+        <span className="font-bold text-slate-800 text-sm">แยกตามกลุ่ม</span>
         <span className="text-xs text-slate-400 hidden lg:inline">— แสดงตาม Tag อัตโนมัติ (เรียงตาม Priority)</span>
       </div>
       {/* Row 2: search + ปุ่ม (indent ให้ตรงกับตาราง) */}
