@@ -4027,32 +4027,31 @@ export default function RichMenuDashboard() {
         LEVEL 2 — แยกตาม Tag / Segment (Table)
     ══════════════════════════════════ */}
     <div className="mb-8 relative z-10">
-      {/* Row 1: badge + title + description */}
-      <div className="flex items-center gap-3 mb-1">
+      {/* Row: badge + title + description + search + ปุ่ม (แถวเดียวกัน) */}
+      <div className="flex items-center gap-3 mb-3 flex-wrap">
         <span className="shrink-0 text-[10px] font-black px-2.5 py-1 rounded-lg bg-blue-100 text-blue-600 uppercase tracking-widest border border-blue-200">
           LEVEL 2
         </span>
-        <span className="font-bold text-slate-800 text-sm">แยกตามกลุ่ม</span>
-        <span className="text-xs text-slate-400 hidden lg:inline">— แสดงตาม Tag อัตโนมัติ (เรียงตาม Priority)</span>
-      </div>
-      {/* Row 2: search + ปุ่ม (indent ให้ตรงกับตาราง) */}
-      <div className="ml-0 md:ml-[72px] flex items-center justify-end gap-2 mb-3">
-        <div className="relative w-52">
-          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="ค้นหาพื้นที่ หรือ Tag..."
-            value={segmentSearch}
-            onChange={(e) => setSegmentSearch(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-400 shadow-sm transition-all"
-          />
+        <span className="font-bold text-slate-800 text-sm shrink-0">แยกตามกลุ่ม</span>
+        <span className="text-xs text-slate-400 hidden lg:inline shrink-0">— แสดงตาม Tag อัตโนมัติ (เรียงตาม Priority)</span>
+        <div className="flex items-center gap-2 ml-auto shrink-0">
+          <div className="relative w-48">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="ค้นหาพื้นที่ หรือ Tag..."
+              value={segmentSearch}
+              onChange={(e) => setSegmentSearch(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-400 shadow-sm transition-all"
+            />
+          </div>
+          <button
+            onClick={() => { setSegmentForm({ name: "", description: "", is_default: false }); setSegmentFormModal({ mode: "create" }); }}
+            className="text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 flex items-center gap-1.5 transition-colors px-3 py-1.5 rounded-xl shadow-sm shrink-0"
+          >
+            <Plus size={13} /> เพิ่มกลุ่ม
+          </button>
         </div>
-        <button
-          onClick={() => { setSegmentForm({ name: "", description: "", is_default: false }); setSegmentFormModal({ mode: "create" }); }}
-          className="text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 flex items-center gap-1.5 transition-colors px-3 py-1.5 rounded-xl shadow-sm shrink-0"
-        >
-          <Plus size={13} /> เพิ่มกลุ่ม
-        </button>
       </div>
 
       <div className="ml-0 md:ml-[72px]">
