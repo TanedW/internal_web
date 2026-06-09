@@ -113,14 +113,14 @@ const FilePreviewRender = ({ file }) => {
     switch (type) {
     case 0: return <img src={previewUrl} className="w-full h-full object-cover" alt="Preview" />;
     case 1: return <video src={previewUrl} className="w-full h-full object-cover" muted />;
-    case 3: // 💡 เพิ่มเคสเสียง (Audio) ตรงนี้
+    case 3: 
         return (
             <div className="w-full h-full flex flex-col items-center justify-center bg-amber-50 p-4">
                 <Music size={48} className="text-amber-500 mb-2" />
                 <audio src={previewUrl} controls className="w-full max-w-[240px] h-8 scale-90" />
             </div>
         );
-    default: return ( // เคส 2 (ไฟล์) และ 3 (เสียง) หรืออื่นๆ ให้แสดงเป็นไอคอนไฟล์
+    default: return ( 
         <div className={`w-full h-full flex flex-col items-center justify-center ${style.bg} p-4`}>
             <FileText size={48} className={style.text} />
             <span className={`text-xs font-bold uppercase mt-2 ${style.text}`}>.{extension || 'file'}</span>
@@ -135,7 +135,7 @@ export default function ManageCase() {
   const [loading, setLoading] = useState(true);
   const [showMobileTimeline, setShowMobileTimeline] = useState(false);
   const [showMobileEditPanel, setShowMobileEditPanel] = useState(false);
-  const [activeTab, setActiveTab] = useState("urgent"); 
+  const [activeTab, setActiveTab] = useState("history_edit"); 
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [searchId, setSearchId] = useState("");
   const [currentCase, setCurrentCase] = useState(null);
@@ -167,7 +167,18 @@ export default function ManageCase() {
     setShowMobileTimeline(false); 
   };
 
-const handleSearch = async (e, manualId = null) => {
+  const handleBackToCase = () => {
+    setIsSuccess(false);
+    setWizardStep(1);
+    setSelectedImageToReplace(null);
+    setNewImageFile(null);
+    setReason("");
+    if(searchId || currentCase?.id) {
+        handleSearch(null, searchId || currentCase?.id, true);
+    }
+  };
+
+const handleSearch = async (e, manualId = null, isRefresh = false) => {
     e?.preventDefault(); 
     const targetId = manualId || searchId;
     const cleanId = targetId.trim().replace(/^#/, ''); 
@@ -177,10 +188,14 @@ const handleSearch = async (e, manualId = null) => {
         return; 
     }
     setIsSearching(true);
-    setCurrentCase(null);
+    
+    if (!isRefresh) {
+        setCurrentCase(null);
+    }
+    
     if (manualId) setSearchId(manualId);
     try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_DB_SEARCH_CASE_API_URL}?id=${cleanId}`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_DB_SEARCH_CASE_API_URL}?id=${cleanId}&message_id=${cleanId}`);
         const result = await response.json();
         if (response.ok && result.found) {
             const apiData = result.data;
@@ -191,7 +206,6 @@ const handleSearch = async (e, manualId = null) => {
                         const isCover = item.is_cover === true || item.is_cover === "true" || item.is_cover === 1; 
                         allImagesCombined.push({
                             id: item.id, 
-                            // 💡 แก้ไขจุดนี้: ดึงค่า item.viewed จากฐานข้อมูลมาใช้เป็น mediaType ได้เลย ไม่ต้องสั่งคำนวณซ้ำ
                             mediaType: item.viewed !== undefined ? Number(item.viewed) : 0, 
                             url: item.photo, 
                             status: item.is_hidden ? 'hidden' : 'active', 
@@ -266,9 +280,7 @@ const handleToggleHideImage = async (imgId, currentStatus) => {
     }
   };
 
-// ปรับปรุงฟังก์ชันใน page.jsx
 const handleUpdateImage = async () => {
-    // 1. ตรวจสอบความพร้อมของข้อมูล
     if (!selectedImageToReplace || !newImageFile || !reason.trim()) {
         alert("กรุณาเลือกรูปที่ต้องการแทนที่ อัปโหลดไฟล์ใหม่ และระบุเหตุผลให้ครบถ้วน");
         return;
@@ -277,8 +289,6 @@ const handleUpdateImage = async () => {
     setIsSubmitting(true);
 
     try {
-        // --- STEP 1: อัปโหลดไฟล์ใหม่ไปยัง Cloud Storage ---
-        // แปลงไฟล์เป็น Base64 เพื่อส่งไปยัง File Upload API
         const base64String = await fileToBase64(newImageFile);
         const uploadPayload = { 
             folder_path: `attachment/case_${currentCase.id}`, 
@@ -297,47 +307,30 @@ const handleUpdateImage = async () => {
             throw new Error(uploadResult.message || "Failed to upload file to storage");
         }
 
-        // --- STEP 2: ดึง Link รูปภาพที่อัปโหลดสำเร็จ ---
-        // สำคัญ: อิงตาม Response จริงที่คุณส่งมา ต้องใช้ชื่อ 'photo_link'
-        const newFileUrl = uploadResult.photo_link; 
-
-        if (!newFileUrl) {
-            throw new Error("ไม่ได้รับ photo_link จากระบบฝากไฟล์");
-        }
-
-
-
-        // --- STEP 2: ดึง Link รูปภาพที่อัปโหลดสำเร็จ ---
         const fullFileUrl = uploadResult.photo_link; 
 
         if (!fullFileUrl) {
             throw new Error("ไม่ได้รับ photo_link จากระบบฝากไฟล์");
         }
-
         
         const cleanFileUrl = fullFileUrl.replace(STORAGE_BASE_URL, "");
 
-        // --- STEP 3: ส่งข้อมูลไปที่ Manage Case API (PUT) เพื่อ Overwrite แถวเดิมใน DB ---
         const adminId = localStorage.getItem("current_admin_id")?.replace(/['"]+/g, '') || "unknown_admin";
         const calculatedMediaType = getMediaTypeFromFile(newImageFile);
-
-        // 💡 เพิ่มบรรทัดนี้เพื่อดูว่าหน้าบ้านคำนวณได้เลขอะไร และไฟล์ที่ส่งเข้ามาคืออะไร
-        // console.log("Debug File:", newImageFile);
-        // console.log("Calculated Media Type:", calculatedMediaType);
         
         const dbPayload = {
             current_admin_id: adminId,
-            photo_id: selectedImageToReplace.id,      // ID เดิมใน voice_attachment ที่จะถูกเขียนทับ
+            photo_id: selectedImageToReplace.id,      
             file_url: cleanFileUrl,     
-            old_url: selectedImageToReplace.url, // *** ส่ง URL เก่าที่มีอยู่ใน State ไปด้วย ***              // URL ใหม่ที่ได้จาก Step 2
-            description: reason,                      // เหตุผลจากขั้นตอนที่ 3
-            is_cover: selectedImageToReplace.isCover, // คงสถานะหน้าปก (ถ้าเดิมเป็นปก อันใหม่ก็เป็นปก)
+            old_url: selectedImageToReplace.url, 
+            description: reason,                      
+            is_cover: selectedImageToReplace.isCover, 
             viewed: calculatedMediaType || 0,          
-            is_hidden: false                          // ให้แสดงผลทันทีหลังแทนที่
+            is_hidden: false                          
         };
 
         const dbResponse = await fetch(`${process.env.NEXT_PUBLIC_DB_MANAGE_CASE_API_URL}?id=${currentCase.dbId}`, {
-            method: 'PUT', // Backend ของเราตั้ง Logic PUT ไว้สำหรับการ Overwrite
+            method: 'PUT', 
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(dbPayload)
         });
@@ -345,8 +338,8 @@ const handleUpdateImage = async () => {
         const dbResult = await dbResponse.json();
 
         if (dbResponse.ok) {
-            // บันทึกสำเร็จ: เปลี่ยนหน้า UI ไปที่หน้า Success (เครื่องหมายถูกสีเขียว)
-            setIsSuccess(true);
+            alert("บันทึกข้อมูลสำเร็จ!");
+            handleBackToCase();
         } else {
             throw new Error(dbResult.message || "Failed to update database");
         }
@@ -420,8 +413,9 @@ const handleSetAsCover = async (imgId) => {
         <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-none mb-1.5 tracking-tight">
           จัดการ <span className="text-indigo-600">Case</span>
         </h1>
-        <p className="text-slate-500 font-bold text-xs sm:text-sm">ค้นหา Ticket ID เพื่อจัดการรูปภาพใน case</p>
+        <p className="text-slate-500 font-bold text-xs sm:text-sm">ค้นหา Ticket ID หรือ Message ID เพื่อจัดการรูปภาพใน case</p>
       </div>
+
     </header><br></br>
     
     <div className="w-full"> 
@@ -434,7 +428,7 @@ const handleSetAsCover = async (imgId) => {
             value={searchId}
             onChange={(e) => { setSearchId(e.target.value); setInputError(false); }}
             className="flex-1 bg-transparent border-none outline-none font-bold ml-3 text-slate-800 placeholder:text-slate-400"
-            placeholder="ระบุ Ticket ID (เช่น TCK-2024-001)..."
+            placeholder="ระบุ Ticket ID หรือ Message ID..."
           />
         </div>
         <button type="submit" className="btn !h-[60px] px-10 !bg-black !text-white !font-bold !rounded-2xl shadow-lg">
@@ -443,45 +437,9 @@ const handleSetAsCover = async (imgId) => {
       </form>
     </div>
 
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-5">
-        <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
-          <Layout size={28} />
-        </div>
-        <div>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">เคสทั้งหมด</p>
-          <h3 className="text-2xl font-black text-slate-900">1,248</h3>
-        </div>
-      </div>
-      <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-5">
-        <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center shrink-0">
-          <CheckCircle2 size={28} />
-        </div>
-        <div>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">มีรูปครบถ้วน</p>
-          <h3 className="text-2xl font-black text-slate-900">1,120</h3>
-        </div>
-      </div>
-      <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-5">
-        <div className="w-14 h-14 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center shrink-0">
-          <AlertCircle size={28} />
-        </div>
-        <div>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">รออัปโหลดรูป</p>
-          <h3 className="text-2xl font-black text-slate-900">128</h3>
-        </div>
-      </div>
-    </div>
-
+   
 <div className="w-full bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
   <div className="flex border-b border-slate-50 px-8 pt-6 bg-white overflow-x-auto no-scrollbar">
-    <button 
-      onClick={() => setActiveTab("urgent")} 
-      className={`pb-4 px-6 text-sm font-black transition-all relative flex items-center gap-2 whitespace-nowrap ${activeTab === "urgent" || activeTab === "manage" ? "text-indigo-600" : "text-slate-400 hover:text-slate-600"}`}
-    >
-      ต้องจัดการด่วน (12)
-      {(activeTab === "urgent" || activeTab === "manage") && <div className="absolute bottom-0 left-0 w-full h-1 bg-indigo-600 rounded-t-full"></div>}
-    </button>
     <button 
       onClick={() => setActiveTab("history_edit")} 
       className={`pb-4 px-6 text-sm font-black transition-all relative flex items-center gap-2 whitespace-nowrap ${activeTab === "history_edit" ? "text-indigo-600" : "text-slate-400 hover:text-slate-600"}`}
@@ -492,35 +450,6 @@ const handleSetAsCover = async (imgId) => {
   </div>
 
   <div className="p-4 sm:p-8 space-y-5 bg-[#FBFCFD]">
-    {(activeTab === "urgent" || activeTab === "manage") && (
-      <>
-        {[
-          { id: "TCK-2024-0891", title: "แจ้งปัญหาน้ำรั่วซึม", status: "ขาดรูปปก", statusColor: "bg-orange-50 text-orange-600", coverUrl: "https://images.unsplash.com/photo-1585704032915-c3400ca199e7?q=80&w=200&auto=format&fit=crop" },
-          { id: "TCK-2024-0885", title: "เปลี่ยนหลอดไฟ", status: "ครบถ้วน", statusColor: "bg-emerald-50 text-emerald-600", coverUrl: "https://images.unsplash.com/photo-1550985616-10810253b84d?q=80&w=200&auto=format&fit=crop" },
-          { id: "TCK-2024-0870", title: "แอร์ไม่เย็น", status: "ขาดรูปประกอบ", statusColor: "bg-orange-50 text-orange-600", coverUrl: null },
-          { id: "TCK-2024-0862", title: "ซ่อมปริ้นเตอร์", status: "ครบถ้วน", statusColor: "bg-emerald-50 text-emerald-600", coverUrl: "https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?q=80&w=200&auto=format&fit=crop" },
-        ].map((item, idx) => (
-          <div key={idx} className="flex flex-col sm:flex-row items-center justify-between p-5 rounded-[2rem] bg-white border border-slate-200 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] hover:shadow-md hover:border-indigo-100 transition-all duration-300 group animate-fade-in" >
-            <div className="flex items-center gap-5 w-full sm:w-auto">
-              <div className={`w-16 h-16 rounded-2xl overflow-hidden flex items-center justify-center shrink-0 border-4 border-slate-50 shadow-sm ${!item.coverUrl ? (item.status === 'ครบถ้วน' ? 'bg-emerald-50 text-emerald-500' : 'bg-orange-50 text-orange-500') : 'bg-slate-100'}`}>
-                {item.coverUrl ? (
-                  <img src={item.coverUrl} alt={item.id} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                ) : ( <ImageIcon size={26} /> )}
-              </div>
-              <div className="flex-1">
-                <h4 className="font-black text-slate-900 text-lg leading-tight">{item.id}</h4>
-                <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wide">{item.title}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end mt-4 sm:mt-0 pt-4 sm:pt-0 border-t sm:border-t-0 border-slate-50">
-              <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${item.statusColor} bg-opacity-50 backdrop-blur-sm shadow-sm`}> {item.status} </span>
-              <button onClick={() => handleSearch(null, item.id)} className="px-8 py-3 bg-[#FFB800] text-white font-black text-sm rounded-2xl hover:bg-[#F2AF00] hover:shadow-lg hover:shadow-yellow-100 active:scale-95 transition-all duration-200 whitespace-nowrap" > จัดการรูป </button>
-            </div>
-          </div>
-        ))}
-      </>
-    )}
-
     {activeTab === "history_edit" && (
       <>
         {[
@@ -607,7 +536,7 @@ const handleSetAsCover = async (imgId) => {
                   <div className="text-center py-10 animate-fade-in">
                       <div className="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle2 size={40} /></div>
                       <h2 className="text-2xl font-black text-slate-800 mb-2">บันทึกข้อมูลสำเร็จ!</h2>
-                      <button onClick={resetForm} className="mt-8 px-8 py-3 bg-slate-800 text-white font-bold rounded-2xl shadow-lg">กลับหน้าหลัก</button>
+                      <button onClick={handleBackToCase} className="mt-8 px-8 py-3 bg-slate-800 text-white font-bold rounded-2xl shadow-lg">กลับไปที่หน้าเคสเดิม</button>
                   </div>
               ) : (
                   <div className="w-full">
@@ -711,11 +640,13 @@ const handleSetAsCover = async (imgId) => {
           {!isSuccess && (
               <div className="flex justify-between items-center mt-12 pt-8 border-t border-slate-50 gap-4">
                   {wizardStep === 1 ? (
-                      <button onClick={resetForm} className="px-6 sm:px-10 py-4 bg-white border-2 border-red-50 text-red-500 rounded-2xl text-xs sm:text-sm font-black uppercase hover:bg-red-50 flex items-center gap-3 transition-all">
+                      // 💡 เปลี่ยนสีปุ่ม ยกเลิก
+                      <button onClick={resetForm} className="px-6 sm:px-10 py-4 bg-red-500 text-white rounded-2xl text-xs sm:text-sm font-black uppercase hover:bg-red-600 flex items-center gap-3 transition-all shadow-md">
                           <X size={20} /> <span>ยกเลิก</span>
                       </button>
                   ) : (
-                      <button onClick={() => setWizardStep(p => p - 1)} className="px-6 sm:px-10 py-4 bg-slate-100 text-slate-500 rounded-2xl text-xs sm:text-sm font-black uppercase hover:bg-slate-200 flex items-center gap-3 transition-all">
+                      // 💡 เปลี่ยนสีปุ่ม ย้อนกลับ
+                      <button onClick={() => setWizardStep(p => p - 1)} className="px-6 sm:px-10 py-4 bg-red-500 text-white rounded-2xl text-xs sm:text-sm font-black uppercase hover:bg-red-600 flex items-center gap-3 transition-all shadow-md">
                           <ArrowLeft size={20} /> <span>ย้อนกลับ</span>
                       </button>
                   )}

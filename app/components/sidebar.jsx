@@ -88,7 +88,7 @@ export const SIDEBAR_MENUS = [
   { title: "จัดการ Email", href: "/manage", icon: <Mail size={20} />, roles: ["all"] },
   { title: "จัดการ Case", href: "/manage-case", icon: <Briefcase size={20} />, roles: ["admin", "editor", "editor_manage_case"] },
   { title: "จัดการ Menu", href: "/manage-richmenu", icon: <LayoutGrid size={20} />, roles: ["admin", "editor", "editor_manage_menu"] },
-  { title: "จัดการ ORG", href: "/manage-org", icon: <Users size={20} />, roles: ["admin", "editor", "editor_manage_org", "editor_manage_org_info"] },
+  { title: "จัดการหน่วยงาน", href: "/manage-org", icon: <Users size={20} />, roles: ["admin", "editor", "editor_manage_org", "editor_manage_org_info"] },
   { title: "จัดการ Flex Message", href: "/manage-flex-message", icon: <MessageSquareCode size={20} />, roles: ["admin", "editor", "editor_manage_flex"] },
   { title: "ค้นหาหน่วยงานซ้ำ", href: "/search-org", icon: <Search size={20} />, roles: ["admin", "editor", "editor_search_duplicate_org"] },
   { title: "จัดการไฟล์ FAQ", href: "/manage-file-search", icon: <FolderSearch size={20} />, roles: ["admin", "editor", "editor_file_search"] },
@@ -403,7 +403,7 @@ const refreshAdminProfileInBackground = async () => {
                   )}
                   {hasAccess(["admin", "editor", "editor_manage_org_info", "editor_manage_org"]) && (
                     <Link href="/manage-org" className={getMenuClass("/manage-org")} onClick={() => setIsMobileMenuOpen(false)} >
-                      <Users size={20} /> <span className="text-[15px] font-bold">จัดการ ORG</span>
+                      <Users size={20} /> <span className="text-[15px] font-bold">จัดการหน่วยงาน</span>
                     </Link>
                   )}
                   {hasAccess(["admin", "editor", "editor_manage_flex"]) && (
@@ -504,7 +504,7 @@ const refreshAdminProfileInBackground = async () => {
               {hasAccess(["admin", "editor", "editor_manage_org", "editor_manage_org_info"]) && (
                 <Link href="/manage-org" className={getMenuClass("/manage-org")} >
                   <Users size={20} className="shrink-0" />
-                  {isDesktopSidebarOpen && <span className="font-bold text-[15px] whitespace-nowrap">จัดการ ORG</span>}
+                  {isDesktopSidebarOpen && <span className="font-bold text-[15px] whitespace-nowrap">จัดการหน่วยงาน</span>}
                 </Link>
               )}
 

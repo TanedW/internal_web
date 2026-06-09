@@ -9,7 +9,6 @@ import {
   Search,
   User,
   Lock,
-  Mail,
   RefreshCw,
   AlertCircle
 } from "lucide-react";
@@ -248,13 +247,6 @@ const handleCheckStatus = async (e) => {
                   <RefreshCw size={18} className="text-slate-400" />
                 </div>
                 <span className="font-bold text-sm md:text-base text-[#1E293B] truncate">{userInfo.phone}</span>
-              </div>
-
-              <div className="flex items-center gap-4 p-4 md:p-5 bg-slate-50/80 rounded-xl md:rounded-[1.25rem] shadow-sm border border-white">
-                <div className="p-2 bg-white rounded-lg shadow-sm shrink-0">
-                  <Mail size={18} className="text-slate-400" />
-                </div>
-                <span className="font-bold text-[#1E293B] text-xs md:text-sm truncate">{userInfo.email}</span>
               </div>
 
               <div className="flex items-center justify-between p-4 md:p-5 bg-white rounded-xl md:rounded-[1.25rem] border border-dashed border-slate-200 shadow-sm gap-2">

@@ -12,7 +12,7 @@ import {
  UserCheck, Mail, Phone, Shield, Check,
  MoveVertical, Type,
  Clock, Edit3, RefreshCw, FileText, ArrowRight, Filter, MoreVertical, Activity, Settings2,
- History, Eye, UserCircle2 
+ History, Eye, UserCircle2, ArrowLeft
  } from "lucide-react";
 
 // Mock Data
@@ -305,7 +305,6 @@ const fetchOrgData = async (targetId = "") => {
    }
  };
 
-
  const copyToClipboard = (text) => { navigator.clipboard.writeText(text); alert("คัดลอกเรียบร้อย: " + text); };
 
  const handleDownloadQR = async (url, orgName) => {
@@ -393,67 +392,77 @@ const fetchOrgData = async (targetId = "") => {
  );
 
  return (
-   <div data-theme="light" className="min-h-screen bg-[#F4F6F8] text-slate-900 font-bold overflow-x-hidden font-sans">
+   <div data-theme="light" className="min-h-screen bg-[#F4F6F8] text-slate-900 font-sans overflow-x-hidden">
      <Sidebar isDesktopSidebarOpen={isDesktopSidebarOpen} setIsDesktopSidebarOpen={setIsDesktopSidebarOpen} />
 
-     <div className={`w-full pt-24 lg:pt-16 pb-20 transition-all duration-300 min-h-screen overflow-y-auto ${isDesktopSidebarOpen ? "lg:pl-80" : "lg:pl-24"}`}>
-       <div className="mx-auto px-4 lg:px-8 w-full max-w-[1600px]">
+     <div className={`w-full pt-24 lg:pt-6 pb-24 transition-all duration-300 min-h-screen ${isDesktopSidebarOpen ? "lg:pl-80" : "lg:pl-28"}`}>
+       <div className="container mx-auto px-4 max-w-[1600px]">
          <div className="flex flex-col xl:flex-row gap-8 items-start w-full">
            
-           <div className={`flex-1 min-w-0 w-full transition-all duration-500 ${!orgId ? 'max-w-4xl mx-auto' : 'xl:order-1'}`}>
-             <header className="flex items-center gap-4 mb-8">
-               <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center text-white shadow-lg shrink-0"><Building2 size={24} /></div>
-               <div>
-                 <h1 className="text-2xl font-black text-slate-900 leading-none mb-1 tracking-tight">จัดการหน่วยงาน</h1>
-                 <p className="text-slate-500 font-bold text-sm">ตั้งค่าสิทธิ์ รหัสเข้าใช้งาน และสถานะหน่วยงาน</p>
-               </div>
-             </header>
-               
-             <div className="flex flex-col sm:flex-row items-stretch gap-2 mb-10">
-               <div className="relative flex-1 group">
-                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-20"><Search className="text-indigo-600" size={18} /></div>
-                 <input type="text" className="input input-bordered w-full h-14 pl-11 pr-4 bg-white text-slate-900 rounded-2xl border-slate-200 focus:border-black shadow-sm outline-none font-bold transition-all" placeholder="ค้นหาชื่อ, ชื่อย่อ หรือ ID หน่วยงาน..." value={searchId} onChange={(e) => setSearchId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchOrgData(searchId)} />
-               </div>
-                {/* แก้ไขปุ่ม: เพิ่ม flex items-center justify-center */}
-                <button onClick={() => fetchOrgData(searchId)} className="btn h-12 sm:h-14 px-8 sm:px-10 !bg-black !text-white !font-bold !rounded-2xl hover:!bg-slate-800 border-none shrink-0 transition-all shadow-lg active:scale-95 text-sm sm:text-base flex items-center justify-center">
-                 {isSearching ? <Loader2 className="animate-spin" size={18} /> : "ค้นหา"}
-               </button>
-             </div>
+           <div className={`flex-1 min-w-0 w-full transition-all duration-500 ${!orgId ? 'max-w-4xl mx-auto mt-4' : 'xl:order-1'}`}>
+             
+             {!orgId && (
+               <div className="animate-in fade-in duration-500">
+                  <header className="flex items-center gap-4 mb-8">
+                    <div className="w-12 h-12 bg-[#1A1C1E] rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0"><Building2 size={24} strokeWidth={2.5} /></div>
+                    <div>
+                      <h1 className="text-2xl font-black text-slate-900 leading-none mb-1.5 tracking-tight">จัดการหน่วยงาน</h1>
+                      <p className="text-slate-500 font-bold text-sm">ตั้งค่าสิทธิ์ รหัสเข้าใช้งาน และสถานะหน่วยงาน</p>
+                    </div>
+                  </header>
+                    
+                  <div className="flex flex-col sm:flex-row items-stretch gap-3 mb-10">
+                    <div className="relative flex-1 group bg-white rounded-2xl shadow-sm border-2 border-slate-100 focus-within:border-indigo-500 focus-within:shadow-md transition-all flex items-center h-14 sm:h-16 px-5">
+                      <Search className="text-slate-400" size={22} />
+                      <input type="text" className="flex-1 bg-transparent border-none outline-none font-bold ml-3 text-slate-800 placeholder:text-slate-400 w-full" placeholder="ค้นหาชื่อ, ชื่อย่อ หรือ ID หน่วยงาน..." value={searchId} onChange={(e) => setSearchId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchOrgData(searchId)} />
+                    </div>
+                    <button onClick={() => fetchOrgData(searchId)} className="btn !h-[60px] px-10 !bg-black !text-white !font-bold !rounded-2xl shadow-lg shrink-0 text-sm sm:text-base flex items-center justify-center">
+                      {isSearching ? <Loader2 className="animate-spin" size={18} /> : "ค้นหา"}
+                    </button>
+                  </div>
 
-             <div className="mb-10">
-               <h3 className="text-[15px] font-black text-slate-600 uppercase tracking-[0.2em] mb-5 px-1">ผลการค้นหา</h3>
-               {filteredCases.length > 0 ? (
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                   {filteredCases.map((item) => {
-                     const isSelected = orgId === item.org_id;
-                     return (
-                       <div key={item.org_id} onClick={() => { if (isSelected) { setOrgId(""); setOrgName(""); setLogoPreview(null); } else { setOrgId(item.org_id); setOrgName(item.org_name); setLogoPreview(item.logo_url); setIsOfficial(item.is_official); setIsCsvEnabled(item.allow_csv); setQrReportUrl(item.qr_report_url); if (item.admin_codes?.length > 0) { setAdminCode(item.admin_codes[0].code || "ไม่มีรหัส"); setStaffCode(item.admin_codes[0].code_staff || "ไม่มีรหัส"); } else { setAdminCode("-"); setStaffCode("-"); } } }} 
-                            className={`relative bg-white rounded-[2rem] overflow-hidden cursor-pointer transition-all duration-500 border-2 flex flex-col p-2 ${isSelected ? 'border-black shadow-xl scale-[1.02] z-10' : 'border-white shadow-sm hover:border-slate-200'} ${item.is_deleted ? 'opacity-75' : ''}`}>
-                         <div className="h-32 w-full relative overflow-hidden rounded-2xl bg-white p-3 flex items-center justify-center">
-                           {item.logo_url ? <img src={STORAGE_BASE_URL + item.logo_url} className={`max-w-full max-h-full object-contain transition-transform duration-700 ${isSelected ? "scale-105" : "group-hover:scale-105"} ${item.is_deleted ? "grayscale" : ""}`} alt="Logo" /> : <div className="w-full h-full bg-slate-100 flex items-center justify-center"><ImageIcon size={32} className="text-slate-300" /></div>}
-                           {isSelected && !item.is_deleted && <div className="absolute top-2 right-2 bg-black text-white rounded-full p-1.5 shadow-xl border-2 border-white"><Check size={12} strokeWidth={4} /></div>}
-                         </div>
-                         <div className="p-4 flex flex-col flex-1 text-slate-900 min-w-0">
-                            <h4 className="font-black text-base mb-1 tracking-tight leading-snug truncate" title={item.org_name}>{item.org_name}</h4>
-                            <div className="mt-auto flex items-center justify-between gap-2">
-                              <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider whitespace-nowrap">ID: {item.org_id}</span>
-                              <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 ${isSelected ? 'bg-black text-white' : 'bg-slate-100 text-slate-400'}`}><ChevronRight size={14} strokeWidth={4} /></div>
+                  <div className="mb-10">
+                    <h3 className="text-[15px] font-black text-slate-600 uppercase tracking-[0.2em] mb-5 px-1">ผลการค้นหา</h3>
+                    {filteredCases.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                        {filteredCases.map((item) => {
+                          return (
+                            <div key={item.org_id} onClick={() => { setOrgId(item.org_id); setOrgName(item.org_name); setLogoPreview(item.logo_url); setIsOfficial(item.is_official); setIsCsvEnabled(item.allow_csv); setQrReportUrl(item.qr_report_url); if (item.admin_codes?.length > 0) { setAdminCode(item.admin_codes[0].code || "ไม่มีรหัส"); setStaffCode(item.admin_codes[0].code_staff || "ไม่มีรหัส"); } else { setAdminCode("-"); setStaffCode("-"); } }} 
+                                   className={`relative bg-white rounded-[2rem] overflow-hidden cursor-pointer transition-all duration-500 border border-slate-100 flex flex-col p-2 shadow-sm hover:shadow-md hover:border-slate-300 ${item.is_deleted ? 'opacity-75 grayscale' : ''}`}>
+                              <div className="h-32 w-full relative overflow-hidden rounded-2xl bg-slate-50 p-3 flex items-center justify-center">
+                                {item.logo_url ? <img src={STORAGE_BASE_URL + item.logo_url} className={`max-w-full max-h-full object-contain transition-transform duration-700`} alt="Logo" /> : <div className="w-full h-full bg-slate-100 flex items-center justify-center"><ImageIcon size={32} className="text-slate-300" /></div>}
+                              </div>
+                              <div className="p-4 flex flex-col flex-1 text-slate-900 min-w-0">
+                                 <h4 className="font-black text-base mb-1 tracking-tight leading-snug truncate" title={item.org_name}>{item.org_name}</h4>
+                                 <div className="mt-auto flex items-center justify-between gap-2">
+                                   <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider whitespace-nowrap">ID: {item.org_id}</span>
+                                   <div className="w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 bg-slate-100 text-slate-400"><ChevronRight size={14} strokeWidth={4} /></div>
+                                 </div>
+                              </div>
                             </div>
-                         </div>
-                       </div>
-                     );
-                   })}
-                 </div>
-               ) : (
-                 <div className="bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200 py-24 flex flex-col items-center justify-center text-slate-400">
-                   <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4"><MousePointerClick size={32} className="opacity-20" /></div>
-                   <p className="font-bold text-sm uppercase tracking-widest text-slate-300">ระบุรหัสเพื่อเริ่มจัดการ</p>
-                 </div>
-               )}
-             </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm py-24 flex flex-col items-center justify-center text-slate-400">
+                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4"><MousePointerClick size={32} className="opacity-20" /></div>
+                        <p className="font-bold text-sm uppercase tracking-widest text-slate-300">ระบุรหัสเพื่อเริ่มจัดการ</p>
+                      </div>
+                    )}
+                  </div>
+               </div>
+             )}
 
              {orgId && (
-               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
+               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700 mt-4">
+                 
+                 <button 
+                   onClick={() => { setOrgId(""); setOrgName(""); setLogoPreview(null); }} 
+                   className="flex items-center gap-2 px-5 py-2.5 bg-white text-slate-600 hover:text-black hover:shadow-md rounded-2xl font-black text-sm transition-all border border-slate-100 active:scale-95 w-fit mb-4"
+                 >
+                   <ArrowLeft size={18} strokeWidth={3} /> กลับไปหน้าค้นหาหน่วยงาน
+                 </button>
+
                  <div className="xl:hidden grid grid-cols-2 gap-3">
                      <button onClick={() => showMobileEditPanel ? setShowMobileEditPanel(false) : scrollToEdit()} className={`btn h-16 rounded-2xl border-none shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-xs font-black uppercase tracking-tight ${showMobileEditPanel ? 'bg-indigo-700 text-white' : 'bg-white text-slate-900 border-2 border-slate-100'}`}>
                        <Settings2 size={16} /> {showMobileEditPanel ? 'ปิดการจัดการ' : 'จัดการข้อมูล'}
@@ -465,11 +474,11 @@ const fetchOrgData = async (targetId = "") => {
 
                  {showMobileTimeline && <div className="xl:hidden animate-in slide-in-from-top-4 duration-300"><TimelineComponent /></div>}
 
-                 <div ref={editPanelRef} className={`space-y-8 ${!showMobileEditPanel ? 'hidden xl:block' : 'block animate-in slide-in-from-top-4 duration-500'}`}>
-                     <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border-2 border-white">
+                 <div ref={editPanelRef} className={`space-y-6 ${!showMobileEditPanel ? 'hidden xl:block' : 'block animate-in slide-in-from-top-4 duration-500'}`}>
+                     <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100">
                          <div className="flex flex-col md:flex-row gap-8">
                              <div className="relative shrink-0 mx-auto md:mx-0">
-                              <div onClick={() => setShowPhotoActionMenu(!showPhotoActionMenu)} className="w-32 h-32 bg-white rounded-[2.5rem] flex items-center justify-center overflow-hidden border-2 border-slate-100 shadow-inner cursor-pointer hover:border-black transition-all group relative">
+                              <div onClick={() => setShowPhotoActionMenu(!showPhotoActionMenu)} className="w-32 h-32 bg-white rounded-[2.5rem] flex items-center justify-center overflow-hidden border-2 border-slate-100 shadow-inner cursor-pointer hover:border-indigo-400 transition-all group relative">
                                   {logoPreview ? <img src={logoPreview.includes("blob:") ? logoPreview : STORAGE_BASE_URL + logoPreview} className="w-full h-full object-contain p-2 group-hover:scale-110 transition-all duration-500" alt="Preview" /> : <ImageIcon size={32} className="text-slate-400" />}
                                   <div className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2.5 py-1.5 bg-black/80 backdrop-blur-md text-white rounded-xl shadow-lg border border-white/20 z-20">
                                       <PencilLine size={14} strokeWidth={3} />
@@ -492,7 +501,7 @@ const fetchOrgData = async (targetId = "") => {
                                 </div>
                               )}
                              </div>
-                                                                           
+                                                                                               
                             <div className="relative w-full">
                               <div className="flex justify-between items-end mb-2 px-1">
                                 <label className="text-xs font-bold text-slate-600 uppercase tracking-widest pb-1">ชื่อหน่วยงานเต็ม</label>
@@ -506,7 +515,7 @@ const fetchOrgData = async (targetId = "") => {
                                       type="text"
                                       value={orgName}
                                       onChange={(e) => setOrgName(e.target.value)}
-                                      className="input input-bordered w-full rounded-2xl font-bold bg-white text-slate-900 border-slate-200 focus:border-black transition-all text-base shadow-sm h-14 px-5 pr-[115px] relative z-10"placeholder="ระบุชื่อหน่วยงาน..."
+                                      className="input input-bordered w-full rounded-2xl font-bold bg-white text-slate-900 border border-slate-200 focus:border-indigo-500 transition-all text-base shadow-sm h-14 px-5 pr-[115px] relative z-10" placeholder="ระบุชื่อหน่วยงาน..."
                                     />
                                   </div>
                                  </div>
@@ -578,8 +587,9 @@ const fetchOrgData = async (targetId = "") => {
                              </div>
                          </div>
                      </div>
+                     
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-sm border-2 border-white flex items-center justify-between hover:border-slate-200 transition-all">
+                      <div className="bg-white p-4 sm:p-6 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center justify-between transition-all hover:border-slate-200">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-green-50 text-green-600 rounded-xl flex items-center justify-center border border-green-100 shrink-0">
                             <FileSpreadsheet size={20} />
@@ -607,7 +617,7 @@ const fetchOrgData = async (targetId = "") => {
                     </label>
                       </div>
 
-                      <div className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-sm border-2 border-white flex items-center justify-between hover:border-slate-200 transition-all">
+                      <div className="bg-white p-4 sm:p-6 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center justify-between transition-all hover:border-slate-200">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-100 shrink-0">
                             <ShieldCheck size={20} />
@@ -629,7 +639,8 @@ const fetchOrgData = async (targetId = "") => {
                         </label>
                       </div>
                     </div>
-                     <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border-2 border-white">
+
+                     <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
                          <div className="flex row items-center justify-between mb-8 px-1 gap-4">
                              <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
                              <div className="w-10 h-10 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-lg shrink-0"><UserCheck size={20} /></div>
@@ -650,7 +661,7 @@ const fetchOrgData = async (targetId = "") => {
                         )}
                         <div ref={staffScrollRef} onScroll={() => handleScrollCheck(staffScrollRef, setStaffScrollPos)} className="flex flex-row justify-start gap-6 overflow-x-auto pt-2 pb-6 px-1 scroll-smooth hide-scrollbar-on-mobile snap-x snap-proximity">
                           {cases.find((c) => c.org_id === orgId)?.members?.map((staff) => (
-                            <div key={staff.member} className="w-[300px] bg-white rounded-[2.8rem] p-7 border border-slate-200 shadow-md flex flex-col items-center transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl group shrink-0 snap-center">
+                            <div key={staff.member} className="w-[300px] bg-white rounded-[2.5rem] p-7 border border-slate-200 shadow-md flex flex-col items-center transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl group shrink-0 snap-center">
                               <div className="relative mb-5">
                                 <div className="w-24 h-24 rounded-full overflow-hidden border-[6px] border-white shadow-xl transition-all duration-500 group-hover:scale-105 bg-slate-100 flex items-center justify-center">
                                   {staff.picture_profile ? <img src={staff.picture_profile} className="w-full h-full object-cover" alt={staff.member_firstname} /> : <UserCircle2 size={40} className="text-slate-300" />}
@@ -683,7 +694,7 @@ const fetchOrgData = async (targetId = "") => {
                       </div>
                      </div>
                      
-                     <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border-2 border-white overflow-hidden">
+                     <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
                          <div className="mb-6 px-1">
                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0">
                                <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -766,7 +777,7 @@ const fetchOrgData = async (targetId = "") => {
            </div>
 
            {orgId && (
-             <div className="hidden xl:block w-full xl:w-[320px] 2xl:w-[400px] shrink-0 xl:sticky xl:top-16 xl:order-2 animate-in fade-in slide-in-from-right-10 duration-700">
+             <div className="hidden xl:block w-full xl:w-[320px] 2xl:w-[400px] shrink-0 xl:sticky xl:top-24 xl:order-2 animate-in fade-in slide-in-from-right-10 duration-700">
                  <TimelineComponent />
              </div>
            )}
@@ -1031,4 +1042,4 @@ const fetchOrgData = async (targetId = "") => {
      )}
    </div> 
  );
-} 
+}
