@@ -152,45 +152,39 @@ export default function ManageCase() {
   const [auditLogs, setAuditLogs] = useState([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
 
-      const fetchAuditLogs = async (ticketId) => {
+// 🟢 ฟังก์ชันดึง Log จาก API และจำแนกประเภท
+// 🟢 ฟังก์ชันดึง Log จาก API และจำแนกประเภทสำหรับ Manage Case
+  const fetchAuditLogs = async (ticketId) => {
+    if (!ticketId) return;
     setIsLoadingLogs(true);
     try {
         const logsUrl = `${process.env.NEXT_PUBLIC_LOGGING_API}&target_id=eq.${ticketId}`;
-        console.log("Fetching logs from:", logsUrl);
-        // 🟢 เพิ่มออปชัน headers ตรงนี้
         const response = await fetch(logsUrl, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.NEXT_PUBLIC_LOGING_JWT_TOKEN}` 
+                'Authorization': `Bearer ${process.env.NEXT_PUBLIC_LOGING_JWT_TOKEN}`
             }
         });
-if (!response.ok) {
-            // ดึงข้อความ Error ออกมาดูเผื่อมีปัญหาอื่น
-            const errText = await response.text();
-            throw new Error(`API Error: ${response.status} - ${errText}`);
-        }        
+
+        if (!response.ok) throw new Error("Failed to fetch logs");
         const data = await response.json();
-        
-        // แปลงข้อมูล Log เพื่อจำแนกตาม Actions จริงในไฟล์ API
+
         const formattedLogs = data.map((log, index) => {
             let uiType = 'default';
             let actionText = log.action || 'ปรับปรุงข้อมูล';
             let detailText = 'มีการอัปเดตข้อมูลในระบบ';
 
-            // แกะข้อมูลจำแนกจาก Action หลักของไฟล์ API
+            // 💡 แกะข้อมูลจำแนกจาก Action หลักของไฟล์ Manage Case
             if (log.action === 'UPDATE_ATTACHMENT_FULL_PROPERTIES') {
                 const changes = log.payload?.changes;
                 const attachmentId = log.payload?.attachment_id || '';
                 
-                // 🔹 Action 1: เปลี่ยนแปลงไฟล์/อัปโหลดรูปใหม่ (photo เปลี่ยน)
                 if (changes?.photo && changes.photo.old !== changes.photo.new) {
                     uiType = 'edit';
                     actionText = 'แทนที่ไฟล์แนบใหม่';
                     detailText = log.payload?.description || `เปลี่ยนไฟล์แนบเดิมเป็นไฟล์ใหม่ (ID: ${attachmentId})`;
-                } 
-                // 🔹 Action 2: เปลี่ยนแปลงสถานะการซ่อน (is_hidden เปลี่ยน)
-                else if (changes?.is_hidden && changes.is_hidden.old !== changes.is_hidden.new) {
+                } else if (changes?.is_hidden && changes.is_hidden.old !== changes.is_hidden.new) {
                     uiType = 'security';
                     if (changes.is_hidden.new === true) {
                         actionText = 'ซ่อนรูปภาพจากสาธารณะ';
@@ -199,11 +193,9 @@ if (!response.ok) {
                         actionText = 'เปิดการแสดงผลรูปภาพ';
                         detailText = `ยกเลิกการซ่อนรูปภาพ (ID: ${attachmentId}) เพื่อให้แสดงผลตามปกติ`;
                     }
-                } 
-                // 🔹 Action 3: ตั้งรูปภาพเป็นหน้าปกเคส (is_cover เปลี่ยน)
-                else if (changes?.is_cover && changes.is_cover.old !== changes.is_cover.new) {
+                } else if (changes?.is_cover && changes.is_cover.old !== changes.is_cover.new) {
                     if (changes.is_cover.new === true) {
-                        uiType = 'restore'; // เลือกธีมสีเขียว emerald ให้เด่นชัด
+                        uiType = 'restore'; 
                         actionText = 'ตั้งเป็นรูปหน้าปกเคส (Cover)';
                         detailText = `กำหนดให้รูปภาพ (ID: ${attachmentId}) เป็นภาพหน้าปกหลักของเคสนี้`;
                     } else {
@@ -211,18 +203,16 @@ if (!response.ok) {
                         actionText = 'ยกเลิกการเป็นรูปหน้าปก';
                         detailText = `รูปภาพ (ID: ${attachmentId}) ถูกปลดออกจากการเป็นรูปหน้าปก`;
                     }
-                }
-                // 🔹 เผื่อกรณีมีการอัปเดตฟิลด์อื่น หรือค่าโน้ตภายนอก
-                else {
+                } else {
                     uiType = 'edit';
                     actionText = 'แก้ไขคุณสมบัติไฟล์แนบ';
                     detailText = `อัปเดตข้อมูลรายละเอียดไฟล์แนบ (ID: ${attachmentId})`;
                 }
             } else {
-                // รองรับโครงสร้าง fallback เผื่อมี Action รูปแบบอื่นเข้ามาในระบบภายหลัง
-                if (log.action?.includes('UPDATE') || log.action?.includes('EDIT')) uiType = 'edit';
-                if (log.action?.includes('HIDE') || log.action?.includes('DELETE')) uiType = 'security';
-                if (log.action?.includes('RESTORE')) uiType = 'restore';
+                const act = log.action?.toUpperCase() || "";
+                if (act.includes('UPDATE') || act.includes('EDIT')) uiType = 'edit';
+                if (act.includes('HIDE') || act.includes('DELETE')) uiType = 'security';
+                if (act.includes('RESTORE')) uiType = 'restore';
                 actionText = log.action || actionText;
                 detailText = log.payload?.description || detailText;
             }
@@ -244,7 +234,8 @@ if (!response.ok) {
     } finally {
         setIsLoadingLogs(false);
     }
-};
+  };
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -609,13 +600,10 @@ const handleSetAsCover = async (imgId) => {
         </div>
 
     {/* Mobile Timeline View */}
+    {/* Mobile Timeline View */}
     {showMobileTimeline && (
       <div className="xl:hidden animate-fade-in">
-          {isLoadingLogs ? (
-              <div className="p-10 text-center font-bold text-slate-400">กำลังโหลดข้อมูลกิจกรรม...</div>
-          ) : (
-              <TimelineContent data={auditLogs} />
-          )}
+          <TimelineContent data={auditLogs} isLoading={isLoadingLogs} />
       </div>
     )}
 
@@ -780,13 +768,7 @@ const handleSetAsCover = async (imgId) => {
 
       {currentCase && (
         <div className="hidden xl:block w-full xl:w-[320px] 2xl:w-[400px] shrink-0 xl:sticky xl:top-8 animate-fade-in">
-            {isLoadingLogs ? (
-                <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 p-10 text-center font-bold text-slate-400">
-                    กำลังโหลดข้อมูลกิจกรรม...
-                </div>
-            ) : (
-                <TimelineContent data={auditLogs} />
-            )}
+            <TimelineContent data={auditLogs} isLoading={isLoadingLogs} />
         </div>
       )}
     </div>
@@ -799,13 +781,43 @@ const handleSetAsCover = async (imgId) => {
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* 🟢 เพิ่มส่วนนี้เข้าไป: Custom Scrollbar แบบมินิมอล */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+        border-radius: 10px;
+        margin-block: 4px; /* เว้นหัวท้ายนิดหน่อยให้ดูสวย */
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1; /* สี slate-300 */
+        border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8; /* สี slate-400 (เข้มขึ้นตอนเอาเมาส์ชี้) */
+    }
   `}</style>
 </div>
  );
 }
 
-function TimelineContent({ data }) {
-    if (!data || data.length === 0) return <div className="p-10 text-center font-bold text-slate-400">ไม่มีข้อมูลกิจกรรม</div>;
+function TimelineContent({ data, isLoading }) {
+    // 🟢 สร้าง State สำหรับจัดการ Filter ไว้ใน Component นี้เลย
+    const [activeLogFilter, setActiveLogFilter] = useState('ทั้งหมด');
+
+    // แมปประเภทของ Log ให้เข้ากับแท็บต่างๆ
+    const filterMap = {
+        'ทั้งหมด': ['edit', 'security', 'restore', 'default'],
+        'การแก้ไข': ['edit'],
+        'ความปลอดภัย': ['security'],
+        'ระบบ': ['restore', 'default']
+    };
+
+    // กรองข้อมูลตามแท็บที่กด
+    const displayLogs = (data || []).filter(log => filterMap[activeLogFilter]?.includes(log.type) || activeLogFilter === 'ทั้งหมด');
 
     return (
         <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden relative w-full">
@@ -825,33 +837,65 @@ function TimelineContent({ data }) {
                             </div>
                         </div>
                     </div>
+                    <button className="w-10 h-10 shrink-0 bg-white border border-slate-200 hover:border-black hover:bg-black hover:text-white rounded-full flex items-center justify-center text-slate-400 transition-all active:scale-95"><Filter size={16} strokeWidth={2.5} /></button>
+                </div>
+                
+                {/* 🟢 ปุ่ม Filter Tabs */}
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
+                    {['ทั้งหมด', 'การแก้ไข', 'ความปลอดภัย', 'ระบบ'].map((tag, i) => (
+                        <button 
+                            key={i} 
+                            onClick={() => setActiveLogFilter(tag)} 
+                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all border shrink-0 ${activeLogFilter === tag ? 'bg-slate-900 text-white border-slate-900 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400 hover:text-slate-800'}`}
+                        >
+                            {tag}
+                        </button>
+                    ))}
                 </div>
             </div>
-            <div className="px-6 pb-6 relative z-10 max-h-[500px] overflow-y-auto scrollbar-hide">
-                <div className="absolute left-[39px] top-4 bottom-12 w-[2px] bg-slate-100 z-0 rounded-full"></div>
+
+            <div className="px-6 pb-6 pr-4 relative z-10 max-h-[500px] overflow-y-auto custom-scrollbar">                <div className="absolute left-[39px] top-4 bottom-12 w-[2px] bg-slate-100 z-0 rounded-full"></div>
                 <div className="space-y-4 pt-2">
-                {data.map((item) => {
-                    const styles = getTypeStyles(item.type);
-                    return (
-                    <div key={item.id} className="relative flex gap-4 group z-10">
-                        <div className={`relative w-9 h-9 shrink-0 rounded-xl ${styles.bg} ${styles.text} border-2 border-white flex items-center justify-center transition-all duration-500 group-hover:scale-110 z-20 shadow-sm bg-white`}>{styles.icon}</div>
-                        <div className="flex-1 min-w-0 pt-0.5">
-                            <div className="flex justify-between items-center mb-1 gap-2">
-                                <h4 className="text-xs font-black text-slate-900 truncate">{item.action}</h4>
-                                <span className="text-[9px] font-bold text-slate-400 whitespace-nowrap bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{item.time}</span>
-                            </div>
-                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
-                                <p className="text-[11px] text-slate-600 font-medium leading-tight">{item.detail}</p>
-                                <div className="flex items-center gap-1.5 mt-2 opacity-60">
-                                    <div className="w-4 h-4 rounded-full bg-slate-200 flex items-center justify-center text-[8px] font-bold">{item.user.charAt(0)}</div>
-                                    <span className="text-[9px] font-bold text-slate-500 tracking-tight">By: {item.user}</span>
-                                </div>
-                            </div>
+                    
+                    {/* 🟢 แสดงสถานะ Loading ภายในกล่องเลย เพื่อให้ UI ไม่กระตุก */}
+                    {isLoading ? (
+                        <div className="py-10 text-center text-sm font-bold text-slate-400 flex flex-col items-center gap-3">
+                            <span className="loading loading-spinner loading-md text-indigo-500"></span>
+                            กำลังโหลดข้อมูลกิจกรรม...
                         </div>
-                    </div>
-                    );
-                })}
+                    ) : displayLogs.length > 0 ? (
+                        displayLogs.map((item) => {
+                            const styles = getTypeStyles(item.type);
+                            return (
+                                <div key={item.id} className="relative flex gap-4 group z-10 animate-fade-in">
+                                    <div className={`relative w-9 h-9 shrink-0 rounded-xl ${styles.bg} ${styles.text} border-2 border-white flex items-center justify-center transition-all duration-500 group-hover:scale-110 z-20 shadow-sm bg-white`}>{styles.icon}</div>
+                                    <div className="flex-1 min-w-0 pt-0.5">
+                                        <div className="flex justify-between items-center mb-1 gap-2">
+                                            <h4 className="text-xs font-black text-slate-900 truncate">{item.action}</h4>
+                                            <span className="text-[9px] font-bold text-slate-400 whitespace-nowrap bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{item.time}</span>
+                                        </div>
+                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
+                                            <p className="text-[11px] text-slate-600 font-medium leading-tight">{item.detail}</p>
+                                            <div className="flex items-center gap-1.5 mt-2 opacity-60">
+                                                <div className="w-4 h-4 rounded-full bg-slate-200 flex items-center justify-center text-[8px] font-bold">{item.user.charAt(0)}</div>
+                                                <span className="text-[9px] font-bold text-slate-500 tracking-tight">By: {item.user}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    ) : (
+                        <div className="py-10 text-center text-sm font-bold text-slate-400 flex flex-col items-center">
+                            <Activity size={32} className="opacity-20 mb-2" />
+                            ไม่พบข้อมูลในหมวดหมู่นี้
+                        </div>
+                    )}
+                    
                 </div>
+                
+            </div>
+            <div className="p-4 pt-2 bg-white border-t border-slate-50 relative z-20">
             </div>
         </div>
     );

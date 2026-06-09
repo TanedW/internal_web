@@ -106,6 +106,84 @@ export default function ManageOrgPage() {
  const API_URL_MANAGE = process.env.NEXT_PUBLIC_DB_MANAGE_ORG_API_URL || "";
  const uploadApiUrl = process.env.NEXT_PUBLIC_FILE_UPLOAD_API_URL;
  const STORAGE_BASE_URL = "https://storage.googleapis.com/traffy_public_bucket/";
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+
+  // 🟢 2. ฟังก์ชันดึงและแปลง Log สำหรับหน้าจัดการหน่วยงาน
+  const fetchAuditLogs = async (targetOrgId) => {
+    if (!targetOrgId) return;
+    setIsLoadingLogs(true);
+    try {
+      const logsUrl = `${process.env.NEXT_PUBLIC_LOGGING_API}&target_id=eq.${targetOrgId}`;
+      const response = await fetch(logsUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_LOGING_JWT_TOKEN}`
+        }
+      });
+
+      if (!response.ok) throw new Error("Failed to fetch logs");
+      const data = await response.json();
+
+      const formattedLogs = data.map((log, index) => {
+        let uiType = 'default';
+        let actionText = 'อัปเดตข้อมูลหน่วยงาน';
+        let detailText = log.reason || log.payload?.description || 'มีการปรับปรุงข้อมูลในระบบ';
+
+        const act = log.action?.toUpperCase() || "";
+
+        // แยกประเภทตาม Action ที่กำหนดใน manage_org.js
+        if (act === 'GROUP_SOFT_DELETE') {
+          uiType = 'delete';
+          actionText = 'ลบหน่วยงาน';
+        } else if (act === 'GROUP_RESTORE') {
+          uiType = 'restore';
+          actionText = 'กู้คืนหน่วยงาน';
+        } else if (act === 'GROUP_UPDATE_INFO') {
+          const actionsPerformed = log.payload?.actions_performed || [];
+          
+          if (actionsPerformed.includes('switch official') || actionsPerformed.includes('switch download_csv')) {
+            uiType = 'security';
+            actionText = 'อัปเดตสิทธิ์หน่วยงาน';
+          } else if (actionsPerformed.includes('change name') || actionsPerformed.includes('change photo')) {
+            uiType = 'edit';
+            actionText = 'แก้ไขข้อมูลพื้นฐาน';
+          } else {
+            uiType = 'edit';
+          }
+          
+          // ตกแต่งรายละเอียดข้อความหากไม่มี Reason ส่งมา
+          if (actionsPerformed.length > 0 && !log.reason) {
+            const translatedActions = actionsPerformed.map(a => {
+              if (a === 'change name') return 'เปลี่ยนชื่อ';
+              if (a === 'change photo') return 'เปลี่ยนรูปโปรไฟล์';
+              if (a === 'switch official') return 'ปรับสถานะ Official';
+              if (a === 'switch download_csv') return 'ปรับสิทธิ์ดาวน์โหลด CSV';
+              return a;
+            });
+            detailText = `รายการที่แก้ไข: ${translatedActions.join(', ')}`;
+          }
+        }
+
+        return {
+          id: log.id || `log-${index}`,
+          type: uiType,
+          action: actionText,
+          detail: detailText,
+          user: log.actor_name || 'System Admin',
+          time: log.created_at ? new Date(log.created_at).toLocaleString('th-TH') : 'ไม่ระบุเวลา'
+        };
+      });
+
+      setAuditLogs(formattedLogs);
+    } catch (error) {
+      console.error("Error fetching logs:", error);
+      setAuditLogs([]);
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  };
 
  const scrollToEdit = () => {
     setShowMobileEditPanel(true);
@@ -135,6 +213,15 @@ export default function ManageOrgPage() {
       });
     }
   };
+
+  // 🟢 โหลด Log ทุกครั้งที่เลือกหน่วยงานใหม่
+  useEffect(() => {
+    if (orgId) {
+      fetchAuditLogs(orgId);
+    } else {
+      setAuditLogs([]); 
+    }
+  }, [orgId]);
 
  useEffect(() => {
   if (staffScrollRef.current) {
@@ -267,6 +354,10 @@ const fetchOrgData = async (targetId = "") => {
        setUpdateModal({ show: false, type: "", title: "", newValue: null, reason: "" });
        setShowQrEditor(false); 
        await fetchOrgData(searchId); 
+       
+       // 🟢 แทรกบรรทัดนี้: โหลดไทม์ไลน์ใหม่ทันทีที่บันทึกข้อมูลหน่วยงานสำเร็จ
+       if (orgId) fetchAuditLogs(orgId); 
+       
      } else {
        alert("เกิดข้อผิดพลาด: " + (result.message || result.error));
      }
@@ -333,63 +424,95 @@ const fetchOrgData = async (targetId = "") => {
    } else { setQrList([]); }
  }, [qrReportUrl]);
 
- const TimelineComponent = () => (
-   <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden relative w-full">
-     <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-slate-50 to-white z-0"></div>
-     <div className="p-6 pb-4 relative z-10">
-       <div className="flex items-center justify-between mb-4">
-         <div className="flex items-center gap-3">
-           <div className="w-10 h-10 bg-black text-white rounded-xl flex items-center justify-center shadow-md shrink-0"><Activity size={20} /></div>
-           <div>
-             <h3 className="text-lg font-black text-slate-900 tracking-tight leading-none mb-1">Activity Log</h3>
-             <div className="flex items-center gap-1.5 mt-1.5">
-               <span className="relative flex h-2 w-2">
-                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-               </span>
-               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live Updates</p>
-             </div>
-           </div>
-         </div>
-         <button className="w-10 h-10 shrink-0 bg-white border border-slate-200 hover:border-black hover:bg-black hover:text-white rounded-full flex items-center justify-center text-slate-400 transition-all active:scale-95"><Filter size={16} strokeWidth={2.5} /></button>
-       </div>
-       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
-         {['ทั้งหมด', 'การแก้ไข', 'ความปลอดภัย', 'ระบบ'].map((tag, i) => (
-           <button key={i} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all border shrink-0 ${i === 0 ? 'bg-slate-900 text-white border-slate-900 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400 hover:text-slate-800'}`}>{tag}</button>
-         ))}
-       </div>
-     </div>
-     <div className="px-6 pb-6 relative z-10 max-h-[450px] overflow-y-auto scrollbar-hide">
-       <div className="absolute left-[39px] top-4 bottom-12 w-[2px] bg-slate-100 z-0 rounded-full"></div>
-       <div className="space-y-4 pt-2">
-         {TIMELINE_DATA.map((item) => {
-           const styles = getTypeStyles(item.type);
-           return (
-             <div key={item.id} className="relative flex gap-4 group z-10">
-               <div className={`relative w-9 h-9 shrink-0 rounded-xl ${styles.bg} ${styles.text} border-2 ${styles.border} flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 z-20 shadow-sm bg-white`}>{React.cloneElement(styles.icon, { size: 14 })}</div>
-               <div className="flex-1 min-w-0 pt-0.5">
-                 <div className="flex justify-between items-center mb-1 gap-2">
-                   <h4 className="text-xs font-black text-slate-900 truncate group-hover:text-indigo-600 transition-colors">{item.action}</h4>
-                   <span className="text-[9px] font-bold text-slate-400 whitespace-nowrap bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{item.time}</span>
-                 </div>
-                 <div className="bg-slate-50 group-hover:bg-white border border-slate-100 group-hover:border-slate-200 rounded-xl p-3 transition-all">
-                   <p className="text-[11px] text-slate-600 font-medium leading-tight break-words">{item.detail}</p>
-                   <div className="flex items-center gap-1.5 mt-2 opacity-60">
-                     <div className="w-4 h-4 rounded-full bg-slate-200 flex items-center justify-center text-[8px] font-bold">{item.user.charAt(0)}</div>
-                     <span className="text-[9px] font-bold text-slate-500 tracking-tight">{item.user}</span>
-                   </div>
-                 </div>
+ const TimelineComponent = () => {
+   const [activeLogFilter, setActiveLogFilter] = useState('ทั้งหมด');
+
+   const filterMap = {
+     'ทั้งหมด': ['edit', 'security', 'restore', 'delete', 'default'],
+     'การแก้ไข': ['edit', 'delete'],
+     'ความปลอดภัย': ['security'],
+     'ระบบ': ['restore', 'default']
+   };
+
+   const displayLogs = auditLogs.filter(log => filterMap[activeLogFilter]?.includes(log.type) || activeLogFilter === 'ทั้งหมด');
+
+   return (
+     <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden relative w-full">
+       <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-slate-50 to-white z-0"></div>
+       <div className="p-6 pb-4 relative z-10">
+         <div className="flex items-center justify-between mb-4">
+           <div className="flex items-center gap-3">
+             <div className="w-10 h-10 bg-black text-white rounded-xl flex items-center justify-center shadow-md shrink-0"><Activity size={20} /></div>
+             <div>
+               <h3 className="text-lg font-black text-slate-900 tracking-tight leading-none mb-1">Activity Log</h3>
+               <div className="flex items-center gap-1.5 mt-1.5">
+                 <span className="relative flex h-2 w-2">
+                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                 </span>
+                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live Updates</p>
                </div>
              </div>
-           );
-         })}
+           </div>
+           <button className="w-10 h-10 shrink-0 bg-white border border-slate-200 hover:border-black hover:bg-black hover:text-white rounded-full flex items-center justify-center text-slate-400 transition-all active:scale-95"><Filter size={16} strokeWidth={2.5} /></button>
+         </div>
+         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
+           {['ทั้งหมด', 'การแก้ไข', 'ความปลอดภัย', 'ระบบ'].map((tag, i) => (
+             <button 
+                key={i} 
+                onClick={() => setActiveLogFilter(tag)} 
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all border shrink-0 ${activeLogFilter === tag ? 'bg-slate-900 text-white border-slate-900 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400 hover:text-slate-800'}`}
+             >
+                {tag}
+             </button>
+           ))}
+         </div>
+       </div>
+       <div className="px-6 pb-6 pr-4 relative z-10 max-h-[450px] overflow-y-auto custom-scrollbar">
+         <div className="absolute left-[39px] top-4 bottom-12 w-[2px] bg-slate-100 z-0 rounded-full"></div>
+         <div className="space-y-4 pt-2">
+            
+            {isLoadingLogs ? (
+                 <div className="py-10 text-center text-sm font-bold text-slate-400 flex flex-col items-center gap-3">
+                     <Loader2 className="animate-spin w-8 h-8 text-indigo-500" />
+                     กำลังโหลดข้อมูลกิจกรรม...
+                 </div>
+             ) : displayLogs.length > 0 ? (
+                 displayLogs.map((item) => {
+                   const styles = getTypeStyles(item.type);
+                   return (
+                     <div key={item.id} className="relative flex gap-4 group z-10 animate-fade-in">
+                       <div className={`relative w-9 h-9 shrink-0 rounded-xl ${styles.bg} ${styles.text} border-2 ${styles.border} flex items-center justify-center transition-all duration-500 group-hover:scale-110 z-20 shadow-sm bg-white`}>{React.cloneElement(styles.icon, { size: 14 })}</div>
+                       <div className="flex-1 min-w-0 pt-0.5">
+                         <div className="flex justify-between items-center mb-1 gap-2">
+                           <h4 className="text-xs font-black text-slate-900 truncate group-hover:text-indigo-600 transition-colors">{item.action}</h4>
+                           <span className="text-[9px] font-bold text-slate-400 whitespace-nowrap bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{item.time}</span>
+                         </div>
+                         <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 transition-all">
+                           <p className="text-[11px] text-slate-600 font-medium leading-tight break-words">{item.detail}</p>
+                           <div className="flex items-center gap-1.5 mt-2 opacity-60">
+                             <div className="w-4 h-4 rounded-full bg-slate-200 flex items-center justify-center text-[8px] font-bold">{item.user.charAt(0)}</div>
+                             <span className="text-[9px] font-bold text-slate-500 tracking-tight">{item.user}</span>
+                           </div>
+                         </div>
+                       </div>
+                     </div>
+                   );
+                 })
+             ) : (
+                 <div className="py-10 text-center text-sm font-bold text-slate-400 flex flex-col items-center">
+                     <Activity size={32} className="opacity-20 mb-2" />
+                     ไม่พบประวัติการทำรายการ
+                 </div>
+             )}
+
+         </div>
+       </div>
+       <div className="p-4 pt-2 bg-white border-t border-slate-50 relative z-20">
        </div>
      </div>
-     <div className="p-4 pt-2 bg-white border-t border-slate-50 relative z-20">
-       <button className="relative w-full py-3 bg-white hover:bg-slate-50 border border-slate-100 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 active:scale-[0.98] text-slate-900">View Full History <ArrowRight size={12} strokeWidth={3} /></button>
-     </div>
-   </div>
- );
+   );
+ };
 
  return (
    <div data-theme="light" className="min-h-screen bg-[#F4F6F8] text-slate-900 font-sans overflow-x-hidden">
