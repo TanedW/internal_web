@@ -149,6 +149,102 @@ export default function ManageCase() {
   const [reason, setReason] = useState("");
 
   const inputRef = useRef(null);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+
+      const fetchAuditLogs = async (ticketId) => {
+    setIsLoadingLogs(true);
+    try {
+        const logsUrl = `${process.env.NEXT_PUBLIC_LOGGING_API}&target_id=eq.${ticketId}`;
+        console.log("Fetching logs from:", logsUrl);
+        // 🟢 เพิ่มออปชัน headers ตรงนี้
+        const response = await fetch(logsUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.NEXT_PUBLIC_LOGING_JWT_TOKEN}` 
+            }
+        });
+if (!response.ok) {
+            // ดึงข้อความ Error ออกมาดูเผื่อมีปัญหาอื่น
+            const errText = await response.text();
+            throw new Error(`API Error: ${response.status} - ${errText}`);
+        }        
+        const data = await response.json();
+        
+        // แปลงข้อมูล Log เพื่อจำแนกตาม Actions จริงในไฟล์ API
+        const formattedLogs = data.map((log, index) => {
+            let uiType = 'default';
+            let actionText = log.action || 'ปรับปรุงข้อมูล';
+            let detailText = 'มีการอัปเดตข้อมูลในระบบ';
+
+            // แกะข้อมูลจำแนกจาก Action หลักของไฟล์ API
+            if (log.action === 'UPDATE_ATTACHMENT_FULL_PROPERTIES') {
+                const changes = log.payload?.changes;
+                const attachmentId = log.payload?.attachment_id || '';
+                
+                // 🔹 Action 1: เปลี่ยนแปลงไฟล์/อัปโหลดรูปใหม่ (photo เปลี่ยน)
+                if (changes?.photo && changes.photo.old !== changes.photo.new) {
+                    uiType = 'edit';
+                    actionText = 'แทนที่ไฟล์แนบใหม่';
+                    detailText = log.payload?.description || `เปลี่ยนไฟล์แนบเดิมเป็นไฟล์ใหม่ (ID: ${attachmentId})`;
+                } 
+                // 🔹 Action 2: เปลี่ยนแปลงสถานะการซ่อน (is_hidden เปลี่ยน)
+                else if (changes?.is_hidden && changes.is_hidden.old !== changes.is_hidden.new) {
+                    uiType = 'security';
+                    if (changes.is_hidden.new === true) {
+                        actionText = 'ซ่อนรูปภาพจากสาธารณะ';
+                        detailText = `ซ่อนรูปภาพ (ID: ${attachmentId}) ไม่ให้แสดงผลในฝั่งผู้ใช้งานทั่วไป`;
+                    } else {
+                        actionText = 'เปิดการแสดงผลรูปภาพ';
+                        detailText = `ยกเลิกการซ่อนรูปภาพ (ID: ${attachmentId}) เพื่อให้แสดงผลตามปกติ`;
+                    }
+                } 
+                // 🔹 Action 3: ตั้งรูปภาพเป็นหน้าปกเคส (is_cover เปลี่ยน)
+                else if (changes?.is_cover && changes.is_cover.old !== changes.is_cover.new) {
+                    if (changes.is_cover.new === true) {
+                        uiType = 'restore'; // เลือกธีมสีเขียว emerald ให้เด่นชัด
+                        actionText = 'ตั้งเป็นรูปหน้าปกเคส (Cover)';
+                        detailText = `กำหนดให้รูปภาพ (ID: ${attachmentId}) เป็นภาพหน้าปกหลักของเคสนี้`;
+                    } else {
+                        uiType = 'edit';
+                        actionText = 'ยกเลิกการเป็นรูปหน้าปก';
+                        detailText = `รูปภาพ (ID: ${attachmentId}) ถูกปลดออกจากการเป็นรูปหน้าปก`;
+                    }
+                }
+                // 🔹 เผื่อกรณีมีการอัปเดตฟิลด์อื่น หรือค่าโน้ตภายนอก
+                else {
+                    uiType = 'edit';
+                    actionText = 'แก้ไขคุณสมบัติไฟล์แนบ';
+                    detailText = `อัปเดตข้อมูลรายละเอียดไฟล์แนบ (ID: ${attachmentId})`;
+                }
+            } else {
+                // รองรับโครงสร้าง fallback เผื่อมี Action รูปแบบอื่นเข้ามาในระบบภายหลัง
+                if (log.action?.includes('UPDATE') || log.action?.includes('EDIT')) uiType = 'edit';
+                if (log.action?.includes('HIDE') || log.action?.includes('DELETE')) uiType = 'security';
+                if (log.action?.includes('RESTORE')) uiType = 'restore';
+                actionText = log.action || actionText;
+                detailText = log.payload?.description || detailText;
+            }
+
+            return {
+                id: log.id || `log-${index}`,
+                type: uiType,
+                action: actionText,
+                detail: detailText,
+                user: log.actor_name || 'System Admin',
+                time: log.created_at ? new Date(log.created_at).toLocaleString('th-TH') : 'ไม่ระบุเวลา'
+            };
+        });
+
+        setAuditLogs(formattedLogs);
+    } catch (error) {
+        console.error("Error fetching logs:", error);
+        setAuditLogs([]);
+    } finally {
+        setIsLoadingLogs(false);
+    }
+};
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -224,6 +320,9 @@ const handleSearch = async (e, manualId = null, isRefresh = false) => {
                 allImages: allImagesCombined, 
                 status: apiData.status
             });
+            if (apiData.ticket_id) {
+                fetchAuditLogs(apiData.ticket_id);
+            }
         } else { 
             alert(result.message || "ไม่พบข้อมูล"); 
         }
@@ -232,6 +331,8 @@ const handleSearch = async (e, manualId = null, isRefresh = false) => {
     } finally { 
         setIsSearching(false); 
     }
+
+
 };
 
 const handleToggleHideImage = async (imgId, currentStatus) => {
@@ -254,14 +355,19 @@ const handleToggleHideImage = async (imgId, currentStatus) => {
             body: JSON.stringify(dbPayload)
         });
         if (response.ok) {
-            setCurrentCase(prev => ({
-                ...prev,
-                allImages: prev.allImages.map(img => 
-                    img.id === imgId 
-                    ? { ...img, status: newIsHidden ? 'hidden' : 'active' } 
-                    : img
-                )
-            }));
+    setCurrentCase(prev => ({
+        ...prev,
+        allImages: prev.allImages.map(img => 
+            img.id === imgId 
+            ? { ...img, status: newIsHidden ? 'hidden' : 'active' } 
+            : img
+        )
+    }));
+    
+    // 🟢 เพิ่มบรรทัดนี้: เพื่อสั่งโหลดไทม์ไลน์ใหม่หลังแอดมินกด ซ่อน/แสดง สำเร็จ
+    if (currentCase?.id) {
+        fetchAuditLogs(currentCase.id);
+    }
         } else {
             const err = await response.json();
             alert(`ไม่สามารถ ${actionText} รูปภาพได้: ${err.message}`);
@@ -384,6 +490,9 @@ const handleSetAsCover = async (imgId) => {
                 }))
             }));
             alert("เปลี่ยนรูปหน้าปกสำเร็จ");
+            if (currentCase?.id) {
+        fetchAuditLogs(currentCase.id);
+    }
         } else {
             alert("ไม่สามารถเปลี่ยนรูปหน้าปกได้");
         }
@@ -502,7 +611,11 @@ const handleSetAsCover = async (imgId) => {
     {/* Mobile Timeline View */}
     {showMobileTimeline && (
       <div className="xl:hidden animate-fade-in">
-          <TimelineContent data={STATIC_TIMELINE} />
+          {isLoadingLogs ? (
+              <div className="p-10 text-center font-bold text-slate-400">กำลังโหลดข้อมูลกิจกรรม...</div>
+          ) : (
+              <TimelineContent data={auditLogs} />
+          )}
       </div>
     )}
 
@@ -667,7 +780,13 @@ const handleSetAsCover = async (imgId) => {
 
       {currentCase && (
         <div className="hidden xl:block w-full xl:w-[320px] 2xl:w-[400px] shrink-0 xl:sticky xl:top-8 animate-fade-in">
-            <TimelineContent data={STATIC_TIMELINE} />
+            {isLoadingLogs ? (
+                <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 p-10 text-center font-bold text-slate-400">
+                    กำลังโหลดข้อมูลกิจกรรม...
+                </div>
+            ) : (
+                <TimelineContent data={auditLogs} />
+            )}
         </div>
       )}
     </div>
