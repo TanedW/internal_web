@@ -536,6 +536,14 @@ const refreshAdminProfileInBackground = async () => {
                   {isDesktopSidebarOpen && <span className="font-bold text-[15px] whitespace-nowrap">Reset OTP</span>}
                 </Link>
               )}
+
+
+              {hasAccess(["admin", "editor", "editor_richmenu_stats"]) && (
+                <Link href="/richmenu-stats" className={getMenuClass("/richmenu-stats")}>
+                  <TimerReset size={20} className="shrink-0" />
+                  {isDesktopSidebarOpen && <span className="font-bold text-[15px] whitespace-nowrap">สถิติ Richmenu</span>}
+                </Link>
+              )}
             </nav>
 
             <div className={`mt-auto pt-4 border-t border-slate-100 ${!isDesktopSidebarOpen && 'flex justify-center'}`}>
