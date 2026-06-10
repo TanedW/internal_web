@@ -93,7 +93,7 @@ export const SIDEBAR_MENUS = [
   { title: "ค้นหาหน่วยงานซ้ำ", href: "/search-org", icon: <Search size={20} />, roles: ["admin", "editor", "editor_search_duplicate_org"] },
   { title: "จัดการไฟล์ FAQ", href: "/manage-file-search", icon: <FolderSearch size={20} />, roles: ["admin", "editor", "editor_file_search"] },
   { title: "Reset OTP", href: "/reset-otp", icon: <TimerReset size={20} />, roles: ["admin", "editor", "editor_reset_otp"] },
-  { title: "สถิติ Richmenu", href: "/richmenu-stats", icon: <TimerReset size={20} />, roles: ["admin", "editor", "editor_richmenu_stats"] },
+  { title: "สถิติ Richmenu", href: "/richmenu-stats", icon: <Stats size={20} />, roles: ["admin", "editor", "editor_richmenu_stats"] },
 ];
 export default function Sidebar({
   isDesktopSidebarOpen,
