@@ -17,6 +17,7 @@ import {
   Search,
   FolderSearch,
   TimerReset,
+  BarChart3,
 } from "lucide-react";
 
 // --- Firebase Configuration ---
@@ -141,7 +142,7 @@ export const SIDEBAR_MENUS = [
   {
     title: "สถิติ Richmenu",
     href: "/richmenu-stats",
-    icon: <Stats size={20} />,
+    icon: <BarChart3 size={20} />,
     roles: ["admin", "editor", "editor_richmenu_stats"],
   },
 ];
@@ -589,7 +590,7 @@ export default function Sidebar({
                       href="/richmenu-stats"
                       className={getMenuClass("/richmenu-stats")}
                     >
-                      <TimerReset size={20} className="shrink-0" />
+                      <BarChart3 size={20} className="shrink-0" />
                       {isDesktopSidebarOpen && (
                         <span className="font-bold text-[15px] whitespace-nowrap">
                           สถิติ Richmenu
@@ -780,7 +781,7 @@ export default function Sidebar({
                   href="/richmenu-stats"
                   className={getMenuClass("/richmenu-stats")}
                 >
-                  <TimerReset size={20} className="shrink-0" />
+                  <BarChart3 size={20} className="shrink-0" />
                   {isDesktopSidebarOpen && (
                     <span className="font-bold text-[15px] whitespace-nowrap">
                       สถิติ Richmenu
