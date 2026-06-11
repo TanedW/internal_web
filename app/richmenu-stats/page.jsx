@@ -190,9 +190,12 @@ function DonutCard({ data, totalUsers }) {
             />
           </PieChart>
         </ResponsiveContainer>
-        {/* center label */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-16">
-          <span className="text-[11px] text-slate-400 font-medium">
+        {/* center label — pinned to cy=44% of the pie area (total height minus 72px legend) */}
+        <div
+          className="absolute inset-x-0 top-0 flex flex-col items-center justify-center pointer-events-none"
+          style={{ height: "calc(100% - 72px)", paddingTop: "0" }}
+        >
+          <span className="text-[11px] text-slate-400 font-medium tracking-wide">
             รวมทั้งหมด
           </span>
           <span className="text-2xl font-black text-slate-900 leading-snug">
