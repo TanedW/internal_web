@@ -144,7 +144,7 @@ export const SIDEBAR_MENUS = [
     title: "สถิติ Richmenu",
     href: "/richmenu-stats",
     icon: <BarChart3 size={20} />,
-    roles: ["admin", "editor", "editor_richmenu_stats"],
+    roles: ["all"],
   },
 ];
 export default function Sidebar({
@@ -586,19 +586,17 @@ export default function Sidebar({
                       <span className="text-[15px] font-bold">Reset OTP</span>
                     </Link>
                   )}
-                  {hasAccess(["admin", "editor", "editor_richmenu_stats"]) && (
-                    <Link
-                      href="/richmenu-stats"
-                      className={getMenuClass("/richmenu-stats")}
-                    >
-                      <BarChart3 size={20} className="shrink-0" />
-                      {isDesktopSidebarOpen && (
-                        <span className="font-bold text-[15px] whitespace-nowrap">
-                          สถิติ Richmenu
-                        </span>
-                      )}
-                    </Link>
-                  )}
+                  <Link
+                    href="/richmenu-stats"
+                    className={getMenuClass("/richmenu-stats")}
+                  >
+                    <BarChart3 size={20} className="shrink-0" />
+                    {isDesktopSidebarOpen && (
+                      <span className="font-bold text-[15px] whitespace-nowrap">
+                        สถิติ Richmenu
+                      </span>
+                    )}
+                  </Link>
                 </nav>
                 <div className="mt-auto pt-4 border-t border-slate-100">
                   <button
@@ -777,19 +775,17 @@ export default function Sidebar({
                 </Link>
               )}
 
-              {hasAccess(["admin", "editor", "editor_richmenu_stats"]) && (
-                <Link
-                  href="/richmenu-stats"
-                  className={getMenuClass("/richmenu-stats")}
-                >
-                  <BarChart3 size={20} className="shrink-0" />
-                  {isDesktopSidebarOpen && (
-                    <span className="font-bold text-[15px] whitespace-nowrap">
-                      สถิติ Richmenu
-                    </span>
-                  )}
-                </Link>
-              )}
+              <Link
+                href="/richmenu-stats"
+                className={getMenuClass("/richmenu-stats")}
+              >
+                <BarChart3 size={20} className="shrink-0" />
+                {isDesktopSidebarOpen && (
+                  <span className="font-bold text-[15px] whitespace-nowrap">
+                    สถิติ Richmenu
+                  </span>
+                )}
+              </Link>
             </nav>
 
             <div
