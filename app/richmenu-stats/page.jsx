@@ -265,8 +265,8 @@ function LeaderboardCard({ data, lastUpdated }) {
                   {/* rich menu info */}
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-3">
-                      {/* landscape thumbnail */}
-                      <div className="w-[68px] h-[46px] rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                      {/* landscape thumbnail — aspect ratio 2500:843 ≈ 148×50 */}
+                      <div className="w-[148px] h-[50px] rounded-lg bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
                         <img
                           src={`http://localhost:8080/api/richmenu/image/${row.richMenuId}`}
                           alt="menu preview"
