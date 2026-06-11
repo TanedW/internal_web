@@ -40,6 +40,7 @@ const ROLE_LABEL_MAP = {
   editor_search_duplicate_org: "Admin Search Org",
   editor_file_search: "Admin File Search",
   editor_reset_otp: "Admin Reset OTP",
+  editor_richmenu_stats: "Admin Richmenu Stats"
 };
 
 const getRoleLabel = (roleValue) =>
