@@ -117,11 +117,6 @@ function MetricCard({ label, value, unit, Icon, iconBg, iconColor }) {
 function DonutCard({ data, totalUsers }) {
   return (
     <div className="flex flex-col rounded-3xl bg-white shadow-sm p-6">
-      <style>{`
-        .recharts-wrapper, .recharts-wrapper svg,
-        .recharts-wrapper *:focus,
-        .recharts-surface { outline: none !important; }
-      `}</style>
       <div className="mb-4">
         <h2 className="text-[15px] font-bold text-slate-800 m-0">
           สัดส่วนการใช้งาน
@@ -130,20 +125,19 @@ function DonutCard({ data, totalUsers }) {
           แบ่งตามรูปแบบของ Rich Menu
         </p>
       </div>
-      <div className="relative flex-1 min-h-[300px]" style={{ outline: "none" }}>
-        <ResponsiveContainer width="100%" height="100%" style={{ outline: "none" }}>
-          <PieChart style={{ outline: "none" }}>
+      <div className="relative flex-1 min-h-[300px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
             <Pie
               data={data}
               cx="50%"
-              cy="42%"
+              cy="44%"
               innerRadius="58%"
               outerRadius="80%"
               paddingAngle={2}
               dataKey="userCount"
               nameKey="richMenuId"
               stroke="none"
-              style={{ outline: "none" }}
             >
               {data.map((_, i) => (
                 <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
@@ -185,17 +179,14 @@ function DonutCard({ data, totalUsers }) {
             />
           </PieChart>
         </ResponsiveContainer>
-        {/* center label — positioned to match cy="42%" of the chart area, above the legend */}
-        <div className="absolute inset-x-0 top-0 pointer-events-none flex flex-col items-center justify-center"
-          style={{ height: "calc(100% - 72px)", marginTop: 0 }}>
-          <div style={{ transform: "translateY(-4%)" }} className="flex flex-col items-center">
-            <span className="text-[11px] text-slate-400 font-medium">
-              รวมทั้งหมด
-            </span>
-            <span className="text-2xl font-black text-slate-900 leading-snug">
-              {formatCount(totalUsers)}
-            </span>
-          </div>
+        {/* center label */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-16">
+          <span className="text-[11px] text-slate-400 font-medium">
+            รวมทั้งหมด
+          </span>
+          <span className="text-2xl font-black text-slate-900 leading-snug">
+            {formatCount(totalUsers)}
+          </span>
         </div>
       </div>
     </div>
