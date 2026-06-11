@@ -143,9 +143,10 @@ function DonutCard({ data, totalUsers }) {
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius="58%"
-              outerRadius="80%"
-              paddingAngle={2}
+              innerRadius="56%"
+              outerRadius="82%"
+              paddingAngle={4}
+              cornerRadius={8}
               dataKey="userCount"
               nameKey="richMenuId"
               stroke="none"
