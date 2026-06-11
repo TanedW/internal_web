@@ -142,7 +142,7 @@ function DonutCard({ data, totalUsers }) {
             <Pie
               data={data}
               cx="50%"
-              cy="44%"
+              cy="50%"
               innerRadius="58%"
               outerRadius="80%"
               paddingAngle={2}
@@ -163,38 +163,10 @@ function DonutCard({ data, totalUsers }) {
                 boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
               }}
             />
-            <Legend
-              verticalAlign="bottom"
-              height={72}
-              content={({ payload }) => (
-                <ul className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4 p-0 list-none">
-                  {payload.map((entry, i) => (
-                    <li
-                      key={i}
-                      className="flex items-center gap-1.5 text-[11px] text-slate-500"
-                    >
-                      <span
-                        className="inline-block h-2 w-2 rounded-full flex-shrink-0"
-                        style={{ background: entry.color }}
-                      />
-                      <span
-                        className="max-w-[90px] truncate"
-                        title={entry.value}
-                      >
-                        {entry.value}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            />
           </PieChart>
         </ResponsiveContainer>
-        {/* center label — pinned to cy=44% of the pie area (total height minus 72px legend) */}
-        <div
-          className="absolute inset-x-0 top-0 flex flex-col items-center justify-center pointer-events-none"
-          style={{ height: "calc(100% - 72px)", paddingTop: "0" }}
-        >
+        {/* center label — cy=50% so this is perfectly centered */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <span className="text-[11px] text-slate-400 font-medium tracking-wide">
             รวมทั้งหมด
           </span>
@@ -203,6 +175,20 @@ function DonutCard({ data, totalUsers }) {
           </span>
         </div>
       </div>
+      {/* Legend outside chart so cy=50% works cleanly */}
+      <ul className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4 p-0 list-none">
+        {data.map((entry, i) => (
+          <li key={i} className="flex items-center gap-1.5 text-[11px] text-slate-500">
+            <span
+              className="inline-block h-2 w-2 rounded-full flex-shrink-0"
+              style={{ background: CHART_COLORS[i % CHART_COLORS.length] }}
+            />
+            <span className="max-w-[90px] truncate" title={entry.richMenuId}>
+              {entry.richMenuId}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
