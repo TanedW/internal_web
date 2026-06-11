@@ -339,7 +339,7 @@ export default function DashboardPage() {
   const fetchData = async () => {
     try {
       setError(null);
-      const res = await fetch('${process.env.NEXT_PUBLIC_RICHMENU_STATS_API_URL}');
+      const res = await fetch(process.env.NEXT_PUBLIC_RICHMENU_STATS_API_URL);
       if (!res.ok) throw new Error("Network response was not ok");
       const data = await res.json();
       setStatsData((data || []).sort((a, b) => b.userCount - a.userCount));
