@@ -336,7 +336,7 @@ export default function DashboardPage() {
   const [statsData, setStatsData] = useState([...MOCK_DATA].sort((a, b) => b.userCount - a.userCount));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [isOffline, setIsOffline] = useState(false);
+  const [isOffline, setIsOffline] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
 
@@ -352,7 +352,7 @@ export default function DashboardPage() {
     } catch {
       console.warn("Backend unavailable — using mock data.");
       setStatsData([...MOCK_DATA].sort((a, b) => b.userCount - a.userCount));
-      setIsOffline(false);
+      setIsOffline(true);
       setError(null);
     } finally {
       setLoading(false);
