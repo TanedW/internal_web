@@ -117,6 +117,17 @@ function MetricCard({ label, value, unit, Icon, iconBg, iconColor }) {
 function DonutCard({ data, totalUsers }) {
   return (
     <div className="flex flex-col rounded-3xl bg-white shadow-sm p-6">
+      <style>{`
+        .recharts-wrapper,
+        .recharts-wrapper svg,
+        .recharts-surface,
+        .recharts-wrapper [tabindex],
+        .recharts-wrapper *:focus,
+        .recharts-wrapper *:focus-visible {
+          outline: none !important;
+          box-shadow: none !important;
+        }
+      `}</style>
       <div className="mb-4">
         <h2 className="text-[15px] font-bold text-slate-800 m-0">
           สัดส่วนการใช้งาน
