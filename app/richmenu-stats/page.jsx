@@ -93,24 +93,20 @@ const formatTime = (date) =>
 /** Metric summary card — matches the white rounded card style from the Admin Portal */
 function MetricCard({ label, value, unit, Icon, iconBg, iconColor }) {
   return (
-    <div className="relative overflow-hidden rounded-[2rem] bg-white border border-slate-50 shadow-sm p-6">
-      {/* watermark icon */}
-      <div className="absolute right-3 top-3 text-slate-100 pointer-events-none">
-        <Icon size={80} strokeWidth={1.2} />
+    <div className="relative overflow-hidden rounded-2xl bg-white border border-slate-100 shadow-sm p-6 flex flex-col gap-4">
+      <div
+        className="inline-flex h-11 w-11 items-center justify-center rounded-2xl flex-shrink-0"
+        style={{ background: iconBg }}
+      >
+        <Icon size={22} color={iconColor} />
       </div>
-      <div className="relative">
-        <div
-          className="inline-flex h-9 w-9 items-center justify-center rounded-xl mb-4"
-          style={{ background: iconBg }}
-        >
-          <Icon size={18} color={iconColor} />
-        </div>
+      <div>
         <p className="text-[13px] text-slate-400 font-medium m-0">{label}</p>
         <div className="flex items-baseline gap-2 mt-1">
-          <span className="text-4xl font-black text-slate-900 leading-none">
+          <span className="text-[2.6rem] font-black text-slate-900 leading-none tracking-tight">
             {value}
           </span>
-          <span className="text-[13px] text-slate-400">{unit}</span>
+          <span className="text-[13px] text-slate-400 font-medium">{unit}</span>
         </div>
       </div>
     </div>
@@ -120,13 +116,13 @@ function MetricCard({ label, value, unit, Icon, iconBg, iconColor }) {
 /** Donut chart card */
 function DonutCard({ data, totalUsers }) {
   return (
-    <div className="flex flex-col rounded-[2rem] bg-white border border-slate-50 shadow-sm p-6">
+    <div className="flex flex-col rounded-2xl bg-white border border-slate-100 shadow-sm p-6">
       <div className="mb-4">
         <h2 className="text-[15px] font-bold text-slate-800 m-0">
           สัดส่วนการใช้งาน
         </h2>
         <p className="text-[13px] text-slate-400 mt-0.5 m-0">
-          แยกตาม Rich Menu ID
+          แบ่งตามรูปแบบของ Rich Menu
         </p>
       </div>
       <div className="relative flex-1 min-h-[300px]">
@@ -202,20 +198,20 @@ function LeaderboardCard({ data, lastUpdated }) {
   const maxUsers = Math.max(...data.map((d) => d.userCount), 1);
 
   return (
-    <div className="flex flex-col rounded-[2rem] bg-white border border-slate-50 shadow-sm overflow-hidden">
+    <div className="flex flex-col rounded-2xl bg-white border border-slate-100 shadow-sm overflow-hidden">
       {/* header */}
-      <div className="flex items-start justify-between border-b border-slate-50 px-6 py-5">
+      <div className="flex items-start justify-between px-6 py-5">
         <div>
-          <h2 className="text-[15px] font-bold text-slate-800 m-0">
-            กระดานผู้นำ (Leaderboard)
+          <h2 className="text-[17px] font-bold text-slate-800 m-0">
+            Top Rich Menus
           </h2>
           <p className="text-[13px] text-slate-400 mt-0.5 m-0">
             จัดอันดับริชเมนูที่มีผู้ใช้งานสูงสุด
           </p>
         </div>
-        <span className="flex items-center gap-1 text-[11px] text-slate-400 font-medium whitespace-nowrap pt-0.5">
-          <Activity size={11} />
-          อัปเดตล่าสุด: {formatTime(lastUpdated)}
+        <span className="flex items-center gap-1.5 text-[12px] text-slate-400 font-medium whitespace-nowrap pt-0.5">
+          <RefreshCw size={12} />
+          อัปเดต: {formatTime(lastUpdated)}
         </span>
       </div>
 
@@ -223,15 +219,15 @@ function LeaderboardCard({ data, lastUpdated }) {
       <div className="flex-1 overflow-x-auto">
         <table className="w-full min-w-[560px] border-collapse text-[13px] text-left">
           <thead>
-            <tr className="bg-slate-50/70">
-              <th className="w-16 py-2.5 px-5 text-[11px] font-bold text-slate-400 uppercase tracking-widest text-center">
+            <tr className="border-t border-b border-slate-100">
+              <th className="w-16 py-2.5 px-5 text-[11px] font-semibold text-slate-400 tracking-wide text-center">
                 อันดับ
               </th>
-              <th className="py-2.5 px-5 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                Rich Menu ID
+              <th className="py-2.5 px-5 text-[11px] font-semibold text-slate-400 tracking-wide">
+                รายละเอียดริชเมนู
               </th>
-              <th className="py-2.5 px-5 text-[11px] font-bold text-slate-400 uppercase tracking-widest text-right">
-                ผู้ใช้งาน
+              <th className="py-2.5 px-5 text-[11px] font-semibold text-slate-400 tracking-wide text-right">
+                ผู้ใช้งาน (คน)
               </th>
             </tr>
           </thead>
@@ -244,29 +240,29 @@ function LeaderboardCard({ data, lastUpdated }) {
               return (
                 <tr
                   key={i}
-                  className="border-t border-slate-50 hover:bg-slate-50/60 transition-colors"
+                  className="border-t border-slate-100 hover:bg-slate-50/60 transition-colors"
                 >
                   {/* rank */}
-                  <td className="py-3.5 px-5 text-center">
+                  <td className="py-4 px-5 text-center">
                     {i < 3 ? (
                       <Trophy
                         size={18}
                         color={
-                          i === 0 ? "#f59e0b" : i === 1 ? "#9ca3af" : "#b45309"
+                          i === 0 ? "#f59e0b" : i === 1 ? "#9ca3af" : "#cd7f32"
                         }
                         className="mx-auto"
                       />
                     ) : (
-                      <span className="text-slate-400 font-medium">
+                      <span className="text-slate-400 font-medium text-[13px]">
                         {i + 1}
                       </span>
                     )}
                   </td>
 
                   {/* rich menu info */}
-                  <td className="py-3.5 px-5">
+                  <td className="py-4 px-5">
                     <div className="flex items-center gap-3">
-                      <div className="w-[150px] h-[50px] rounded-lg bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0">
+                      <div className="w-[52px] h-[52px] rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
                         <img
                           src={`http://localhost:8080/api/richmenu/image/${row.richMenuId}`}
                           alt="menu preview"
@@ -276,30 +272,32 @@ function LeaderboardCard({ data, lastUpdated }) {
                           }}
                         />
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="inline-flex w-fit items-center rounded-lg bg-slate-100 px-2 py-0.5 text-[11px] font-mono text-slate-600">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-semibold text-slate-800 text-[13px]">
                           {row.richMenuId}
                         </span>
-                        <span className="text-[10px] text-slate-400">
-                          อัปเดต: {formatTime(rowUpdated)}
+                        <span className="flex items-center gap-1 text-[11px] text-slate-400">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="11" width="20" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                          {row.botId}
                         </span>
                       </div>
                     </div>
                   </td>
 
                   {/* user count + bar */}
-                  <td className="py-3.5 px-5">
-                    <div className="flex items-center justify-end gap-2.5">
+                  <td className="py-4 px-5">
+                    <div className="flex items-center justify-end gap-3">
                       <div className="w-28 h-1.5 rounded-full bg-slate-100 overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-indigo-500"
+                          className="h-full rounded-full"
                           style={{
                             width: `${pct}%`,
-                            opacity: i === 0 ? 1 : Math.max(0.25, pct / 100),
+                            background: CHART_COLORS[i % CHART_COLORS.length],
+                            opacity: i === 0 ? 1 : Math.max(0.35, pct / 100),
                           }}
                         />
                       </div>
-                      <span className="font-black text-slate-900 min-w-[72px] text-right">
+                      <span className="font-bold text-slate-900 text-[13px] min-w-[72px] text-right">
                         {row.userCount.toLocaleString()}
                       </span>
                     </div>
@@ -339,7 +337,7 @@ export default function DashboardPage() {
   const fetchData = async () => {
     try {
       setError(null);
-      const res = await fetch(process.env.NEXT_PUBLIC_RICHMENU_STATS_API_URL);
+      const res = await fetch('${process.env.NEXT_PUBLIC_RICHMENU_STATS_API_URL}');
       if (!res.ok) throw new Error("Network response was not ok");
       const data = await res.json();
       setStatsData((data || []).sort((a, b) => b.userCount - a.userCount));
@@ -470,7 +468,7 @@ export default function DashboardPage() {
             {/* ── Metric cards ── */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-5 animate-in fade-in slide-in-from-bottom-4 duration-700">
               <MetricCard
-                label="ผู้ใช้งานริชเมนูทั้งหมด"
+                label="ผู้ใช้งานริชเมนูรวม"
                 value={totalUsers.toLocaleString()}
                 unit="บัญชี"
                 Icon={Users}
@@ -486,9 +484,9 @@ export default function DashboardPage() {
                 iconColor="#10b981"
               />
               <MetricCard
-                label="รูปแบบริชเมนู (Templates)"
+                label="เทมเพลตริชเมนู"
                 value={uniqueMenus.toLocaleString()}
-                unit="ดีไซน์"
+                unit="รูปแบบ"
                 Icon={LayoutTemplate}
                 iconBg="#fffbeb"
                 iconColor="#f59e0b"
