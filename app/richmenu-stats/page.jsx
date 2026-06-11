@@ -93,7 +93,11 @@ const formatTime = (date) =>
 /** Metric summary card — matches the white rounded card style from the Admin Portal */
 function MetricCard({ label, value, unit, Icon, iconBg, iconColor }) {
   return (
-    <div className="rounded-3xl bg-white shadow-sm p-7 flex flex-col gap-5">
+    <div className="relative overflow-hidden rounded-3xl bg-white shadow-sm p-7 flex flex-col gap-5">
+      {/* watermark */}
+      <div className="absolute -right-3 -top-2 pointer-events-none select-none opacity-[0.07]">
+        <Icon size={110} strokeWidth={1} color={iconColor} />
+      </div>
       <div
         className="inline-flex h-12 w-12 items-center justify-center rounded-2xl flex-shrink-0"
         style={{ background: iconBg }}
