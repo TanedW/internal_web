@@ -93,20 +93,20 @@ const formatTime = (date) =>
 /** Metric summary card — matches the white rounded card style from the Admin Portal */
 function MetricCard({ label, value, unit, Icon, iconBg, iconColor }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-white border border-slate-100 shadow-sm p-6 flex flex-col gap-4">
+    <div className="rounded-3xl bg-white shadow-sm p-7 flex flex-col gap-5">
       <div
-        className="inline-flex h-11 w-11 items-center justify-center rounded-2xl flex-shrink-0"
+        className="inline-flex h-12 w-12 items-center justify-center rounded-2xl flex-shrink-0"
         style={{ background: iconBg }}
       >
         <Icon size={22} color={iconColor} />
       </div>
       <div>
-        <p className="text-[13px] text-slate-400 font-medium m-0">{label}</p>
+        <p className="text-[14px] text-slate-400 font-normal m-0">{label}</p>
         <div className="flex items-baseline gap-2 mt-1">
-          <span className="text-[2.6rem] font-black text-slate-900 leading-none tracking-tight">
+          <span className="text-[2.8rem] font-black text-slate-900 leading-none tracking-tight">
             {value}
           </span>
-          <span className="text-[13px] text-slate-400 font-medium">{unit}</span>
+          <span className="text-[14px] text-slate-400">{unit}</span>
         </div>
       </div>
     </div>
@@ -116,7 +116,7 @@ function MetricCard({ label, value, unit, Icon, iconBg, iconColor }) {
 /** Donut chart card */
 function DonutCard({ data, totalUsers }) {
   return (
-    <div className="flex flex-col rounded-2xl bg-white border border-slate-100 shadow-sm p-6">
+    <div className="flex flex-col rounded-3xl bg-white shadow-sm p-6">
       <div className="mb-4">
         <h2 className="text-[15px] font-bold text-slate-800 m-0">
           สัดส่วนการใช้งาน
@@ -198,18 +198,18 @@ function LeaderboardCard({ data, lastUpdated }) {
   const maxUsers = Math.max(...data.map((d) => d.userCount), 1);
 
   return (
-    <div className="flex flex-col rounded-2xl bg-white border border-slate-100 shadow-sm overflow-hidden">
+    <div className="flex flex-col rounded-3xl bg-white shadow-sm overflow-hidden">
       {/* header */}
-      <div className="flex items-start justify-between px-6 py-5">
+      <div className="flex items-start justify-between px-7 pt-7 pb-4">
         <div>
-          <h2 className="text-[17px] font-bold text-slate-800 m-0">
+          <h2 className="text-[18px] font-bold text-slate-900 m-0">
             Top Rich Menus
           </h2>
-          <p className="text-[13px] text-slate-400 mt-0.5 m-0">
+          <p className="text-[13px] text-slate-400 mt-1 m-0">
             จัดอันดับริชเมนูที่มีผู้ใช้งานสูงสุด
           </p>
         </div>
-        <span className="flex items-center gap-1.5 text-[12px] text-slate-400 font-medium whitespace-nowrap pt-0.5">
+        <span className="flex items-center gap-1.5 text-[12px] text-slate-400 font-medium whitespace-nowrap pt-1">
           <RefreshCw size={12} />
           อัปเดต: {formatTime(lastUpdated)}
         </span>
@@ -220,13 +220,13 @@ function LeaderboardCard({ data, lastUpdated }) {
         <table className="w-full min-w-[560px] border-collapse text-[13px] text-left">
           <thead>
             <tr className="border-t border-b border-slate-100">
-              <th className="w-16 py-2.5 px-5 text-[11px] font-semibold text-slate-400 tracking-wide text-center">
+              <th className="w-20 py-3 px-7 text-[12px] font-medium text-slate-400 text-center">
                 อันดับ
               </th>
-              <th className="py-2.5 px-5 text-[11px] font-semibold text-slate-400 tracking-wide">
+              <th className="py-3 px-4 text-[12px] font-medium text-slate-400">
                 รายละเอียดริชเมนู
               </th>
-              <th className="py-2.5 px-5 text-[11px] font-semibold text-slate-400 tracking-wide text-right">
+              <th className="py-3 px-7 text-[12px] font-medium text-slate-400 text-right">
                 ผู้ใช้งาน (คน)
               </th>
             </tr>
@@ -243,26 +243,30 @@ function LeaderboardCard({ data, lastUpdated }) {
                   className="border-t border-slate-100 hover:bg-slate-50/60 transition-colors"
                 >
                   {/* rank */}
-                  <td className="py-4 px-5 text-center">
+                  <td className="py-4 px-7 text-center">
                     {i < 3 ? (
                       <Trophy
                         size={18}
                         color={
-                          i === 0 ? "#f59e0b" : i === 1 ? "#9ca3af" : "#cd7f32"
+                          i === 0 ? "#f59e0b" : i === 1 ? "#94a3b8" : "#cd7f32"
+                        }
+                        fill={
+                          i === 0 ? "#fef3c7" : i === 1 ? "#f1f5f9" : "#fef3c7"
                         }
                         className="mx-auto"
                       />
                     ) : (
-                      <span className="text-slate-400 font-medium text-[13px]">
+                      <span className="text-slate-300 font-semibold text-[14px]">
                         {i + 1}
                       </span>
                     )}
                   </td>
 
                   {/* rich menu info */}
-                  <td className="py-4 px-5">
+                  <td className="py-4 px-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-[52px] h-[52px] rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                      {/* landscape thumbnail */}
+                      <div className="w-[68px] h-[46px] rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
                         <img
                           src={`http://localhost:8080/api/richmenu/image/${row.richMenuId}`}
                           alt="menu preview"
@@ -277,7 +281,10 @@ function LeaderboardCard({ data, lastUpdated }) {
                           {row.richMenuId}
                         </span>
                         <span className="flex items-center gap-1 text-[11px] text-slate-400">
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="11" width="20" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                            <rect x="3" y="11" width="18" height="11" rx="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                          </svg>
                           {row.botId}
                         </span>
                       </div>
@@ -285,19 +292,18 @@ function LeaderboardCard({ data, lastUpdated }) {
                   </td>
 
                   {/* user count + bar */}
-                  <td className="py-4 px-5">
-                    <div className="flex items-center justify-end gap-3">
-                      <div className="w-28 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                  <td className="py-4 px-7">
+                    <div className="flex items-center justify-end gap-4">
+                      <div className="w-32 h-1.5 rounded-full bg-slate-100 overflow-hidden">
                         <div
                           className="h-full rounded-full"
                           style={{
                             width: `${pct}%`,
                             background: CHART_COLORS[i % CHART_COLORS.length],
-                            opacity: i === 0 ? 1 : Math.max(0.35, pct / 100),
                           }}
                         />
                       </div>
-                      <span className="font-bold text-slate-900 text-[13px] min-w-[72px] text-right">
+                      <span className="font-bold text-slate-800 text-[13px] min-w-[64px] text-right tabular-nums">
                         {row.userCount.toLocaleString()}
                       </span>
                     </div>
