@@ -245,16 +245,29 @@ function LeaderboardCard({ data, lastUpdated }) {
                   {/* rank */}
                   <td className="py-4 px-7 text-center">
                     {i < 3 ? (
-                      <Trophy
-                        size={18}
-                        color={
-                          i === 0 ? "#f59e0b" : i === 1 ? "#94a3b8" : "#cd7f32"
-                        }
-                        fill={
-                          i === 0 ? "#fef3c7" : i === 1 ? "#f1f5f9" : "#fef3c7"
-                        }
-                        className="mx-auto"
-                      />
+                      <div
+                        className="mx-auto w-10 h-10 rounded-full flex items-center justify-center"
+                        style={{
+                          background:
+                            i === 0 ? "#fef9ee"
+                            : i === 1 ? "#f0f3f8"
+                            : "#fef3e8",
+                        }}
+                      >
+                        <Trophy
+                          size={18}
+                          color={
+                            i === 0 ? "#e8820c"
+                            : i === 1 ? "#7a90a8"
+                            : "#d97832"
+                          }
+                          fill={
+                            i === 0 ? "#fde68a"
+                            : i === 1 ? "#dbe4ef"
+                            : "#fcd9a8"
+                          }
+                        />
+                      </div>
                     ) : (
                       <span className="text-slate-300 font-semibold text-[14px]">
                         {i + 1}
