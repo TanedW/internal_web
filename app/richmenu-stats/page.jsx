@@ -224,7 +224,7 @@ function LeaderboardCard({ data, lastUpdated }) {
                 อันดับ
               </th>
               <th className="py-3 px-4 text-[12px] font-medium text-slate-400">
-                รายละเอียดริชเมนู
+                รายการเมนูที่ใช้งาน
               </th>
               <th className="py-3 px-7 text-[12px] font-medium text-slate-400 text-right">
                 ผู้ใช้งาน (คน)
