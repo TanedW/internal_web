@@ -456,7 +456,7 @@ export default function DashboardPage() {
             </div>
 
             {/* ── Offline / error alert ── */}
-            {error && (
+            {isOffline && (
               <div className="flex items-start gap-3 rounded-[1.5rem] border border-amber-200 bg-amber-50 px-5 py-4 mb-8 animate-in fade-in duration-500">
                 <AlertCircle
                   size={17}
@@ -464,9 +464,11 @@ export default function DashboardPage() {
                 />
                 <div>
                   <p className="text-[13px] font-bold text-amber-800 m-0">
-                    โหมดแสดงตัวอย่าง (Preview Mode)
+                    โหมดออฟไลน์ — กำลังแสดงข้อมูลจำลอง
                   </p>
-                  <p className="text-[13px] text-amber-600 mt-0.5 m-0">{error}</p>
+                  <p className="text-[13px] text-amber-600 mt-0.5 m-0">
+                    ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กดปุ่ม <RefreshCw size={11} className="inline-block mx-0.5 relative -top-px" /> ข้างสถานะโหมดออฟไลน์ เพื่อเชื่อมต่อและอัปเดตสถิติ
+                  </p>
                 </div>
               </div>
             )}
