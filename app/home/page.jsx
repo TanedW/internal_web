@@ -93,7 +93,7 @@ export default function HomePage() {
     const path = href.toLowerCase();
     if (path.includes("manage") || path.includes("email")) return { color: "from-purple-500 to-purple-600", text: "text-purple-600" };
     if (path.includes("case") || path.includes("org") || path.includes("search")) return { color: "from-emerald-500 to-emerald-600", text: "text-emerald-600" };
-    if (path.includes("otp") || path.includes("shield")) return { color: "from-amber-500 to-orange-600", text: "text-orange-600" };
+    if (path.includes("otp") || path.includes("shield") || path.includes("stats")) return { color: "from-amber-500 to-orange-600", text: "text-orange-600" };
     return { color: "from-sky-500 to-sky-600", text: "text-sky-600" };
   };
 

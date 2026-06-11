@@ -374,23 +374,6 @@ export default function DashboardPage() {
     [statsData],
   );
 
-  /* ── Loading state ── */
-  if (loading) {
-    return (
-      <div className="flex h-full min-h-[60vh] flex-col items-center justify-center gap-3">
-        <div className="p-4 rounded-[1.5rem] bg-indigo-50 text-indigo-600">
-          <Activity size={32} className="animate-pulse" />
-        </div>
-        <p className="text-base font-bold text-slate-800">
-          กำลังซิงค์ข้อมูลเรียลไทม์...
-        </p>
-        <p className="text-sm text-slate-400">
-          กรุณารอสักครู่ ระบบกำลังจัดเตรียมแดชบอร์ด
-        </p>
-      </div>
-    );
-  }
-
   /* ── Main render ── */
   return (
     <div className="min-h-screen bg-[#F4F6F8] font-sans text-slate-900">
@@ -414,97 +397,111 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className="max-w-7xl mx-auto px-6 py-12 lg:py-16">
-          {/* ── Page header ── */}
-          <div className="flex items-center justify-between mb-12 animate-in fade-in duration-700">
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
-                Analytics
-              </span>
-              <h1 className="text-3xl lg:text-5xl font-black text-slate-900 tracking-tighter leading-[1.1] mt-1">
-                Rich Menu{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600">
+        {loading ? (
+          <div className="flex h-full min-h-[60vh] flex-col items-center justify-center gap-3">
+            <div className="p-4 rounded-[1.5rem] bg-indigo-50 text-indigo-600">
+              <Activity size={32} className="animate-pulse" />
+            </div>
+            <p className="text-base font-bold text-slate-800">
+              กำลังซิงค์ข้อมูลเรียลไทม์...
+            </p>
+            <p className="text-sm text-slate-400">
+              กรุณารอสักครู่ ระบบกำลังจัดเตรียมแดชบอร์ด
+            </p>
+          </div>
+        ) : (
+          <div className="max-w-7xl mx-auto px-6 py-12 lg:py-16">
+            {/* ── Page header ── */}
+            <div className="flex items-center justify-between mb-12 animate-in fade-in duration-700">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
                   Analytics
                 </span>
-              </h1>
-              <p className="text-slate-400 font-medium text-base mt-2">
-                ติดตามสถิติการใช้งาน Rich Menu แบบเรียลไทม์
-              </p>
-            </div>
-
-            {/* status badge + refresh */}
-            <div className="flex items-center gap-3">
-              {isOffline ? (
-                <div className="flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-[13px] font-medium text-rose-600">
-                  <WifiOff size={13} />
-                  <span>โหมดออฟไลน์</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-[13px] font-medium text-emerald-600">
-                  <ShieldCheck size={13} />
-                  <span>เชื่อมต่อแล้ว</span>
-                </div>
-              )}
-              <button
-                onClick={fetchData}
-                title="รีเฟรชข้อมูล"
-                className="p-3 bg-white border border-slate-100 text-slate-500 hover:bg-slate-50 hover:text-indigo-600 rounded-full transition-all duration-200 shadow-sm"
-              >
-                <RefreshCw size={15} />
-              </button>
-            </div>
-          </div>
-
-          {/* ── Offline / error alert ── */}
-          {error && (
-            <div className="flex items-start gap-3 rounded-[1.5rem] border border-amber-200 bg-amber-50 px-5 py-4 mb-8 animate-in fade-in duration-500">
-              <AlertCircle
-                size={17}
-                className="text-amber-500 flex-shrink-0 mt-0.5"
-              />
-              <div>
-                <p className="text-[13px] font-bold text-amber-800 m-0">
-                  โหมดแสดงตัวอย่าง (Preview Mode)
+                <h1 className="text-3xl lg:text-5xl font-black text-slate-900 tracking-tighter leading-[1.1] mt-1">
+                  Rich Menu{" "}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600">
+                    Analytics
+                  </span>
+                </h1>
+                <p className="text-slate-400 font-medium text-base mt-2">
+                  ติดตามสถิติการใช้งาน Rich Menu แบบเรียลไทม์
                 </p>
-                <p className="text-[13px] text-amber-600 mt-0.5 m-0">{error}</p>
+              </div>
+
+              {/* status badge + refresh */}
+              <div className="flex items-center gap-3">
+                {isOffline ? (
+                  <div className="flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-[13px] font-medium text-rose-600">
+                    <WifiOff size={13} />
+                    <span>โหมดออฟไลน์</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-[13px] font-medium text-emerald-600">
+                    <ShieldCheck size={13} />
+                    <span>เชื่อมต่อแล้ว</span>
+                  </div>
+                )}
+                <button
+                  onClick={fetchData}
+                  title="รีเฟรชข้อมูล"
+                  className="p-3 bg-white border border-slate-100 text-slate-500 hover:bg-slate-50 hover:text-indigo-600 rounded-full transition-all duration-200 shadow-sm"
+                >
+                  <RefreshCw size={15} />
+                </button>
               </div>
             </div>
-          )}
 
-          {/* ── Metric cards ── */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-5 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <MetricCard
-              label="ผู้ใช้งานริชเมนูทั้งหมด"
-              value={totalUsers.toLocaleString()}
-              unit="บัญชี"
-              Icon={Users}
-              iconBg="#eef2ff"
-              iconColor="#6366f1"
-            />
-            <MetricCard
-              label="บอทที่เปิดใช้งาน"
-              value={uniqueBots.toLocaleString()}
-              unit="ระบบ"
-              Icon={Bot}
-              iconBg="#ecfdf5"
-              iconColor="#10b981"
-            />
-            <MetricCard
-              label="รูปแบบริชเมนู (Templates)"
-              value={uniqueMenus.toLocaleString()}
-              unit="ดีไซน์"
-              Icon={LayoutTemplate}
-              iconBg="#fffbeb"
-              iconColor="#f59e0b"
-            />
-          </div>
+            {/* ── Offline / error alert ── */}
+            {error && (
+              <div className="flex items-start gap-3 rounded-[1.5rem] border border-amber-200 bg-amber-50 px-5 py-4 mb-8 animate-in fade-in duration-500">
+                <AlertCircle
+                  size={17}
+                  className="text-amber-500 flex-shrink-0 mt-0.5"
+                />
+                <div>
+                  <p className="text-[13px] font-bold text-amber-800 m-0">
+                    โหมดแสดงตัวอย่าง (Preview Mode)
+                  </p>
+                  <p className="text-[13px] text-amber-600 mt-0.5 m-0">{error}</p>
+                </div>
+              </div>
+            )}
 
-          {/* ── Bottom grid: donut + leaderboard ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-5 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-            <DonutCard data={statsData} totalUsers={totalUsers} />
-            <LeaderboardCard data={statsData} lastUpdated={lastUpdated} />
+            {/* ── Metric cards ── */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-5 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <MetricCard
+                label="ผู้ใช้งานริชเมนูทั้งหมด"
+                value={totalUsers.toLocaleString()}
+                unit="บัญชี"
+                Icon={Users}
+                iconBg="#eef2ff"
+                iconColor="#6366f1"
+              />
+              <MetricCard
+                label="บอทที่เปิดใช้งาน"
+                value={uniqueBots.toLocaleString()}
+                unit="ระบบ"
+                Icon={Bot}
+                iconBg="#ecfdf5"
+                iconColor="#10b981"
+              />
+              <MetricCard
+                label="รูปแบบริชเมนู (Templates)"
+                value={uniqueMenus.toLocaleString()}
+                unit="ดีไซน์"
+                Icon={LayoutTemplate}
+                iconBg="#fffbeb"
+                iconColor="#f59e0b"
+              />
+            </div>
+
+            {/* ── Bottom grid: donut + leaderboard ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-5 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+              <DonutCard data={statsData} totalUsers={totalUsers} />
+              <LeaderboardCard data={statsData} lastUpdated={lastUpdated} />
+            </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );
