@@ -190,7 +190,7 @@ if (response.ok) {
               <div className="w-28 h-28 md:w-36 md:h-36 bg-[#724829] rounded-[2rem] md:rounded-[2.5rem] p-1 shadow-[0_20px_50px_rgba(116,68,40,0.25)] border-[6px] md:border-[8px] border-white flex items-center justify-center transform hover:rotate-2 transition-transform duration-500 ring-1 ring-slate-100">
                   <div className="w-full h-full bg-[#724829] rounded-[1.5rem] flex items-center justify-center p-0 border border-white/10">
                       <img 
-                      src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQy1-fxSLVOtHD1tWWgQ9B27x90x3p_ZO06cg&s" 
+                      src="https://storage.googleapis.com/traffy_public_bucket/traffy_logo/Image_fondue_logo.png" 
                       alt="Traffy Fondue Logo" 
                       className="w-full h-full object-contain "
                       />

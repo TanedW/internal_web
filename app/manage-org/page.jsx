@@ -88,7 +88,7 @@ export default function ManageOrgPage() {
    );
  }, [selectedFrame, qrText, textSize, textPos, originalSettings, newQrFile]);
   
- const [showMobileEditPanel, setShowMobileEditPanel] = useState(false);
+ const [showMobileEditPanel, setShowMobileEditPanel] = useState(true);
  const [showMobileTimeline, setShowMobileTimeline] = useState(false); 
  const editPanelRef = useRef(null);
  const staffScrollRef = useRef(null);
@@ -534,12 +534,28 @@ const fetchOrgData = async (targetId = "") => {
                     </div>
                   </header>
                     
-                  <div className="flex flex-col sm:flex-row items-stretch gap-3 mb-10">
-                    <div className="relative flex-1 group bg-white rounded-2xl shadow-sm border-2 border-slate-100 focus-within:border-indigo-500 focus-within:shadow-md transition-all flex items-center h-14 sm:h-16 px-5">
-                      <Search className="text-slate-400" size={22} />
-                      <input type="text" className="flex-1 bg-transparent border-none outline-none font-bold ml-3 text-slate-800 placeholder:text-slate-400 w-full" placeholder="ค้นหาชื่อ, ชื่อย่อ หรือ ID หน่วยงาน..." value={searchId} onChange={(e) => setSearchId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchOrgData(searchId)} />
+                  <div className="flex flex-col sm:flex-row items-stretch gap-3 mb-10 w-full">
+                    {/* บังคับความสูง 60px ด้วย style ตรงๆ ตัดปัญหา Tailwind ไม่อ่านค่า */}
+                    <div 
+                      className="relative flex-1 group bg-white rounded-2xl shadow-sm border-2 border-slate-100 focus-within:border-indigo-500 focus-within:shadow-md transition-all flex items-center px-5 w-full"
+                      style={{ height: '60px', minHeight: '60px' }}
+                    >
+                      <Search className="text-slate-400 shrink-0" size={22} />
+                      <input 
+                        type="text" 
+                        className="flex-1 min-w-0 bg-transparent border-none outline-none font-bold ml-3 text-slate-800 placeholder:text-slate-400 w-full text-base truncate" 
+                        placeholder="ค้นหาชื่อ, ชื่อย่อ หรือ ID หน่วยงาน..." 
+                        value={searchId} 
+                        onChange={(e) => setSearchId(e.target.value)} 
+                        onKeyDown={(e) => e.key === 'Enter' && fetchOrgData(searchId)} 
+                      />
                     </div>
-                    <button onClick={() => fetchOrgData(searchId)} className="btn !h-[60px] px-10 !bg-black !text-white !font-bold !rounded-2xl shadow-lg shrink-0 text-sm sm:text-base flex items-center justify-center">
+
+                    <button 
+                      onClick={() => fetchOrgData(searchId)} 
+                      className="btn px-10 !bg-black !text-white !font-bold !rounded-2xl shadow-lg shrink-0 text-base flex items-center justify-center border-none w-full sm:w-auto"
+                      style={{ height: '60px', minHeight: '60px' }}
+                    >
                       {isSearching ? <Loader2 className="animate-spin" size={18} /> : "ค้นหา"}
                     </button>
                   </div>
@@ -550,9 +566,8 @@ const fetchOrgData = async (targetId = "") => {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                         {filteredCases.map((item) => {
                           return (
-                            <div key={item.org_id} onClick={() => { setOrgId(item.org_id); setOrgName(item.org_name); setLogoPreview(item.logo_url); setIsOfficial(item.is_official); setIsCsvEnabled(item.allow_csv); setQrReportUrl(item.qr_report_url); if (item.admin_codes?.length > 0) { setAdminCode(item.admin_codes[0].code || "ไม่มีรหัส"); setStaffCode(item.admin_codes[0].code_staff || "ไม่มีรหัส"); } else { setAdminCode("-"); setStaffCode("-"); } }} 
-                                   className={`relative bg-white rounded-[2rem] overflow-hidden cursor-pointer transition-all duration-500 border border-slate-100 flex flex-col p-2 shadow-sm hover:shadow-md hover:border-slate-300 ${item.is_deleted ? 'opacity-75 grayscale' : ''}`}>
-                              <div className="h-32 w-full relative overflow-hidden rounded-2xl bg-slate-50 p-3 flex items-center justify-center">
+                            <div key={item.org_id} onClick={() => { setOrgId(item.org_id); setOrgName(item.org_name); setLogoPreview(item.logo_url); setIsOfficial(item.is_official); setIsCsvEnabled(item.allow_csv); setQrReportUrl(item.qr_report_url); if (item.admin_codes?.length > 0) { setAdminCode(item.admin_codes[0].code || "ไม่มีรหัส"); setStaffCode(item.admin_codes[0].code_staff || "ไม่มีรหัส"); } else { setAdminCode("-"); setStaffCode("-"); } setShowMobileEditPanel(true); setShowMobileTimeline(false); }} 
+       className={`relative bg-white rounded-[2rem] overflow-hidden cursor-pointer transition-all duration-500 border border-slate-100 flex flex-col p-2 shadow-sm hover:shadow-md hover:border-slate-300 ${item.is_deleted ? 'opacity-75 grayscale' : ''}`}><div className="h-32 w-full relative overflow-hidden rounded-2xl bg-slate-50 p-3 flex items-center justify-center">
                                 {item.logo_url ? <img src={STORAGE_BASE_URL + item.logo_url} className={`max-w-full max-h-full object-contain transition-transform duration-700`} alt="Logo" /> : <div className="w-full h-full bg-slate-100 flex items-center justify-center"><ImageIcon size={32} className="text-slate-300" /></div>}
                               </div>
                               <div className="p-4 flex flex-col flex-1 text-slate-900 min-w-0">
