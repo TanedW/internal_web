@@ -1,3 +1,5 @@
+//manage-org/page.jsx
+
 'use client';
 
 import React, { useEffect, useState, useRef, useMemo } from "react";
@@ -21,12 +23,6 @@ const TIMELINE_DATA = [
  { id: 2, type: "security", action: "อัปเดตสิทธิ์การเข้าถึง", detail: "เปิดใช้งานการส่งออกไฟล์ CSV สำหรับเจ้าหน้าที่ระดับ Manager", user: "ศิริลักษณ์ ระบบ", time: "2 ชั่วโมงที่แล้ว", status: "warning" },
  { id: 3, type: "restore", action: "กู้คืนสถานะหน่วยงาน", detail: "กู้คืนข้อมูลหลังจากถูกระงับใช้งานชั่วคราว", user: "Super Admin", time: "เมื่อวานนี้, 14:30", status: "info" },
  { id: 4, type: "delete", action: "ลบรูปภาพโลโก้เก่า", detail: "นำไฟล์ logo_v1_deprecated.png ออกจากระบบ", user: "ธนกฤต แอดมิน", time: "2 วันที่แล้ว", status: "danger" }
-];
-
-const PHOTO_HISTORY_DATA = [
- { id: 101, url: "https://storage.googleapis.com/traffy_public_bucket/attachment/org_sample/logo1.png", user: "ธนกฤต แอดมิน", date: "23 ก.พ. 2026", time: "14:30", reason: "อัปเดตโลโก้สำหรับปี 2026" },
- { id: 102, url: "https://storage.googleapis.com/traffy_public_bucket/attachment/org_sample/logo2.png", user: "ศิริลักษณ์ ระบบ", date: "15 ม.ค. 2026", time: "09:15", reason: "เปลี่ยนตาม CI ของหน่วยงานใหม่" },
- { id: 103, url: "https://storage.googleapis.com/traffy_public_bucket/attachment/org_sample/logo3.png", user: "Super Admin", date: "01 ธ.ค. 2025", time: "11:00", reason: "เริ่มใช้งานระบบครั้งแรก" },
 ];
 
 const getTypeStyles = (type) => {
@@ -107,6 +103,8 @@ export default function ManageOrgPage() {
  const uploadApiUrl = process.env.NEXT_PUBLIC_FILE_UPLOAD_API_URL;
  const STORAGE_BASE_URL = "https://storage.googleapis.com/traffy_public_bucket/";
   const [auditLogs, setAuditLogs] = useState([]);
+  const [photoHistory, setPhotoHistory] = useState([]); // 🟢 State เก็บประวัติรูปภาพ
+  const [csvHistory, setCsvHistory] = useState([]); // 🟢 State เก็บประวัติ CSV
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
 
   // 🟢 2. ฟังก์ชันดึงและแปลง Log สำหรับหน้าจัดการหน่วยงาน
@@ -153,8 +151,113 @@ export default function ManageOrgPage() {
             uiType = 'edit';
           }
           
-          // ตกแต่งรายละเอียดข้อความหากไม่มี Reason ส่งมา
-          if (actionsPerformed.length > 0 && !log.reason) {
+          if (actionsPerformed.includes('change photo')) {
+            const photoChanges = log.payload?.status_changes?.photo;
+            if (photoChanges && photoChanges.old_value !== photoChanges.new_value) {
+                detailText = (
+                    <div className="flex flex-col gap-2 mt-1">
+                        <span>เปลี่ยนรูปโปรไฟล์จาก:</span>
+                        {photoChanges.old_value ? (
+                            <img 
+                                src={`https://storage.googleapis.com/traffy_public_bucket/${photoChanges.old_value}`} 
+                                alt="old preview" 
+                                className="w-24 h-24 object-contain rounded-lg border border-slate-200 shadow-sm bg-white p-1" 
+                            />
+                        ) : (
+                            <span className="text-slate-400 italic">ไม่มีรูปโปรไฟล์เดิม</span>
+                        )}
+                        <span>เป็น:</span>
+                        {photoChanges.new_value ? (
+                            <img 
+                                src={`https://storage.googleapis.com/traffy_public_bucket/${photoChanges.new_value}`} 
+                                alt="preview" 
+                                className="w-24 h-24 object-contain rounded-lg border border-slate-200 shadow-sm bg-white p-1" 
+                            />
+                        ) : (
+                            <span className="text-slate-400 italic">ไม่มีรูปโปรไฟล์ใหม่</span>
+                        )}
+                        {log.reason && (
+                            <div className="mt-1 p-2 bg-slate-100 rounded-lg border border-slate-200">
+                                <span className="font-bold text-slate-700">เหตุผล: </span>
+                                <span className="text-slate-600">{log.reason}</span>
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+          } else if (actionsPerformed.includes('switch download_csv')) {
+            const csvChanges = log.payload?.status_changes?.download_csv;
+            if (csvChanges) {
+                const oldStatus = csvChanges.old_status === 'true' || csvChanges.old_status === true;
+                const newStatus = csvChanges.new_status === 'true' || csvChanges.new_status === true;
+                
+                detailText = (
+                    <div className="flex flex-col gap-2 mt-1">
+                        <div className="flex items-center gap-2">
+                            <span className="text-slate-500">สิทธิ์ดาวน์โหลด CSV จาก:</span>
+                            <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${oldStatus ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}>
+                                {oldStatus ? 'ปิด' : 'ปิด'}
+                            </span>
+                            <span className="text-slate-500">เป็น:</span>
+                            <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${newStatus ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}>
+                                {newStatus ? 'เปิด' : 'ปิด'}
+                            </span>
+                        </div>
+                        {log.reason && (
+                            <div className="mt-1 p-2 bg-slate-100 rounded-lg border border-slate-200">
+                                <span className="font-bold text-slate-700">เหตุผล: </span>
+                                <span className="text-slate-600">{log.reason}</span>
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+          } else if (actionsPerformed.includes('switch official')) {
+             const officialChanges = log.payload?.status_changes?.official_group || log.payload?.status_changes?.official;
+             if (officialChanges) {
+                 const oldStatus = officialChanges.old_status === 'true' || officialChanges.old_status === true || officialChanges.old_value === 'true' || officialChanges.old_value === true;
+                 const newStatus = officialChanges.new_status === 'true' || officialChanges.new_status === true || officialChanges.new_value === 'true' || officialChanges.new_value === true;
+
+                 detailText = (
+                    <div className="flex flex-col gap-2 mt-1">
+                        <div className="flex items-center gap-2">
+                            <span className="text-slate-500">สถานะ Official จาก:</span>
+                            <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${oldStatus ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'}`}>
+                                {oldStatus ? 'เปิด' : 'ปิด'}
+                            </span>
+                            <span className="text-slate-500">เป็น:</span>
+                            <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${newStatus ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'}`}>
+                                {newStatus ? 'เปิด' : 'ปิด'}
+                            </span>
+                        </div>
+                        {log.reason && (
+                            <div className="mt-1 p-2 bg-slate-100 rounded-lg border border-slate-200">
+                                <span className="font-bold text-slate-700">เหตุผล: </span>
+                                <span className="text-slate-600">{log.reason}</span>
+                            </div>
+                        )}
+                    </div>
+                );
+             }
+          }else if (actionsPerformed.includes('change name')) {
+             const nameChanges = log.payload?.status_changes?.name;
+             if (nameChanges) {
+                detailText = (
+                    <div className="flex flex-col gap-2 mt-1">
+                        <div className="flex flex-col gap-1 text-[12px]">
+                            <div><span className="text-slate-500">เปลี่ยนชื่อจาก:</span> <span className="line-through text-slate-400">{nameChanges.old_value || '-'}</span></div>
+                            <div><span className="text-slate-500">เป็น:</span> <span className="font-bold text-indigo-600">{nameChanges.new_value || '-'}</span></div>
+                        </div>
+                        {log.reason && (
+                            <div className="mt-1 p-2 bg-slate-100 rounded-lg border border-slate-200 text-[11px]">
+                                <span className="font-bold text-slate-700">เหตุผล: </span>
+                                <span className="text-slate-600">{log.reason}</span>
+                            </div>
+                        )}
+                    </div>
+                );
+             }
+          } else if (actionsPerformed.length > 0 && !log.reason) {
             const translatedActions = actionsPerformed.map(a => {
               if (a === 'change name') return 'เปลี่ยนชื่อ';
               if (a === 'change photo') return 'เปลี่ยนรูปโปรไฟล์';
@@ -185,6 +288,79 @@ export default function ManageOrgPage() {
     }
   };
 
+  // 🟢 3. ฟังก์ชันดึง Photo History จาก API
+  const fetchPhotoHistory = async (targetOrgId) => {
+    if (!targetOrgId) return;
+    
+    try {
+        const url = `https://postgrest-2026-884122932397.asia-southeast1.run.app/audit_logs?target_id=eq.${targetOrgId}&action=eq.GROUP_UPDATE_INFO&order=created_at.desc&select=created_at,actor_name,reason,new_photo:payload->status_changes->photo->>new_value,old_photo:payload->status_changes->photo->>old_value`;
+        
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.NEXT_PUBLIC_LOGING_JWT_TOKEN}`
+            }
+        });
+
+        if (!response.ok) throw new Error("Failed to fetch photo history");
+        const data = await response.json();
+
+        const formattedHistory = data
+            .filter(log => log.new_photo)
+            .map((log, index) => ({
+                id: `history-${index}`,
+                url: log.new_photo.startsWith("http") ? log.new_photo : STORAGE_BASE_URL + log.new_photo,
+                user: log.actor_name || "ระบบ",
+                date: new Date(log.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }),
+                time: new Date(log.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+                reason: log.reason || "อัปเดตรูปโปรไฟล์หน่วยงาน"
+            }));
+
+        setPhotoHistory(formattedHistory);
+    } catch (error) {
+        console.error("Error fetching photo history:", error);
+        setPhotoHistory([]);
+    }
+  };
+
+  // 🟢 4. ฟังก์ชันดึง CSV History จาก API
+  const fetchCsvHistory = async (targetOrgId) => {
+    if (!targetOrgId) return;
+    
+    try {
+        const url = `https://postgrest-2026-884122932397.asia-southeast1.run.app/audit_logs?target_id=eq.${targetOrgId}&action=eq.GROUP_UPDATE_INFO&order=created_at.desc&select=created_at,actor_name,reason,new_status:payload->status_changes->download_csv->>new_status,old_status:payload->status_changes->download_csv->>old_status`;
+        
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.NEXT_PUBLIC_LOGING_JWT_TOKEN}`
+            }
+        });
+
+        if (!response.ok) throw new Error("Failed to fetch csv history");
+        const data = await response.json();
+
+        const formattedHistory = data
+            .filter(log => log.new_status !== undefined) // กรองเฉพาะ log ที่มีข้อมูลสถานะ CSV
+            .map((log, index) => ({
+                id: `csv-history-${index}`,
+                new_status: log.new_status === 'true' || log.new_status === true,
+                old_status: log.old_status === 'true' || log.old_status === true,
+                user: log.actor_name || "ระบบ",
+                date: new Date(log.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }),
+                time: new Date(log.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+                reason: log.reason || "อัปเดตสิทธิ์การดาวน์โหลด CSV"
+            }));
+
+        setCsvHistory(formattedHistory);
+    } catch (error) {
+        console.error("Error fetching csv history:", error);
+        setCsvHistory([]);
+    }
+  };
+
  const scrollToEdit = () => {
     setShowMobileEditPanel(true);
     setShowMobileTimeline(false);
@@ -194,13 +370,13 @@ export default function ManageOrgPage() {
  };
 
  const combinedPhotoHistory = useMemo(() => {
-   const history = [...PHOTO_HISTORY_DATA];
+   const history = [...photoHistory];
    if (logoPreview) {
      const currentUrl = (logoPreview.includes("blob:") || logoPreview.startsWith("http")) ? logoPreview : STORAGE_BASE_URL + logoPreview;
      return [{ id: 'current', url: currentUrl, user: "แอดมิน ระบบ", date: "ปัจจุบัน", time: "-", reason: "รูปภาพโปรไฟล์ที่กำลังใช้งานอยู่ ณ ปัจจุบัน" }, ...history];
    }
    return history;
- }, [logoPreview]);
+ }, [logoPreview, photoHistory]);
 
  const handleScrollCheck = (ref, setPosState) => {
     if (ref.current) {
@@ -214,12 +390,16 @@ export default function ManageOrgPage() {
     }
   };
 
-  // 🟢 โหลด Log ทุกครั้งที่เลือกหน่วยงานใหม่
+  // 🟢 โหลด Log และ Photo History ทุกครั้งที่เลือกหน่วยงานใหม่
   useEffect(() => {
     if (orgId) {
       fetchAuditLogs(orgId);
+      fetchPhotoHistory(orgId);
+      fetchCsvHistory(orgId); // เพิ่มการเรียก fetchCsvHistory
     } else {
       setAuditLogs([]); 
+      setPhotoHistory([]);
+      setCsvHistory([]);
     }
   }, [orgId]);
 
@@ -331,16 +511,22 @@ const fetchOrgData = async (targetId = "") => {
          else { throw new Error("Upload QR image failed"); }
        }
      } else if (updateModal.type === 'logo') {
-       const base64Image = await fileToBase64(updateModal.newValue);
-       const uploadRes = await fetch(uploadApiUrl, {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ folder_path: `attachment/org_${orgId}`, image: base64Image }), 
-       });
-       const uploadResult = await uploadRes.json();
-       if (uploadRes.ok && uploadResult.photo_link) { payload.file_url = uploadResult.photo_link.replace(STORAGE_BASE_URL, ""); } 
-       else { throw new Error("Upload logo failed"); }
-     }
+  const base64Image = await fileToBase64(updateModal.newValue);
+  const uploadRes = await fetch(uploadApiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ folder_path: `attachment/org_${orgId}`, image: base64Image }), 
+  });
+  const uploadResult = await uploadRes.json();
+  
+  if (uploadRes.ok && uploadResult.photo_link) { 
+    payload.file_url = uploadResult.photo_link.replace(STORAGE_BASE_URL, ""); 
+    payload.old_url = currentOrgData.logo_url; // ✅ เพิ่มบรรทัดนี้เข้าไป
+  } 
+  else { 
+    throw new Error("Upload logo failed"); 
+  }
+}
 
     const response = await fetch(`${API_URL_MANAGE}?id=${orgId}`, {
        method: 'PUT',
@@ -355,8 +541,10 @@ const fetchOrgData = async (targetId = "") => {
        setShowQrEditor(false); 
        await fetchOrgData(searchId); 
        
-       // 🟢 แทรกบรรทัดนี้: โหลดไทม์ไลน์ใหม่ทันทีที่บันทึกข้อมูลหน่วยงานสำเร็จ
-       if (orgId) fetchAuditLogs(orgId); 
+       if (orgId) {
+         fetchAuditLogs(orgId);
+         fetchPhotoHistory(orgId); // รีเฟรชประวัติรูปภาพด้วย
+       }
        
      } else {
        alert("เกิดข้อผิดพลาด: " + (result.message || result.error));
@@ -472,7 +660,7 @@ const fetchOrgData = async (targetId = "") => {
          <div className="absolute left-[39px] top-4 bottom-12 w-[2px] bg-slate-100 z-0 rounded-full"></div>
          <div className="space-y-4 pt-2">
             
-            {isLoadingLogs ? (
+             {isLoadingLogs ? (
                  <div className="py-10 text-center text-sm font-bold text-slate-400 flex flex-col items-center gap-3">
                      <Loader2 className="animate-spin w-8 h-8 text-indigo-500" />
                      กำลังโหลดข้อมูลกิจกรรม...
@@ -489,7 +677,7 @@ const fetchOrgData = async (targetId = "") => {
                            <span className="text-[9px] font-bold text-slate-400 whitespace-nowrap bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{item.time}</span>
                          </div>
                          <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 transition-all">
-                           <p className="text-[11px] text-slate-600 font-medium leading-tight break-words">{item.detail}</p>
+                           <div className="text-[11px] text-slate-600 font-medium leading-tight break-words">{item.detail}</div>
                            <div className="flex items-center gap-1.5 mt-2 opacity-60">
                              <div className="w-4 h-4 rounded-full bg-slate-200 flex items-center justify-center text-[8px] font-bold">{item.user.charAt(0)}</div>
                              <span className="text-[9px] font-bold text-slate-500 tracking-tight">{item.user}</span>
@@ -535,7 +723,6 @@ const fetchOrgData = async (targetId = "") => {
                   </header>
                     
                   <div className="flex flex-col sm:flex-row items-stretch gap-3 mb-10 w-full">
-                    {/* บังคับความสูง 60px ด้วย style ตรงๆ ตัดปัญหา Tailwind ไม่อ่านค่า */}
                     <div 
                       className="relative flex-1 group bg-white rounded-2xl shadow-sm border-2 border-slate-100 focus-within:border-indigo-500 focus-within:shadow-md transition-all flex items-center px-5 w-full"
                       style={{ height: '60px', minHeight: '60px' }}
@@ -639,7 +826,7 @@ const fetchOrgData = async (targetId = "") => {
                                 </div>
                               )}
                              </div>
-                                                                                               
+                                                                                                                                              
                             <div className="relative w-full">
                               <div className="flex justify-between items-end mb-2 px-1">
                                 <label className="text-xs font-bold text-slate-600 uppercase tracking-widest pb-1">ชื่อหน่วยงานเต็ม</label>
