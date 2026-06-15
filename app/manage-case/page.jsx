@@ -174,6 +174,7 @@ export default function ManageCase() {
             let uiType = 'default';
             let actionText = log.action || 'ปรับปรุงข้อมูล';
             let detailText = 'มีการอัปเดตข้อมูลในระบบ';
+            
 
             // 💡 แกะข้อมูลจำแนกจาก Action หลักของไฟล์ Manage Case
             if (log.action === 'UPDATE_ATTACHMENT_FULL_PROPERTIES') {
@@ -183,7 +184,28 @@ export default function ManageCase() {
                 if (changes?.photo && changes.photo.old !== changes.photo.new) {
                     uiType = 'edit';
                     actionText = 'แทนที่ไฟล์แนบใหม่';
-                    detailText = log.payload?.description || `เปลี่ยนไฟล์แนบเดิมเป็นไฟล์ใหม่ (ID: ${attachmentId})`;
+                    detailText = (
+                        <div className="flex flex-col gap-2 mt-1">
+                            <span>เปลี่ยนไฟล์แนบจาก:</span>
+                            <img 
+                                src={`https://storage.googleapis.com/traffy_public_bucket/${changes.photo.old}`} 
+                                alt="old preview" 
+                                className="w-24 h-24 object-cover rounded-lg border border-slate-200 shadow-sm" 
+                            />
+                            <span>เป็น:</span>
+                            <img 
+                                src={`https://storage.googleapis.com/traffy_public_bucket/${changes.photo.new}`} 
+                                alt="preview" 
+                                className="w-24 h-24 object-cover rounded-lg border border-slate-200 shadow-sm" 
+                            />
+                            {log.payload?.description && (
+                                <div className="mt-1 p-2 bg-slate-100 rounded-lg border border-slate-200">
+                                    <span className="font-bold text-slate-700">เหตุผล: </span>
+                                    <span className="text-slate-600">{log.payload.description}</span>
+                                </div>
+                            )}
+                        </div>
+                    );
                 } else if (changes?.is_hidden && changes.is_hidden.old !== changes.is_hidden.new) {
                     uiType = 'security';
                     if (changes.is_hidden.new === true) {
@@ -875,7 +897,7 @@ function TimelineContent({ data, isLoading }) {
                                             <span className="text-[9px] font-bold text-slate-400 whitespace-nowrap bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{item.time}</span>
                                         </div>
                                         <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
-                                            <p className="text-[11px] text-slate-600 font-medium leading-tight">{item.detail}</p>
+                                            <div className="text-[11px] text-slate-600 font-medium leading-tight">{item.detail}</div>
                                             <div className="flex items-center gap-1.5 mt-2 opacity-60">
                                                 <div className="w-4 h-4 rounded-full bg-slate-200 flex items-center justify-center text-[8px] font-bold">{item.user.charAt(0)}</div>
                                                 <span className="text-[9px] font-bold text-slate-500 tracking-tight">By: {item.user}</span>
