@@ -128,6 +128,7 @@ export default function ManageOrgPage() {
         let uiType = 'default';
         let actionText = 'อัปเดตข้อมูลหน่วยงาน';
         let detailText = log.reason || log.payload?.description || 'มีการปรับปรุงข้อมูลในระบบ';
+        let subAction = null;
 
         const act = log.action?.toUpperCase() || "";
 
@@ -186,6 +187,7 @@ export default function ManageOrgPage() {
                 );
             }
           } else if (actionsPerformed.includes('switch download_csv')) {
+            subAction = 'csv'; // 🟢 2. ดักจับสถานะเมื่อเป็น CSV
             const csvChanges = log.payload?.status_changes?.download_csv;
             if (csvChanges) {
                 const oldStatus = csvChanges.old_status === 'true' || csvChanges.old_status === true;
@@ -213,6 +215,7 @@ export default function ManageOrgPage() {
                 );
             }
           } else if (actionsPerformed.includes('switch official')) {
+            subAction = 'official'; // 🟢 3. ดักจับสถานะเมื่อเป็น Official
              const officialChanges = log.payload?.status_changes?.official_group || log.payload?.status_changes?.official;
              if (officialChanges) {
                  const oldStatus = officialChanges.old_status === 'true' || officialChanges.old_status === true || officialChanges.old_value === 'true' || officialChanges.old_value === true;
@@ -272,6 +275,7 @@ export default function ManageOrgPage() {
         return {
           id: log.id || `log-${index}`,
           type: uiType,
+          subAction: subAction, // 🟢 4. ส่งค่าสถานะออกไปให้ Timeline ใช้งาน
           action: actionText,
           detail: detailText,
           user: log.actor_name || 'System Admin',
@@ -676,7 +680,11 @@ const fetchOrgData = async (targetId = "") => {
                            <h4 className="text-xs font-black text-slate-900 truncate group-hover:text-indigo-600 transition-colors">{item.action}</h4>
                            <span className="text-[9px] font-bold text-slate-400 whitespace-nowrap bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{item.time}</span>
                          </div>
-                         <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 transition-all">
+                         <div className={`${
+                              item.subAction === 'official' ? 'bg-blue-100 border-blue-200' :
+                              item.subAction === 'csv' ? 'bg-green-100 border-green-200' :
+                              'bg-slate-50 border-slate-100'
+                            } rounded-xl p-3 transition-all`}>
                            <div className="text-[11px] text-slate-600 font-medium leading-tight break-words">{item.detail}</div>
                            <div className="flex items-center gap-1.5 mt-2 opacity-60">
                              <div className="w-4 h-4 rounded-full bg-slate-200 flex items-center justify-center text-[8px] font-bold">{item.user.charAt(0)}</div>
