@@ -152,104 +152,167 @@ export default function ManageCase() {
   const [auditLogs, setAuditLogs] = useState([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
 
-// 🟢 ฟังก์ชันดึง Log จาก API และจำแนกประเภท
-// 🟢 ฟังก์ชันดึง Log จาก API และจำแนกประเภทสำหรับ Manage Case
+  // 🟢 ฟังก์ชันดึง Log จาก API และจำแนกประเภทสำหรับ Manage Case (อัปเดตตาม API ใหม่)
   const fetchAuditLogs = async (ticketId) => {
     if (!ticketId) return;
     setIsLoadingLogs(true);
     try {
-        const logsUrl = `${process.env.NEXT_PUBLIC_LOGGING_API}&target_id=eq.${ticketId}`;
-        const response = await fetch(logsUrl, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.NEXT_PUBLIC_LOGING_JWT_TOKEN}`
-            }
+        const adminId = localStorage.getItem("current_admin_id")?.replace(/['"]+/g, '') || "unknown_admin";
+
+        // สร้าง URL สำหรับแต่ละประเภทของการแก้ไข
+        const baseLogsUrl = process.env.NEXT_PUBLIC_LOGGING_API;
+        const targetQuery = `target_id=eq.${ticketId}&action=eq.CASE_UPDATE_INFO&order=created_at.desc`;
+
+        const photoLogsUrl = `${baseLogsUrl}&${targetQuery}&select=created_at,actor_name,reason,new_photo:payload->status_changes->photo->>new_value,old_photo:payload->status_changes->photo->>old_value&payload->status_changes->>photo=not.is.null`;
+        const hiddenLogsUrl = `${baseLogsUrl}&${targetQuery}&select=created_at,actor_name,reason,pic_url:payload->context_info->>photo_url,new_value:payload->status_changes->is_hidden->>new_value,old_value:payload->status_changes->is_hidden->>old_value&payload->actions_performed=cs.["change hidden status"]`;
+        const coverLogsUrl = `${baseLogsUrl}&${targetQuery}&select=created_at,actor_name,reason,pic_url:payload->context_info->>photo_url,new_value:payload->status_changes->is_cover->>new_value,old_value:payload->status_changes->is_cover->>old_value&payload->actions_performed=cs.["change cover status"]`;
+        const generalLogsUrl = `${baseLogsUrl}&${targetQuery}`;
+
+        // ดึงข้อมูลทั้งหมดพร้อมกัน
+        const [photoRes, hiddenRes, coverRes, generalRes] = await Promise.all([
+            fetch(photoLogsUrl, { headers: { 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_LOGING_JWT_TOKEN}` } }),
+            fetch(hiddenLogsUrl, { headers: { 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_LOGING_JWT_TOKEN}` } }),
+            fetch(coverLogsUrl, { headers: { 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_LOGING_JWT_TOKEN}` } }),
+            fetch(generalLogsUrl, { headers: { 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_LOGING_JWT_TOKEN}` } })
+        ]);
+
+        const photoData = photoRes.ok ? await photoRes.json() : [];
+        const hiddenData = hiddenRes.ok ? await hiddenRes.json() : [];
+        const coverData = coverRes.ok ? await coverRes.json() : [];
+        const generalData = generalRes.ok ? await generalRes.json() : [];
+
+        let allFormattedLogs = [];
+
+        // จัดรูปแบบ Log เปลี่ยนรูปภาพ
+        photoData.forEach((log, index) => {
+            if (!log.new_photo) return; // Skip if no photo change
+            allFormattedLogs.push({
+                id: `photo-log-${index}`,
+                type: 'edit',
+                action: 'แทนที่ไฟล์แนบใหม่',
+                detail: (
+                    <div className="flex flex-col gap-2 mt-1">
+                        <span>เปลี่ยนไฟล์แนบจาก:</span>
+                        {log.old_photo ? (
+                            <img src={`https://storage.googleapis.com/traffy_public_bucket/${log.old_photo}`} alt="old preview" className="w-24 h-24 object-cover rounded-lg border border-slate-200 shadow-sm bg-white p-1" />
+                        ) : (
+                            <span className="text-slate-400 italic">ไม่มีรูปภาพเดิม</span>
+                        )}
+                        <span>เป็น:</span>
+                        {log.new_photo ? (
+                            <img src={`https://storage.googleapis.com/traffy_public_bucket/${log.new_photo}`} alt="preview" className="w-24 h-24 object-cover rounded-lg border border-slate-200 shadow-sm bg-white p-1" />
+                        ) : (
+                            <span className="text-slate-400 italic">ไม่มีรูปภาพใหม่</span>
+                        )}
+                        {log.reason && (
+                            <div className="mt-1 p-2 bg-slate-100 rounded-lg border border-slate-200">
+                                <span className="font-bold text-slate-700">เหตุผล: </span>
+                                <span className="text-slate-600">{log.reason}</span>
+                            </div>
+                        )}
+                    </div>
+                ),
+                user: log.actor_name || 'System Admin',
+                time: log.created_at ? new Date(log.created_at).toLocaleString('th-TH') : 'ไม่ระบุเวลา',
+                timestamp: new Date(log.created_at).getTime() // For sorting
+            });
         });
 
-        if (!response.ok) throw new Error("Failed to fetch logs");
-        const data = await response.json();
+        // จัดรูปแบบ Log ซ่อนรูปภาพ
+        hiddenData.forEach((log, index) => {
+            if (log.new_value === undefined) return;
+            const isHiddenNew = log.new_value === true || log.new_value === 'true';
+            allFormattedLogs.push({
+                id: `hidden-log-${index}`,
+                type: 'security',
+                action: isHiddenNew ? 'ซ่อนรูปภาพจากสาธารณะ' : 'เปิดการแสดงผลรูปภาพ',
+                detail: (
+                    <div className="flex flex-col gap-2 mt-1">
+                        <span>{isHiddenNew ? 'ซ่อนรูปภาพไม่ให้แสดงผลในฝั่งผู้ใช้งานทั่วไป' : 'ยกเลิกการซ่อนรูปภาพเพื่อให้แสดงผลตามปกติ'}</span>
+                         {log.pic_url && (
+                             <img src={`https://storage.googleapis.com/traffy_public_bucket/${log.pic_url}`} alt="affected image" className="w-24 h-24 object-cover rounded-lg border border-slate-200 shadow-sm bg-white p-1" />
+                         )}
+                        {log.reason && (
+                            <div className="mt-1 p-2 bg-slate-100 rounded-lg border border-slate-200">
+                                <span className="font-bold text-slate-700">เหตุผล: </span>
+                                <span className="text-slate-600">{log.reason}</span>
+                            </div>
+                        )}
+                    </div>
+                ),
+                user: log.actor_name || 'System Admin',
+                time: log.created_at ? new Date(log.created_at).toLocaleString('th-TH') : 'ไม่ระบุเวลา',
+                timestamp: new Date(log.created_at).getTime()
+            });
+        });
 
-        const formattedLogs = data.map((log, index) => {
-            let uiType = 'default';
-            let actionText = log.action || 'ปรับปรุงข้อมูล';
-            let detailText = 'มีการอัปเดตข้อมูลในระบบ';
-            
+        // จัดรูปแบบ Log เปลี่ยนหน้าปก
+        coverData.forEach((log, index) => {
+             if (log.new_value === undefined) return;
+             const isCoverNew = log.new_value === true || log.new_value === 'true';
+             allFormattedLogs.push({
+                 id: `cover-log-${index}`,
+                 type: isCoverNew ? 'restore' : 'edit',
+                 action: isCoverNew ? 'ตั้งเป็นรูปหน้าปกเคส (Cover)' : 'ยกเลิกการเป็นรูปหน้าปก',
+                 detail: (
+                     <div className="flex flex-col gap-2 mt-1">
+                         <span>{isCoverNew ? 'กำหนดให้รูปภาพเป็นภาพหน้าปกหลักของเคสนี้' : 'รูปภาพถูกปลดออกจากการเป็นรูปหน้าปก'}</span>
+                         {log.pic_url && (
+                             <img src={`https://storage.googleapis.com/traffy_public_bucket/${log.pic_url}`} alt="affected image" className="w-24 h-24 object-cover rounded-lg border border-slate-200 shadow-sm bg-white p-1" />
+                         )}
+                         {log.reason && (
+                             <div className="mt-1 p-2 bg-slate-100 rounded-lg border border-slate-200">
+                                 <span className="font-bold text-slate-700">เหตุผล: </span>
+                                 <span className="text-slate-600">{log.reason}</span>
+                             </div>
+                         )}
+                     </div>
+                 ),
+                 user: log.actor_name || 'System Admin',
+                 time: log.created_at ? new Date(log.created_at).toLocaleString('th-TH') : 'ไม่ระบุเวลา',
+                 timestamp: new Date(log.created_at).getTime()
+             });
+        });
 
-            // 💡 แกะข้อมูลจำแนกจาก Action หลักของไฟล์ Manage Case
-            if (log.action === 'UPDATE_ATTACHMENT_FULL_PROPERTIES') {
-                const changes = log.payload?.changes;
-                const attachmentId = log.payload?.attachment_id || '';
-                
-                if (changes?.photo && changes.photo.old !== changes.photo.new) {
-                    uiType = 'edit';
-                    actionText = 'แทนที่ไฟล์แนบใหม่';
-                    detailText = (
-                        <div className="flex flex-col gap-2 mt-1">
-                            <span>เปลี่ยนไฟล์แนบจาก:</span>
-                            <img 
-                                src={`https://storage.googleapis.com/traffy_public_bucket/${changes.photo.old}`} 
-                                alt="old preview" 
-                                className="w-24 h-24 object-cover rounded-lg border border-slate-200 shadow-sm" 
-                            />
-                            <span>เป็น:</span>
-                            <img 
-                                src={`https://storage.googleapis.com/traffy_public_bucket/${changes.photo.new}`} 
-                                alt="preview" 
-                                className="w-24 h-24 object-cover rounded-lg border border-slate-200 shadow-sm" 
-                            />
-                            {log.payload?.description && (
-                                <div className="mt-1 p-2 bg-slate-100 rounded-lg border border-slate-200">
-                                    <span className="font-bold text-slate-700">เหตุผล: </span>
-                                    <span className="text-slate-600">{log.payload.description}</span>
-                                </div>
-                            )}
-                        </div>
-                    );
-                } else if (changes?.is_hidden && changes.is_hidden.old !== changes.is_hidden.new) {
-                    uiType = 'security';
-                    if (changes.is_hidden.new === true) {
-                        actionText = 'ซ่อนรูปภาพจากสาธารณะ';
-                        detailText = `ซ่อนรูปภาพ (ID: ${attachmentId}) ไม่ให้แสดงผลในฝั่งผู้ใช้งานทั่วไป`;
-                    } else {
-                        actionText = 'เปิดการแสดงผลรูปภาพ';
-                        detailText = `ยกเลิกการซ่อนรูปภาพ (ID: ${attachmentId}) เพื่อให้แสดงผลตามปกติ`;
-                    }
-                } else if (changes?.is_cover && changes.is_cover.old !== changes.is_cover.new) {
-                    if (changes.is_cover.new === true) {
-                        uiType = 'restore'; 
-                        actionText = 'ตั้งเป็นรูปหน้าปกเคส (Cover)';
-                        detailText = `กำหนดให้รูปภาพ (ID: ${attachmentId}) เป็นภาพหน้าปกหลักของเคสนี้`;
-                    } else {
-                        uiType = 'edit';
-                        actionText = 'ยกเลิกการเป็นรูปหน้าปก';
-                        detailText = `รูปภาพ (ID: ${attachmentId}) ถูกปลดออกจากการเป็นรูปหน้าปก`;
-                    }
-                } else {
-                    uiType = 'edit';
-                    actionText = 'แก้ไขคุณสมบัติไฟล์แนบ';
-                    detailText = `อัปเดตข้อมูลรายละเอียดไฟล์แนบ (ID: ${attachmentId})`;
-                }
-            } else {
-                const act = log.action?.toUpperCase() || "";
-                if (act.includes('UPDATE') || act.includes('EDIT')) uiType = 'edit';
-                if (act.includes('HIDE') || act.includes('DELETE')) uiType = 'security';
-                if (act.includes('RESTORE')) uiType = 'restore';
-                actionText = log.action || actionText;
-                detailText = log.payload?.description || detailText;
-            }
+        // Add general logs that weren't captured by the specific queries
+        const specificLogIds = new Set(allFormattedLogs.map(l => l.timestamp));
+        generalData.forEach((log, index) => {
+             const timestamp = new Date(log.created_at).getTime();
+             if (specificLogIds.has(timestamp)) return; // Skip if already processed
+             
+             let uiType = 'edit';
+             let actionText = log.action || 'แก้ไขข้อมูลเคส';
+             let detailText = log.payload?.description || 'มีการอัปเดตข้อมูลในระบบ';
+             
+             const act = log.action?.toUpperCase() || "";
+             if (act.includes('HIDE') || act.includes('DELETE')) uiType = 'security';
+             if (act.includes('RESTORE')) uiType = 'restore';
 
-            return {
-                id: log.id || `log-${index}`,
+             allFormattedLogs.push({
+                id: log.id || `general-log-${index}`,
                 type: uiType,
                 action: actionText,
-                detail: detailText,
+                detail: (
+                    <div className="flex flex-col gap-2 mt-1">
+                        <span>{detailText}</span>
+                        {log.reason && (
+                            <div className="mt-1 p-2 bg-slate-100 rounded-lg border border-slate-200">
+                                <span className="font-bold text-slate-700">เหตุผล: </span>
+                                <span className="text-slate-600">{log.reason}</span>
+                            </div>
+                        )}
+                    </div>
+                ),
                 user: log.actor_name || 'System Admin',
-                time: log.created_at ? new Date(log.created_at).toLocaleString('th-TH') : 'ไม่ระบุเวลา'
-            };
+                time: log.created_at ? new Date(log.created_at).toLocaleString('th-TH') : 'ไม่ระบุเวลา',
+                timestamp: timestamp
+            });
         });
 
-        setAuditLogs(formattedLogs);
+        // เรียงลำดับตามเวลาใหม่สุดไปเก่าสุด
+        allFormattedLogs.sort((a, b) => b.timestamp - a.timestamp);
+
+        setAuditLogs(allFormattedLogs);
     } catch (error) {
         console.error("Error fetching logs:", error);
         setAuditLogs([]);

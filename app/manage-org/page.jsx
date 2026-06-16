@@ -195,11 +195,11 @@ export default function ManageOrgPage() {
                     <div className="flex flex-col gap-2 mt-1">
                         <div className="flex items-center gap-2">
                             <span className="text-slate-500">สิทธิ์ดาวน์โหลด CSV จาก:</span>
-                            <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${oldStatus ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}>
+                            <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${oldStatus ? 'bg-green-100 text-green-700' : 'bg-red-200 text-red-600'}`}>
                                 {oldStatus ? 'ปิด' : 'ปิด'}
                             </span>
                             <span className="text-slate-500">เป็น:</span>
-                            <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${newStatus ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}>
+                            <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${newStatus ? 'bg-green-100 text-green-700' : 'bg-red-200 text-red-600'}`}>
                                 {newStatus ? 'เปิด' : 'ปิด'}
                             </span>
                         </div>
@@ -222,11 +222,11 @@ export default function ManageOrgPage() {
                     <div className="flex flex-col gap-2 mt-1">
                         <div className="flex items-center gap-2">
                             <span className="text-slate-500">สถานะ Official จาก:</span>
-                            <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${oldStatus ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'}`}>
+                            <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${oldStatus ? 'bg-green-100 text-green-700' : 'bg-red-200 text-red-600'}`}>
                                 {oldStatus ? 'เปิด' : 'ปิด'}
                             </span>
                             <span className="text-slate-500">เป็น:</span>
-                            <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${newStatus ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'}`}>
+                            <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${newStatus ? 'bg-green-100 text-green-700' : 'bg-red-200 text-red-600'}`}>
                                 {newStatus ? 'เปิด' : 'ปิด'}
                             </span>
                         </div>
@@ -293,7 +293,7 @@ export default function ManageOrgPage() {
     if (!targetOrgId) return;
     
     try {
-        const url = `https://postgrest-2026-884122932397.asia-southeast1.run.app/audit_logs?target_id=eq.${targetOrgId}&action=eq.GROUP_UPDATE_INFO&order=created_at.desc&select=created_at,actor_name,reason,new_photo:payload->status_changes->photo->>new_value,old_photo:payload->status_changes->photo->>old_value`;
+        const url = `${process.env.NEXT_PUBLIC_LOGGING_API}&target_id=eq.${targetOrgId}&action=eq.GROUP_UPDATE_INFO&order=created_at.desc&select=created_at,actor_name,reason,new_photo:payload->status_changes->photo->>new_value,old_photo:payload->status_changes->photo->>old_value`;
         
         const response = await fetch(url, {
             method: 'GET',
@@ -329,7 +329,7 @@ export default function ManageOrgPage() {
     if (!targetOrgId) return;
     
     try {
-        const url = `https://postgrest-2026-884122932397.asia-southeast1.run.app/audit_logs?target_id=eq.${targetOrgId}&action=eq.GROUP_UPDATE_INFO&order=created_at.desc&select=created_at,actor_name,reason,new_status:payload->status_changes->download_csv->>new_status,old_status:payload->status_changes->download_csv->>old_status`;
+        const url = `${process.env.NEXT_PUBLIC_LOGGING_API}&target_id=eq.${targetOrgId}&action=eq.GROUP_UPDATE_INFO&order=created_at.desc&select=created_at,actor_name,reason,new_status:payload->status_changes->download_csv->>new_status,old_status:payload->status_changes->download_csv->>old_status`;
         
         const response = await fetch(url, {
             method: 'GET',
