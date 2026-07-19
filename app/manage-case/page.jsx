@@ -1,73 +1,73 @@
 'use client';
 
 import { useEffect, useState, useRef, useMemo } from "react";
-import { useRouter, usePathname } from "next/navigation"; 
-import { 
-  LogOut, Search, CheckCircle2, AlertCircle, UploadCloud, 
-  ArrowLeft, ArrowRight, X, ImageIcon, Music, 
-  MapPin, Calendar, FolderOpen, Activity, Filter, 
-  Edit3, ShieldCheck, RefreshCw, FileText, Settings2, History,
-  Layout, Images, EyeOff, Eye, SlidersHorizontal, RotateCcw
+import { useRouter, usePathname } from "next/navigation";
+import {
+    LogOut, Search, CheckCircle2, AlertCircle, UploadCloud,
+    ArrowLeft, ArrowRight, X, ImageIcon, Music,
+    MapPin, Calendar, FolderOpen, Activity, Filter,
+    Edit3, ShieldCheck, RefreshCw, FileText, Settings2, History,
+    Layout, Images, EyeOff, Eye, SlidersHorizontal, RotateCcw
 } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../../firebaseConfig"; 
+import { auth } from "../../firebaseConfig";
 import Sidebar from "../components/sidebar";
 
 // --- Config: MIME Types ---
 const MIME_TYPE_MAP = {
-  'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'gif': 'image/gif',
-  'bmp': 'image/bmp', 'webp': 'image/webp', 'heic': 'image/heic', 'heif': 'image/heif',
-  'ico': 'image/x-icon', 'tiff': 'image/tiff', 'apng': 'image/apng',
-  'mp4': 'video/mp4', 'mov': 'video/quicktime', 'avi': 'video/avi',
-  'mkv': 'video/x-matroska', 'wmv': 'video/x-matroska', 'm4v': 'video/m4v', 'mpg': 'video/mpeg', 
-  'mp3': 'audio/mpeg', 'wav': 'audio/wav', 'aac': 'audio/aac', 'ogg': 'audio/ogg',
-  'm4a': 'audio/m4a', 'x-m4a': 'audio/x-m4a', 'flac': 'audio/flac', 'wma': 'audio/x-ms-wma',
-  'zip': 'application/zip', '7z': 'application/x-7z-compressed', 'pdf': 'application/pdf',
-  'rar': 'application/vnd.rar', 'doc': 'application/msword',
-  'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'xls': 'application/vnd.ms-excel', 'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'ppt': 'application/vnd.ms-powerpoint', 'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'rtf': 'application/rtf', 'csv': 'text/csv', 'txt': 'text/plain', 
+    'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'gif': 'image/gif',
+    'bmp': 'image/bmp', 'webp': 'image/webp', 'heic': 'image/heic', 'heif': 'image/heif',
+    'ico': 'image/x-icon', 'tiff': 'image/tiff', 'apng': 'image/apng',
+    'mp4': 'video/mp4', 'mov': 'video/quicktime', 'avi': 'video/avi',
+    'mkv': 'video/x-matroska', 'wmv': 'video/x-matroska', 'm4v': 'video/m4v', 'mpg': 'video/mpeg',
+    'mp3': 'audio/mpeg', 'wav': 'audio/wav', 'aac': 'audio/aac', 'ogg': 'audio/ogg',
+    'm4a': 'audio/m4a', 'x-m4a': 'audio/x-m4a', 'flac': 'audio/flac', 'wma': 'audio/x-ms-wma',
+    'zip': 'application/zip', '7z': 'application/x-7z-compressed', 'pdf': 'application/pdf',
+    'rar': 'application/vnd.rar', 'doc': 'application/msword',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'xls': 'application/vnd.ms-excel', 'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'ppt': 'application/vnd.ms-powerpoint', 'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'rtf': 'application/rtf', 'csv': 'text/csv', 'txt': 'text/plain',
 };
 
 const STORAGE_BASE_URL = "https://storage.googleapis.com/traffy_public_bucket/";
 
 const STATIC_TIMELINE = [
- { id: 1, type: "edit", action: "แก้ไขรูปภาพเคส", detail: "เปลี่ยนรูปภาพประกอบเนื่องจากรูปเดิมไม่ชัดเจน", user: "ธนกฤต แอดมิน", time: "10 นาทีที่แล้ว" },
- { id: 2, type: "security", action: "อัปเดตสิทธิ์", detail: "ตรวจสอบข้อมูลเคสโดย Admin", user: "ศิริลักษณ์ ระบบ", time: "2 ชั่วโมงที่แล้ว" },
- { id: 3, type: "restore", action: "กู้คืนข้อมูล", detail: "กู้คืนไฟล์แนบเดิมจากฐานข้อมูล", user: "Super Admin", time: "เมื่อวานนี้, 14:30" }
+    { id: 1, type: "edit", action: "แก้ไขรูปภาพเคส", detail: "เปลี่ยนรูปภาพประกอบเนื่องจากรูปเดิมไม่ชัดเจน", user: "ธนกฤต แอดมิน", time: "10 นาทีที่แล้ว" },
+    { id: 2, type: "security", action: "อัปเดตสิทธิ์", detail: "ตรวจสอบข้อมูลเคสโดย Admin", user: "ศิริลักษณ์ ระบบ", time: "2 ชั่วโมงที่แล้ว" },
+    { id: 3, type: "restore", action: "กู้คืนข้อมูล", detail: "กู้คืนไฟล์แนบเดิมจากฐานข้อมูล", user: "Super Admin", time: "เมื่อวานนี้, 14:30" }
 ];
 
 const getTypeStyles = (type) => {
- switch (type) {
-   case 'edit': return { bg: 'bg-indigo-50', text: 'text-indigo-600', icon: <Edit3 size={16} strokeWidth={2.5} />, border: 'border-indigo-100' };
-   case 'security': return { bg: 'bg-amber-50', text: 'text-amber-600', icon: <ShieldCheck size={16} strokeWidth={2.5} />, border: 'border-amber-100' };
-   case 'restore': return { bg: 'bg-emerald-50', text: 'text-emerald-600', icon: <RefreshCw size={16} strokeWidth={2.5} />, border: 'border-emerald-100' };
-   default: return { bg: 'bg-slate-50', text: 'text-slate-600', icon: <FileText size={16} strokeWidth={2.5} />, border: 'border-slate-100' };
- }
+    switch (type) {
+        case 'edit': return { bg: 'bg-indigo-50', text: 'text-indigo-600', icon: <Edit3 size={16} strokeWidth={2.5} />, border: 'border-indigo-100' };
+        case 'security': return { bg: 'bg-amber-50', text: 'text-amber-600', icon: <ShieldCheck size={16} strokeWidth={2.5} />, border: 'border-amber-100' };
+        case 'restore': return { bg: 'bg-emerald-50', text: 'text-emerald-600', icon: <RefreshCw size={16} strokeWidth={2.5} />, border: 'border-emerald-100' };
+        default: return { bg: 'bg-slate-50', text: 'text-slate-600', icon: <FileText size={16} strokeWidth={2.5} />, border: 'border-slate-100' };
+    }
 };
 
 const fileToBase64 = (file) => {
-  return new Promise((resolve, reject) => {
-    if (!file || !file.name) return reject("Invalid file");
-    const extension = file.name.split('.').pop().toLowerCase();
-    const mimeType = MIME_TYPE_MAP[extension] || file.type;
-    const blob = new Blob([file], { type: mimeType });
-    const reader = new FileReader();
-    reader.readAsDataURL(blob); 
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = (error) => reject(error);
-  });
+    return new Promise((resolve, reject) => {
+        if (!file || !file.name) return reject("Invalid file");
+        const extension = file.name.split('.').pop().toLowerCase();
+        const mimeType = MIME_TYPE_MAP[extension] || file.type;
+        const blob = new Blob([file], { type: mimeType });
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = (error) => reject(error);
+    });
 };
 
 const getMediaTypeFromFile = (file) => {
     if (!file) return 2; // Default เป็นไฟล์ทั่วไปถ้าไม่มีข้อมูล
     const fileName = file.name || (typeof file === 'string' ? file : (file.url || file.photo || ""));
     if (!fileName || typeof fileName !== 'string' || !fileName.includes('.')) return 2;
-    
+
     const extension = fileName.split('.').pop().toLowerCase();
     const mimeType = MIME_TYPE_MAP[extension] || file.type || "";
-    
+
     if (mimeType.startsWith('image/')) return 0; // 0 = ไม่มีหรือเป็นภาพ
     if (mimeType.startsWith('video/')) return 1; // 1 = วิดีโอ
     if (mimeType.startsWith('audio/')) return 3; // 3 = เสียง
@@ -111,755 +111,756 @@ const FilePreviewRender = ({ file }) => {
     const style = getFileStyle(extension);
 
     switch (type) {
-    case 0: return <img src={previewUrl} className="w-full h-full object-cover" alt="Preview" />;
-    case 1: return <video src={previewUrl} className="w-full h-full object-cover" muted />;
-    case 3: 
-        return (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-amber-50 p-4">
-                <Music size={48} className="text-amber-500 mb-2" />
-                <audio src={previewUrl} controls className="w-full max-w-[240px] h-8 scale-90" />
+        case 0: return <img src={previewUrl} className="w-full h-full object-cover" alt="Preview" />;
+        case 1: return <video src={previewUrl} className="w-full h-full object-cover" muted />;
+        case 3:
+            return (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-amber-50 p-4">
+                    <Music size={48} className="text-amber-500 mb-2" />
+                    <audio src={previewUrl} controls className="w-full max-w-[240px] h-8 scale-90" />
+                </div>
+            );
+        default: return (
+            <div className={`w-full h-full flex flex-col items-center justify-center ${style.bg} p-4`}>
+                <FileText size={48} className={style.text} />
+                <span className={`text-xs font-bold uppercase mt-2 ${style.text}`}>.{extension || 'file'}</span>
             </div>
         );
-    default: return ( 
-        <div className={`w-full h-full flex flex-col items-center justify-center ${style.bg} p-4`}>
-            <FileText size={48} className={style.text} />
-            <span className={`text-xs font-bold uppercase mt-2 ${style.text}`}>.{extension || 'file'}</span>
-        </div>
-    );
-}
+    }
 };
 
 export default function ManageCase() {
-  const router = useRouter();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [showMobileTimeline, setShowMobileTimeline] = useState(false);
-  const [showMobileEditPanel, setShowMobileEditPanel] = useState(false);
-  const [activeTab, setActiveTab] = useState("history_edit"); 
-  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
-  const [searchId, setSearchId] = useState("");
-  const [currentCase, setCurrentCase] = useState(null);
-  const [isSearching, setIsSearching] = useState(false);
-  const [inputError, setInputError] = useState(false);
-  const [wizardStep, setWizardStep] = useState(1);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false); 
-  const [selectedImageToReplace, setSelectedImageToReplace] = useState(null);
-  const [newImageFile, setNewImageFile] = useState(null);
-  const [reason, setReason] = useState("");
+    const router = useRouter();
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [showMobileTimeline, setShowMobileTimeline] = useState(false);
+    const [showMobileEditPanel, setShowMobileEditPanel] = useState(false);
+    const [activeTab, setActiveTab] = useState("history_edit");
+    const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
+    const [searchId, setSearchId] = useState("");
+    const [currentCase, setCurrentCase] = useState(null);
+    const [isSearching, setIsSearching] = useState(false);
+    const [inputError, setInputError] = useState(false);
+    const [wizardStep, setWizardStep] = useState(1);
+    const [isSuccess, setIsSuccess] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [selectedImageToReplace, setSelectedImageToReplace] = useState(null);
+    const [newImageFile, setNewImageFile] = useState(null);
+    const [reason, setReason] = useState("");
 
-  const inputRef = useRef(null);
-  const [auditLogs, setAuditLogs] = useState([]);
-  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+    const inputRef = useRef(null);
+    const [auditLogs, setAuditLogs] = useState([]);
+    const [isLoadingLogs, setIsLoadingLogs] = useState(false);
 
-  // 🟢 ฟังก์ชันดึง Log จาก API และจำแนกประเภทสำหรับ Manage Case (อัปเดตตาม API ใหม่)
-  const fetchAuditLogs = async (ticketId) => {
-    if (!ticketId) return;
-    setIsLoadingLogs(true);
-    try {
-        const adminId = localStorage.getItem("current_admin_id")?.replace(/['"]+/g, '') || "unknown_admin";
+    // 🟢 ฟังก์ชันดึง Log จาก API และจำแนกประเภทสำหรับ Manage Case (อัปเดตตาม API ใหม่)
+    const fetchAuditLogs = async (ticketId) => {
+        if (!ticketId) return;
+        setIsLoadingLogs(true);
+        try {
+            const adminId = localStorage.getItem("current_admin_id")?.replace(/['"]+/g, '') || "unknown_admin";
 
-        // สร้าง URL สำหรับแต่ละประเภทของการแก้ไข
-        const baseLogsUrl = process.env.NEXT_PUBLIC_LOGGING_API;
-        const targetQuery = `target_id=eq.${ticketId}&action=eq.CASE_UPDATE_INFO&order=created_at.desc`;
+            // สร้าง URL สำหรับแต่ละประเภทของการแก้ไข
+            const baseLogsUrl = process.env.NEXT_PUBLIC_LOGGING_API;
+            const targetQuery = `target_id=eq.${ticketId}&action=eq.CASE_UPDATE_INFO&order=created_at.desc`;
 
-        const photoLogsUrl = `${baseLogsUrl}&${targetQuery}&select=created_at,actor_name,reason,new_photo:payload->status_changes->photo->>new_value,old_photo:payload->status_changes->photo->>old_value&payload->status_changes->>photo=not.is.null`;
-        const hiddenLogsUrl = `${baseLogsUrl}&${targetQuery}&select=created_at,actor_name,reason,pic_url:payload->context_info->>photo_url,new_value:payload->status_changes->is_hidden->>new_value,old_value:payload->status_changes->is_hidden->>old_value&payload->actions_performed=cs.["change hidden status"]`;
-        const coverLogsUrl = `${baseLogsUrl}&${targetQuery}&select=created_at,actor_name,reason,pic_url:payload->context_info->>photo_url,new_value:payload->status_changes->is_cover->>new_value,old_value:payload->status_changes->is_cover->>old_value&payload->actions_performed=cs.["change cover status"]`;
-        const generalLogsUrl = `${baseLogsUrl}&${targetQuery}`;
+            const photoLogsUrl = `${baseLogsUrl}&${targetQuery}&select=created_at,actor_name,reason,new_photo:payload->status_changes->photo->>new_value,old_photo:payload->status_changes->photo->>old_value&payload->status_changes->>photo=not.is.null`;
+            const hiddenLogsUrl = `${baseLogsUrl}&${targetQuery}&select=created_at,actor_name,reason,pic_url:payload->context_info->>photo_url,new_value:payload->status_changes->is_hidden->>new_value,old_value:payload->status_changes->is_hidden->>old_value&payload->actions_performed=cs.["change hidden status"]`;
+            const coverLogsUrl = `${baseLogsUrl}&${targetQuery}&select=created_at,actor_name,reason,pic_url:payload->context_info->>photo_url,new_value:payload->status_changes->is_cover->>new_value,old_value:payload->status_changes->is_cover->>old_value&payload->actions_performed=cs.["change cover status"]`;
+            const generalLogsUrl = `${baseLogsUrl}&${targetQuery}`;
 
-        // ดึงข้อมูลทั้งหมดพร้อมกัน
-        const [photoRes, hiddenRes, coverRes, generalRes] = await Promise.all([
-            fetch(photoLogsUrl, { headers: { 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_LOGING_JWT_TOKEN}` } }),
-            fetch(hiddenLogsUrl, { headers: { 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_LOGING_JWT_TOKEN}` } }),
-            fetch(coverLogsUrl, { headers: { 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_LOGING_JWT_TOKEN}` } }),
-            fetch(generalLogsUrl, { headers: { 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_LOGING_JWT_TOKEN}` } })
-        ]);
+            // ดึงข้อมูลทั้งหมดพร้อมกัน
+            const [photoRes, hiddenRes, coverRes, generalRes] = await Promise.all([
+                fetch(photoLogsUrl, { headers: { 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_LOGING_JWT_TOKEN}` } }),
+                fetch(hiddenLogsUrl, { headers: { 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_LOGING_JWT_TOKEN}` } }),
+                fetch(coverLogsUrl, { headers: { 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_LOGING_JWT_TOKEN}` } }),
+                fetch(generalLogsUrl, { headers: { 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_LOGING_JWT_TOKEN}` } })
+            ]);
 
-        const photoData = photoRes.ok ? await photoRes.json() : [];
-        const hiddenData = hiddenRes.ok ? await hiddenRes.json() : [];
-        const coverData = coverRes.ok ? await coverRes.json() : [];
-        const generalData = generalRes.ok ? await generalRes.json() : [];
+            const photoData = photoRes.ok ? await photoRes.json() : [];
+            const hiddenData = hiddenRes.ok ? await hiddenRes.json() : [];
+            const coverData = coverRes.ok ? await coverRes.json() : [];
+            const generalData = generalRes.ok ? await generalRes.json() : [];
 
-        let allFormattedLogs = [];
+            let allFormattedLogs = [];
 
-        // จัดรูปแบบ Log เปลี่ยนรูปภาพ
-        photoData.forEach((log, index) => {
-            if (!log.new_photo) return; // Skip if no photo change
-            allFormattedLogs.push({
-                id: `photo-log-${index}`,
-                type: 'edit',
-                action: 'แทนที่ไฟล์แนบใหม่',
-                detail: (
-                    <div className="flex flex-col gap-2 mt-1">
-                        <span>เปลี่ยนไฟล์แนบจาก:</span>
-                        {log.old_photo ? (
-                            <img src={`https://storage.googleapis.com/traffy_public_bucket/${log.old_photo}`} alt="old preview" className="w-24 h-24 object-cover rounded-lg border border-slate-200 shadow-sm bg-white p-1" />
-                        ) : (
-                            <span className="text-slate-400 italic">ไม่มีรูปภาพเดิม</span>
-                        )}
-                        <span>เป็น:</span>
-                        {log.new_photo ? (
-                            <img src={`https://storage.googleapis.com/traffy_public_bucket/${log.new_photo}`} alt="preview" className="w-24 h-24 object-cover rounded-lg border border-slate-200 shadow-sm bg-white p-1" />
-                        ) : (
-                            <span className="text-slate-400 italic">ไม่มีรูปภาพใหม่</span>
-                        )}
-                        {log.reason && (
-                            <div className="mt-1 p-2 bg-slate-100 rounded-lg border border-slate-200">
-                                <span className="font-bold text-slate-700">เหตุผล: </span>
-                                <span className="text-slate-600">{log.reason}</span>
-                            </div>
-                        )}
-                    </div>
-                ),
-                user: log.actor_name || 'System Admin',
-                time: log.created_at ? new Date(log.created_at).toLocaleString('th-TH') : 'ไม่ระบุเวลา',
-                timestamp: new Date(log.created_at).getTime() // For sorting
-            });
-        });
-
-        // จัดรูปแบบ Log ซ่อนรูปภาพ
-        hiddenData.forEach((log, index) => {
-            if (log.new_value === undefined) return;
-            const isHiddenNew = log.new_value === true || log.new_value === 'true';
-            allFormattedLogs.push({
-                id: `hidden-log-${index}`,
-                type: 'security',
-                action: isHiddenNew ? 'ซ่อนรูปภาพจากสาธารณะ' : 'เปิดการแสดงผลรูปภาพ',
-                detail: (
-                    <div className="flex flex-col gap-2 mt-1">
-                        <span>{isHiddenNew ? 'ซ่อนรูปภาพไม่ให้แสดงผลในฝั่งผู้ใช้งานทั่วไป' : 'ยกเลิกการซ่อนรูปภาพเพื่อให้แสดงผลตามปกติ'}</span>
-                         {log.pic_url && (
-                             <img src={`https://storage.googleapis.com/traffy_public_bucket/${log.pic_url}`} alt="affected image" className="w-24 h-24 object-cover rounded-lg border border-slate-200 shadow-sm bg-white p-1" />
-                         )}
-                        {log.reason && (
-                            <div className="mt-1 p-2 bg-slate-100 rounded-lg border border-slate-200">
-                                <span className="font-bold text-slate-700">เหตุผล: </span>
-                                <span className="text-slate-600">{log.reason}</span>
-                            </div>
-                        )}
-                    </div>
-                ),
-                user: log.actor_name || 'System Admin',
-                time: log.created_at ? new Date(log.created_at).toLocaleString('th-TH') : 'ไม่ระบุเวลา',
-                timestamp: new Date(log.created_at).getTime()
-            });
-        });
-
-        // จัดรูปแบบ Log เปลี่ยนหน้าปก
-        coverData.forEach((log, index) => {
-             if (log.new_value === undefined) return;
-             const isCoverNew = log.new_value === true || log.new_value === 'true';
-             allFormattedLogs.push({
-                 id: `cover-log-${index}`,
-                 type: isCoverNew ? 'restore' : 'edit',
-                 action: isCoverNew ? 'ตั้งเป็นรูปหน้าปกเคส (Cover)' : 'ยกเลิกการเป็นรูปหน้าปก',
-                 detail: (
-                     <div className="flex flex-col gap-2 mt-1">
-                         <span>{isCoverNew ? 'กำหนดให้รูปภาพเป็นภาพหน้าปกหลักของเคสนี้' : 'รูปภาพถูกปลดออกจากการเป็นรูปหน้าปก'}</span>
-                         {log.pic_url && (
-                             <img src={`https://storage.googleapis.com/traffy_public_bucket/${log.pic_url}`} alt="affected image" className="w-24 h-24 object-cover rounded-lg border border-slate-200 shadow-sm bg-white p-1" />
-                         )}
-                         {log.reason && (
-                             <div className="mt-1 p-2 bg-slate-100 rounded-lg border border-slate-200">
-                                 <span className="font-bold text-slate-700">เหตุผล: </span>
-                                 <span className="text-slate-600">{log.reason}</span>
-                             </div>
-                         )}
-                     </div>
-                 ),
-                 user: log.actor_name || 'System Admin',
-                 time: log.created_at ? new Date(log.created_at).toLocaleString('th-TH') : 'ไม่ระบุเวลา',
-                 timestamp: new Date(log.created_at).getTime()
-             });
-        });
-
-        // Add general logs that weren't captured by the specific queries
-        const specificLogIds = new Set(allFormattedLogs.map(l => l.timestamp));
-        generalData.forEach((log, index) => {
-             const timestamp = new Date(log.created_at).getTime();
-             if (specificLogIds.has(timestamp)) return; // Skip if already processed
-             
-             let uiType = 'edit';
-             let actionText = log.action || 'แก้ไขข้อมูลเคส';
-             let detailText = log.payload?.description || 'มีการอัปเดตข้อมูลในระบบ';
-             
-             const act = log.action?.toUpperCase() || "";
-             if (act.includes('HIDE') || act.includes('DELETE')) uiType = 'security';
-             if (act.includes('RESTORE')) uiType = 'restore';
-
-             allFormattedLogs.push({
-                id: log.id || `general-log-${index}`,
-                type: uiType,
-                action: actionText,
-                detail: (
-                    <div className="flex flex-col gap-2 mt-1">
-                        <span>{detailText}</span>
-                        {log.reason && (
-                            <div className="mt-1 p-2 bg-slate-100 rounded-lg border border-slate-200">
-                                <span className="font-bold text-slate-700">เหตุผล: </span>
-                                <span className="text-slate-600">{log.reason}</span>
-                            </div>
-                        )}
-                    </div>
-                ),
-                user: log.actor_name || 'System Admin',
-                time: log.created_at ? new Date(log.created_at).toLocaleString('th-TH') : 'ไม่ระบุเวลา',
-                timestamp: timestamp
-            });
-        });
-
-        // เรียงลำดับตามเวลาใหม่สุดไปเก่าสุด
-        allFormattedLogs.sort((a, b) => b.timestamp - a.timestamp);
-
-        setAuditLogs(allFormattedLogs);
-    } catch (error) {
-        console.error("Error fetching logs:", error);
-        setAuditLogs([]);
-    } finally {
-        setIsLoadingLogs(false);
-    }
-  };
-
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) { 
-        setUser(currentUser); 
-        setLoading(false); 
-      } else { 
-        router.push("/"); 
-      }
-    });
-    return () => unsubscribe();
-  }, [router]);
-
-  const scrollToEdit = () => {
-    setShowMobileEditPanel(true);
-    setShowMobileTimeline(false); 
-  };
-
-  const handleBackToCase = () => {
-    setIsSuccess(false);
-    setWizardStep(1);
-    setSelectedImageToReplace(null);
-    setNewImageFile(null);
-    setReason("");
-    if(searchId || currentCase?.id) {
-        handleSearch(null, searchId || currentCase?.id, true);
-    }
-  };
-
-const handleSearch = async (e, manualId = null, isRefresh = false) => {
-    e?.preventDefault(); 
-    const targetId = manualId || searchId;
-    const cleanId = targetId.trim().replace(/^#/, ''); 
-    if (!cleanId) { 
-        setInputError(true); 
-        inputRef.current?.focus(); 
-        return; 
-    }
-    setIsSearching(true);
-    
-    if (!isRefresh) {
-        setCurrentCase(null);
-    }
-    
-    if (manualId) setSearchId(manualId);
-    try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_DB_SEARCH_CASE_API_URL}?id=${cleanId}&message_id=${cleanId}`);
-        const result = await response.json();
-        if (response.ok && result.found) {
-            const apiData = result.data;
-            let allImagesCombined = [];
-            if (apiData.timeline) {
-                apiData.timeline.forEach((item) => {
-                    if(item.photo) {
-                        const isCover = item.is_cover === true || item.is_cover === "true" || item.is_cover === 1; 
-                        allImagesCombined.push({
-                            id: item.id, 
-                            mediaType: item.viewed !== undefined ? Number(item.viewed) : 0, 
-                            url: item.photo, 
-                            status: item.is_hidden ? 'hidden' : 'active', 
-                            isCover: isCover,
-                            type: isCover ? "Cover" : "Attachment" 
-                        });
-                    }
+            // จัดรูปแบบ Log เปลี่ยนรูปภาพ
+            photoData.forEach((log, index) => {
+                if (!log.new_photo) return; // Skip if no photo change
+                allFormattedLogs.push({
+                    id: `photo-log-${index}`,
+                    type: 'edit',
+                    action: 'แทนที่ไฟล์แนบใหม่',
+                    detail: (
+                        <div className="flex flex-col gap-2 mt-1">
+                            <span>เปลี่ยนไฟล์แนบจาก:</span>
+                            {log.old_photo ? (
+                                <img src={`https://storage.googleapis.com/traffy_public_bucket/${log.old_photo}`} alt="old preview" className="w-24 h-24 object-cover rounded-lg border border-slate-200 shadow-sm bg-white p-1" />
+                            ) : (
+                                <span className="text-slate-400 italic">ไม่มีรูปภาพเดิม</span>
+                            )}
+                            <span>เป็น:</span>
+                            {log.new_photo ? (
+                                <img src={`https://storage.googleapis.com/traffy_public_bucket/${log.new_photo}`} alt="preview" className="w-24 h-24 object-cover rounded-lg border border-slate-200 shadow-sm bg-white p-1" />
+                            ) : (
+                                <span className="text-slate-400 italic">ไม่มีรูปภาพใหม่</span>
+                            )}
+                            {log.reason && (
+                                <div className="mt-1 p-2 bg-slate-100 rounded-lg border border-slate-200">
+                                    <span className="font-bold text-slate-700">เหตุผล: </span>
+                                    <span className="text-slate-600">{log.reason}</span>
+                                </div>
+                            )}
+                        </div>
+                    ),
+                    user: log.actor_name || 'System Admin',
+                    time: log.created_at ? new Date(log.created_at).toLocaleString('th-TH') : 'ไม่ระบุเวลา',
+                    timestamp: new Date(log.created_at).getTime() // For sorting
                 });
-            }
-            setCurrentCase({
-                id: apiData.ticket_id, 
-                dbId: apiData.id, 
-                title: apiData.problem_type,
-                department: apiData.address, 
-                date: apiData.timestamp ? new Date(apiData.timestamp).toLocaleDateString('th-TH') : "N/A",
-                allImages: allImagesCombined, 
-                status: apiData.status
             });
-            if (apiData.ticket_id) {
-                fetchAuditLogs(apiData.ticket_id);
+
+            // จัดรูปแบบ Log ซ่อนรูปภาพ
+            hiddenData.forEach((log, index) => {
+                if (log.new_value === undefined) return;
+                const isHiddenNew = log.new_value === true || log.new_value === 'true';
+                allFormattedLogs.push({
+                    id: `hidden-log-${index}`,
+                    type: 'security',
+                    action: isHiddenNew ? 'ซ่อนรูปภาพจากสาธารณะ' : 'เปิดการแสดงผลรูปภาพ',
+                    detail: (
+                        <div className="flex flex-col gap-2 mt-1">
+                            <span>{isHiddenNew ? 'ซ่อนรูปภาพไม่ให้แสดงผลในฝั่งผู้ใช้งานทั่วไป' : 'ยกเลิกการซ่อนรูปภาพเพื่อให้แสดงผลตามปกติ'}</span>
+                            {log.pic_url && (
+                                <img src={`https://storage.googleapis.com/traffy_public_bucket/${log.pic_url}`} alt="affected image" className="w-24 h-24 object-cover rounded-lg border border-slate-200 shadow-sm bg-white p-1" />
+                            )}
+                            {log.reason && (
+                                <div className="mt-1 p-2 bg-slate-100 rounded-lg border border-slate-200">
+                                    <span className="font-bold text-slate-700">เหตุผล: </span>
+                                    <span className="text-slate-600">{log.reason}</span>
+                                </div>
+                            )}
+                        </div>
+                    ),
+                    user: log.actor_name || 'System Admin',
+                    time: log.created_at ? new Date(log.created_at).toLocaleString('th-TH') : 'ไม่ระบุเวลา',
+                    timestamp: new Date(log.created_at).getTime()
+                });
+            });
+
+            // จัดรูปแบบ Log เปลี่ยนหน้าปก
+            coverData.forEach((log, index) => {
+                if (log.new_value === undefined) return;
+                const isCoverNew = log.new_value === true || log.new_value === 'true';
+                allFormattedLogs.push({
+                    id: `cover-log-${index}`,
+                    type: isCoverNew ? 'restore' : 'edit',
+                    action: isCoverNew ? 'ตั้งเป็นรูปหน้าปกเคส (Cover)' : 'ยกเลิกการเป็นรูปหน้าปก',
+                    detail: (
+                        <div className="flex flex-col gap-2 mt-1">
+                            <span>{isCoverNew ? 'กำหนดให้รูปภาพเป็นภาพหน้าปกหลักของเคสนี้' : 'รูปภาพถูกปลดออกจากการเป็นรูปหน้าปก'}</span>
+                            {log.pic_url && (
+                                <img src={`https://storage.googleapis.com/traffy_public_bucket/${log.pic_url}`} alt="affected image" className="w-24 h-24 object-cover rounded-lg border border-slate-200 shadow-sm bg-white p-1" />
+                            )}
+                            {log.reason && (
+                                <div className="mt-1 p-2 bg-slate-100 rounded-lg border border-slate-200">
+                                    <span className="font-bold text-slate-700">เหตุผล: </span>
+                                    <span className="text-slate-600">{log.reason}</span>
+                                </div>
+                            )}
+                        </div>
+                    ),
+                    user: log.actor_name || 'System Admin',
+                    time: log.created_at ? new Date(log.created_at).toLocaleString('th-TH') : 'ไม่ระบุเวลา',
+                    timestamp: new Date(log.created_at).getTime()
+                });
+            });
+
+            // Add general logs that weren't captured by the specific queries
+            const specificLogIds = new Set(allFormattedLogs.map(l => l.timestamp));
+            generalData.forEach((log, index) => {
+                const timestamp = new Date(log.created_at).getTime();
+                if (specificLogIds.has(timestamp)) return; // Skip if already processed
+
+                let uiType = 'edit';
+                let actionText = log.action || 'แก้ไขข้อมูลเคส';
+                let detailText = log.payload?.description || 'มีการอัปเดตข้อมูลในระบบ';
+
+                const act = log.action?.toUpperCase() || "";
+                if (act.includes('HIDE') || act.includes('DELETE')) uiType = 'security';
+                if (act.includes('RESTORE')) uiType = 'restore';
+
+                allFormattedLogs.push({
+                    id: log.id || `general-log-${index}`,
+                    type: uiType,
+                    action: actionText,
+                    detail: (
+                        <div className="flex flex-col gap-2 mt-1">
+                            <span>{detailText}</span>
+                            {log.reason && (
+                                <div className="mt-1 p-2 bg-slate-100 rounded-lg border border-slate-200">
+                                    <span className="font-bold text-slate-700">เหตุผล: </span>
+                                    <span className="text-slate-600">{log.reason}</span>
+                                </div>
+                            )}
+                        </div>
+                    ),
+                    user: log.actor_name || 'System Admin',
+                    time: log.created_at ? new Date(log.created_at).toLocaleString('th-TH') : 'ไม่ระบุเวลา',
+                    timestamp: timestamp
+                });
+            });
+
+            // เรียงลำดับตามเวลาใหม่สุดไปเก่าสุด
+            allFormattedLogs.sort((a, b) => b.timestamp - a.timestamp);
+
+            setAuditLogs(allFormattedLogs);
+        } catch (error) {
+            console.error("Error fetching logs:", error);
+            setAuditLogs([]);
+        } finally {
+            setIsLoadingLogs(false);
+        }
+    };
+
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            if (currentUser) {
+                setUser(currentUser);
+                setLoading(false);
+            } else {
+                router.push("/");
             }
-        } else { 
-            alert(result.message || "ไม่พบข้อมูล"); 
-        }
-    } catch (error) { 
-        alert("เกิดข้อผิดพลาดในการเชื่อมต่อ"); 
-    } finally { 
-        setIsSearching(false); 
-    }
-
-
-};
-
-const handleToggleHideImage = async (imgId, currentStatus) => {
-    if (typeof window === 'undefined') return;
-    const currentIsHidden = currentStatus === 'hidden';
-    const newIsHidden = !currentIsHidden; 
-    const actionText = newIsHidden ? 'ซ่อน' : 'แสดง';
-    if (!window.confirm(`คุณต้องการ ${actionText} รูปภาพนี้ใช่หรือไม่?`)) return;
-    try {
-        const adminId = localStorage.getItem("current_admin_id")?.replace(/['"]+/g, '') || "unknown_admin";
-        const dbPayload = {
-            current_admin_id: adminId,
-            photo_id: imgId.toString(),
-            is_hidden: newIsHidden,
-            description: `Admin ${actionText} รูปภาพ (ID: ${imgId})`
-        };
-        const response = await fetch(`${process.env.NEXT_PUBLIC_DB_MANAGE_CASE_API_URL}?id=${currentCase.dbId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dbPayload)
         });
-        if (response.ok) {
-    setCurrentCase(prev => ({
-        ...prev,
-        allImages: prev.allImages.map(img => 
-            img.id === imgId 
-            ? { ...img, status: newIsHidden ? 'hidden' : 'active' } 
-            : img
-        )
-    }));
-    
-    // 🟢 เพิ่มบรรทัดนี้: เพื่อสั่งโหลดไทม์ไลน์ใหม่หลังแอดมินกด ซ่อน/แสดง สำเร็จ
-    if (currentCase?.id) {
-        fetchAuditLogs(currentCase.id);
-    }
-        } else {
-            const err = await response.json();
-            alert(`ไม่สามารถ ${actionText} รูปภาพได้: ${err.message}`);
-        }
-    } catch (error) {
-        console.error("Error toggling visibility:", error);
-        alert("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล");
-    }
-};
+        return () => unsubscribe();
+    }, [router]);
 
-  const handleSelectImage = (img) => {
-    if (selectedImageToReplace?.id === img.id) {
+    const scrollToEdit = () => {
+        setShowMobileEditPanel(true);
+        setShowMobileTimeline(false);
+    };
+
+    const handleBackToCase = () => {
+        setIsSuccess(false);
+        setWizardStep(1);
         setSelectedImageToReplace(null);
-    } else {
-        setSelectedImageToReplace(img);
-    }
-  };
+        setNewImageFile(null);
+        setReason("");
+        if (searchId || currentCase?.id) {
+            handleSearch(null, searchId || currentCase?.id, true);
+        }
+    };
 
-const handleUpdateImage = async () => {
-    if (!selectedImageToReplace || !newImageFile || !reason.trim()) {
-        alert("กรุณาเลือกรูปที่ต้องการแทนที่ อัปโหลดไฟล์ใหม่ และระบุเหตุผลให้ครบถ้วน");
-        return;
-    }
+    const handleSearch = async (e, manualId = null, isRefresh = false) => {
+        e?.preventDefault();
+        const targetId = manualId || searchId;
+        const cleanId = targetId.trim().replace(/^#/, '');
+        if (!cleanId) {
+            setInputError(true);
+            inputRef.current?.focus();
+            return;
+        }
+        setIsSearching(true);
 
-    setIsSubmitting(true);
-
-    try {
-        const base64String = await fileToBase64(newImageFile);
-        const uploadPayload = { 
-            folder_path: `attachment/case_${currentCase.id}`, 
-            image: base64String 
-        };
-
-        const uploadResponse = await fetch(process.env.NEXT_PUBLIC_FILE_UPLOAD_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(uploadPayload),
-        });
-
-        const uploadResult = await uploadResponse.json();
-
-        if (!uploadResponse.ok) {
-            throw new Error(uploadResult.message || "Failed to upload file to storage");
+        if (!isRefresh) {
+            setCurrentCase(null);
         }
 
-        const fullFileUrl = uploadResult.photo_link; 
-
-        if (!fullFileUrl) {
-            throw new Error("ไม่ได้รับ photo_link จากระบบฝากไฟล์");
+        if (manualId) setSearchId(manualId);
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_DB_SEARCH_CASE_API_URL}?id=${cleanId}&message_id=${cleanId}`);
+            const result = await response.json();
+            if (response.ok && result.found) {
+                const apiData = result.data;
+                let allImagesCombined = [];
+                if (apiData.timeline) {
+                    apiData.timeline.forEach((item) => {
+                        if (item.photo) {
+                            const isCover = item.is_cover === true || item.is_cover === "true" || item.is_cover === 1;
+                            allImagesCombined.push({
+                                id: item.id,
+                                mediaType: item.viewed !== undefined ? Number(item.viewed) : 0,
+                                url: item.photo,
+                                status: item.is_hidden ? 'hidden' : 'active',
+                                isCover: isCover,
+                                type: isCover ? "Cover" : "Attachment"
+                            });
+                        }
+                    });
+                }
+                setCurrentCase({
+                    id: apiData.ticket_id,
+                    dbId: apiData.id,
+                    title: apiData.problem_type,
+                    department: apiData.address,
+                    date: apiData.timestamp ? new Date(apiData.timestamp).toLocaleDateString('th-TH') : "N/A",
+                    allImages: allImagesCombined,
+                    status: apiData.status
+                });
+                if (apiData.ticket_id) {
+                    fetchAuditLogs(apiData.ticket_id);
+                }
+            } else {
+                alert(result.message || "ไม่พบข้อมูล");
+            }
+        } catch (error) {
+            alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+        } finally {
+            setIsSearching(false);
         }
-        
-        const cleanFileUrl = fullFileUrl.replace(STORAGE_BASE_URL, "");
 
-        const adminId = localStorage.getItem("current_admin_id")?.replace(/['"]+/g, '') || "unknown_admin";
-        const calculatedMediaType = getMediaTypeFromFile(newImageFile);
-        
-        const dbPayload = {
-            current_admin_id: adminId,
-            photo_id: selectedImageToReplace.id,      
-            file_url: cleanFileUrl,     
-            old_url: selectedImageToReplace.url, 
-            description: reason,                      
-            is_cover: selectedImageToReplace.isCover, 
-            viewed: calculatedMediaType || 0,          
-            is_hidden: false                          
-        };
 
-        const dbResponse = await fetch(`${process.env.NEXT_PUBLIC_DB_MANAGE_CASE_API_URL}?id=${currentCase.dbId}`, {
-            method: 'PUT', 
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dbPayload)
-        });
+    };
 
-        const dbResult = await dbResponse.json();
+    const handleToggleHideImage = async (imgId, currentStatus) => {
+        if (typeof window === 'undefined') return;
+        const currentIsHidden = currentStatus === 'hidden';
+        const newIsHidden = !currentIsHidden;
+        const actionText = newIsHidden ? 'ซ่อน' : 'แสดง';
+        if (!window.confirm(`คุณต้องการ ${actionText} รูปภาพนี้ใช่หรือไม่?`)) return;
+        try {
+            const adminId = localStorage.getItem("current_admin_id")?.replace(/['"]+/g, '') || "unknown_admin";
+            const dbPayload = {
+                current_admin_id: adminId,
+                photo_id: imgId.toString(),
+                is_hidden: newIsHidden,
+                description: `Admin ${actionText} รูปภาพ (ID: ${imgId})`
+            };
+            const response = await fetch(`${process.env.NEXT_PUBLIC_DB_MANAGE_CASE_API_URL}?id=${currentCase.dbId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dbPayload)
+            });
+            if (response.ok) {
+                setCurrentCase(prev => ({
+                    ...prev,
+                    allImages: prev.allImages.map(img =>
+                        img.id === imgId
+                            ? { ...img, status: newIsHidden ? 'hidden' : 'active' }
+                            : img
+                    )
+                }));
 
-        if (dbResponse.ok) {
-            alert("บันทึกข้อมูลสำเร็จ!");
-            handleBackToCase();
+                // 🟢 เพิ่มบรรทัดนี้: เพื่อสั่งโหลดไทม์ไลน์ใหม่หลังแอดมินกด ซ่อน/แสดง สำเร็จ
+                if (currentCase?.id) {
+                    fetchAuditLogs(currentCase.id);
+                }
+            } else {
+                const err = await response.json();
+                alert(`ไม่สามารถ ${actionText} รูปภาพได้: ${err.message}`);
+            }
+        } catch (error) {
+            console.error("Error toggling visibility:", error);
+            alert("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล");
+        }
+    };
+
+    const handleSelectImage = (img) => {
+        if (selectedImageToReplace?.id === img.id) {
+            setSelectedImageToReplace(null);
         } else {
-            throw new Error(dbResult.message || "Failed to update database");
+            setSelectedImageToReplace(img);
+        }
+    };
+
+    const handleUpdateImage = async () => {
+        if (!selectedImageToReplace || !newImageFile || !reason.trim()) {
+            alert("กรุณาเลือกรูปที่ต้องการแทนที่ อัปโหลดไฟล์ใหม่ และระบุเหตุผลให้ครบถ้วน");
+            return;
         }
 
-    } catch (error) {
-        console.error("Update Process Error:", error);
-        alert(`เกิดข้อผิดพลาด: ${error.message}`);
-    } finally {
-        setIsSubmitting(false);
-    }
-};
+        setIsSubmitting(true);
 
-  const resetForm = () => {
-    setSearchId(""); setCurrentCase(null); setNewImageFile(null);
-    setReason(""); setWizardStep(1); setIsSuccess(false); setSelectedImageToReplace(null);
-    setShowMobileTimeline(false); setShowMobileEditPanel(false);
-  };
+        try {
+            const base64String = await fileToBase64(newImageFile);
+            const now = new Date();
+            const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const uploadPayload = {
+                folder_path: `attachment/${yearMonth}`,
+                image: base64String
+            };
 
-const handleSetAsCover = async (imgId) => {
-    if (typeof window === 'undefined') return;
-    if (!window.confirm("คุณต้องการตั้งรูปนี้เป็นหน้าปกใช่หรือไม่?")) return;
-    try {
-        const adminId = localStorage.getItem("current_admin_id")?.replace(/['"]+/g, '') || "unknown_admin";
-        const dbPayload = {
-            current_admin_id: adminId,
-            photo_id: imgId.toString(),
-            is_cover: true 
-        };
-        const response = await fetch(`${process.env.NEXT_PUBLIC_DB_MANAGE_CASE_API_URL}?id=${currentCase.dbId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dbPayload)
-        });
-        if (response.ok) {
-            setCurrentCase(prev => ({
-                ...prev,
-                allImages: prev.allImages.map(img => ({
-                    ...img,
-                    isCover: img.id === imgId, 
-                    type: img.id === imgId ? "Cover" : "Attachment",
-                    status: img.id === imgId ? 'active' : img.status 
-                }))
-            }));
-            alert("เปลี่ยนรูปหน้าปกสำเร็จ");
-            if (currentCase?.id) {
-        fetchAuditLogs(currentCase.id);
-    }
-        } else {
-            alert("ไม่สามารถเปลี่ยนรูปหน้าปกได้");
+            const uploadResponse = await fetch(process.env.NEXT_PUBLIC_FILE_UPLOAD_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(uploadPayload),
+            });
+
+            const uploadResult = await uploadResponse.json();
+
+            if (!uploadResponse.ok) {
+                throw new Error(uploadResult.message || "Failed to upload file to storage");
+            }
+
+            const fullFileUrl = uploadResult.photo_link;
+
+            if (!fullFileUrl) {
+                throw new Error("ไม่ได้รับ photo_link จากระบบฝากไฟล์");
+            }
+
+            const cleanFileUrl = fullFileUrl.replace(STORAGE_BASE_URL, "");
+
+            const adminId = localStorage.getItem("current_admin_id")?.replace(/['"]+/g, '') || "unknown_admin";
+            const calculatedMediaType = getMediaTypeFromFile(newImageFile);
+
+            const dbPayload = {
+                current_admin_id: adminId,
+                photo_id: selectedImageToReplace.id,
+                file_url: cleanFileUrl,
+                old_url: selectedImageToReplace.url,
+                description: reason,
+                is_cover: selectedImageToReplace.isCover,
+                viewed: calculatedMediaType || 0,
+                is_hidden: false
+            };
+
+            const dbResponse = await fetch(`${process.env.NEXT_PUBLIC_DB_MANAGE_CASE_API_URL}?id=${currentCase.dbId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dbPayload)
+            });
+
+            const dbResult = await dbResponse.json();
+
+            if (dbResponse.ok) {
+                alert("บันทึกข้อมูลสำเร็จ!");
+                handleBackToCase();
+            } else {
+                throw new Error(dbResult.message || "Failed to update database");
+            }
+
+        } catch (error) {
+            console.error("Update Process Error:", error);
+            alert(`เกิดข้อผิดพลาด: ${error.message}`);
+        } finally {
+            setIsSubmitting(false);
         }
-    } catch (error) {
-        alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
-    }
-};
+    };
 
-  if (loading) return <div className="min-h-screen flex justify-center items-center bg-slate-50"><span className="loading loading-spinner loading-lg text-primary"></span></div>;
+    const resetForm = () => {
+        setSearchId(""); setCurrentCase(null); setNewImageFile(null);
+        setReason(""); setWizardStep(1); setIsSuccess(false); setSelectedImageToReplace(null);
+        setShowMobileTimeline(false); setShowMobileEditPanel(false);
+    };
 
- return (
-    <div className="min-h-screen bg-[#F4F6F8] font-sans text-slate-900 overflow-x-hidden">
-      <Sidebar isDesktopSidebarOpen={isDesktopSidebarOpen} setIsDesktopSidebarOpen={setIsDesktopSidebarOpen} />
+    const handleSetAsCover = async (imgId) => {
+        if (typeof window === 'undefined') return;
+        if (!window.confirm("คุณต้องการตั้งรูปนี้เป็นหน้าปกใช่หรือไม่?")) return;
+        try {
+            const adminId = localStorage.getItem("current_admin_id")?.replace(/['"]+/g, '') || "unknown_admin";
+            const dbPayload = {
+                current_admin_id: adminId,
+                photo_id: imgId.toString(),
+                is_cover: true
+            };
+            const response = await fetch(`${process.env.NEXT_PUBLIC_DB_MANAGE_CASE_API_URL}?id=${currentCase.dbId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dbPayload)
+            });
+            if (response.ok) {
+                setCurrentCase(prev => ({
+                    ...prev,
+                    allImages: prev.allImages.map(img => ({
+                        ...img,
+                        isCover: img.id === imgId,
+                        type: img.id === imgId ? "Cover" : "Attachment",
+                        status: img.id === imgId ? 'active' : img.status
+                    }))
+                }));
+                alert("เปลี่ยนรูปหน้าปกสำเร็จ");
+                if (currentCase?.id) {
+                    fetchAuditLogs(currentCase.id);
+                }
+            } else {
+                alert("ไม่สามารถเปลี่ยนรูปหน้าปกได้");
+            }
+        } catch (error) {
+            alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+        }
+    };
 
-<div className={`container mx-auto px-4 pt-16 lg:pt-6 max-w-[1600px] transition-all duration-300 pb-24 ${isDesktopSidebarOpen ? "lg:pl-80" : "lg:pl-28"}`}>
-  <br />
-  <div className="flex flex-col xl:flex-row gap-8 items-start w-full">
-      <div className={`flex-1 w-full min-w-0 ${showMobileTimeline && currentCase ? "block" : "block"}`}>
-  
-{!currentCase && (
-  <div className="flex flex-col w-full max-w-6xl mx-auto pt-2 lg:mt-4 animate-fade-in space-y-8">
-    <header className="flex items-center gap-4 mb-2">
-      <div className="w-12 h-12 bg-[#1A1C1E] rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0">
-        <FolderOpen size={24} strokeWidth={2.5} />
-      </div>
-      <div>
-        <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-none mb-1.5 tracking-tight">
-          จัดการ <span className="text-indigo-600">Case</span>
-        </h1>
-        <p className="text-slate-500 font-bold text-xs sm:text-sm">ค้นหา Ticket ID หรือ Message ID เพื่อจัดการรูปภาพใน case</p>
-      </div>
+    if (loading) return <div className="min-h-screen flex justify-center items-center bg-slate-50"><span className="loading loading-spinner loading-lg text-primary"></span></div>;
 
-    </header><br></br>
-    
-    <div className="w-full"> 
-      <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-stretch gap-3 w-full">
-        <div className={`relative w-full sm:flex-1 bg-white rounded-2xl shadow-sm border-2 flex items-center h-14 sm:h-16 px-5 transition-all ${inputError ? 'border-red-400' : 'border-slate-100 focus-within:border-indigo-500 focus-within:shadow-md'}`}>
-          <Search size={22} className="text-slate-400" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={searchId}
-            onChange={(e) => { setSearchId(e.target.value); setInputError(false); }}
-            className="flex-1 bg-transparent border-none outline-none font-bold ml-3 text-slate-800 placeholder:text-slate-400"
-            placeholder="ระบุ Ticket ID หรือ Message ID..."
-          />
-        </div>
-        <button type="submit" className="btn !h-[60px] px-10 !bg-black !text-white !font-bold !rounded-2xl shadow-lg">
-            {isSearching ? "กำลังค้นหา..." : "ค้นหา"}
-          </button>
-      </form>
-    </div>
+    return (
+        <div className="min-h-screen bg-[#F4F6F8] font-sans text-slate-900 overflow-x-hidden">
+            <Sidebar isDesktopSidebarOpen={isDesktopSidebarOpen} setIsDesktopSidebarOpen={setIsDesktopSidebarOpen} />
 
-   
-<div className="w-full bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
-  <div className="flex border-b border-slate-50 px-8 pt-6 bg-white overflow-x-auto no-scrollbar">
-    <button 
-      onClick={() => setActiveTab("history_edit")} 
-      className={`pb-4 px-6 text-sm font-black transition-all relative flex items-center gap-2 whitespace-nowrap ${activeTab === "history_edit" ? "text-indigo-600" : "text-slate-400 hover:text-slate-600"}`}
-    >
-      ประวัติการแก้ไขเคส
-      {activeTab === "history_edit" && <div className="absolute bottom-0 left-0 w-full h-1 bg-indigo-600 rounded-t-full"></div>}
-    </button>
-  </div>
+            <div className={`container mx-auto px-4 pt-16 lg:pt-6 max-w-[1600px] transition-all duration-300 pb-24 ${isDesktopSidebarOpen ? "lg:pl-80" : "lg:pl-28"}`}>
+                <br />
+                <div className="flex flex-col xl:flex-row gap-8 items-start w-full">
+                    <div className={`flex-1 w-full min-w-0 ${showMobileTimeline && currentCase ? "block" : "block"}`}>
 
-  <div className="p-4 sm:p-8 space-y-5 bg-[#FBFCFD]">
-    {activeTab === "history_edit" && (
-      <>
-        {[
-          { id: "TCK-2024-0552", title: "ท่อน้ำอุดตัน", status: "แก้ไขสำเร็จ", statusColor: "bg-emerald-50 text-emerald-600", editor: "ธนกฤต แอดมิน", editTime: "2 ชั่วโมงที่แล้ว", coverUrl: "https://images.unsplash.com/photo-1550985616-10810253b84d?q=80&w=200&auto=format&fit=crop" },
-          { id: "TCK-2024-0410", title: "ไฟฟ้าทางดับ", status: "แก้ไขสำเร็จ", statusColor: "bg-emerald-50 text-emerald-600", editor: "ธนกฤต แอดมิน", editTime: "เมื่อวานนี้, 14:20", coverUrl: "https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?q=80&w=200&auto=format&fit=crop" },
-        ].map((item, idx) => (
-          <div key={idx} className="flex flex-col sm:flex-row items-center justify-between p-5 rounded-[2rem] bg-white/60 border border-slate-100 shadow-sm opacity-90 hover:opacity-100 hover:bg-white transition-all duration-300 group animate-fade-in" >
-            <div className="flex items-center gap-5 w-full sm:w-auto">
-              <div className="w-16 h-16 rounded-2xl overflow-hidden flex items-center justify-center shrink-0 border-4 border-white shadow-sm grayscale-[0.4] group-hover:grayscale-0 transition-all">
-                <img src={item.coverUrl} alt={item.id} className="w-full h-full object-cover" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="font-black text-slate-700 text-lg leading-tight">{item.id}</h4>
-                  <CheckCircle2 size={16} className="text-emerald-500" />
+                        {!currentCase && (
+                            <div className="flex flex-col w-full max-w-6xl mx-auto pt-2 lg:mt-4 animate-fade-in space-y-8">
+                                <header className="flex items-center gap-4 mb-2">
+                                    <div className="w-12 h-12 bg-[#1A1C1E] rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0">
+                                        <FolderOpen size={24} strokeWidth={2.5} />
+                                    </div>
+                                    <div>
+                                        <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-none mb-1.5 tracking-tight">
+                                            จัดการ <span className="text-indigo-600">Case</span>
+                                        </h1>
+                                        <p className="text-slate-500 font-bold text-xs sm:text-sm">ค้นหา Ticket ID หรือ Message ID เพื่อจัดการรูปภาพใน case</p>
+                                    </div>
+
+                                </header><br></br>
+
+                                <div className="w-full">
+                                    <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-stretch gap-3 w-full">
+                                        <div className={`relative w-full sm:flex-1 bg-white rounded-2xl shadow-sm border-2 flex items-center h-14 sm:h-16 px-5 transition-all ${inputError ? 'border-red-400' : 'border-slate-100 focus-within:border-indigo-500 focus-within:shadow-md'}`}>
+                                            <Search size={22} className="text-slate-400" />
+                                            <input
+                                                ref={inputRef}
+                                                type="text"
+                                                value={searchId}
+                                                onChange={(e) => { setSearchId(e.target.value); setInputError(false); }}
+                                                className="flex-1 bg-transparent border-none outline-none font-bold ml-3 text-slate-800 placeholder:text-slate-400"
+                                                placeholder="ระบุ Ticket ID หรือ Message ID..."
+                                            />
+                                        </div>
+                                        <button type="submit" className="btn !h-[60px] px-10 !bg-black !text-white !font-bold !rounded-2xl shadow-lg">
+                                            {isSearching ? "กำลังค้นหา..." : "ค้นหา"}
+                                        </button>
+                                    </form>
+                                </div>
+
+
+                                <div className="w-full bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+                                    <div className="flex border-b border-slate-50 px-8 pt-6 bg-white overflow-x-auto no-scrollbar">
+                                        <button
+                                            onClick={() => setActiveTab("history_edit")}
+                                            className={`pb-4 px-6 text-sm font-black transition-all relative flex items-center gap-2 whitespace-nowrap ${activeTab === "history_edit" ? "text-indigo-600" : "text-slate-400 hover:text-slate-600"}`}
+                                        >
+                                            ประวัติการแก้ไขเคส
+                                            {activeTab === "history_edit" && <div className="absolute bottom-0 left-0 w-full h-1 bg-indigo-600 rounded-t-full"></div>}
+                                        </button>
+                                    </div>
+
+                                    <div className="p-4 sm:p-8 space-y-5 bg-[#FBFCFD]">
+                                        {activeTab === "history_edit" && (
+                                            <>
+                                                {[
+                                                    { id: "TCK-2024-0552", title: "ท่อน้ำอุดตัน", status: "แก้ไขสำเร็จ", statusColor: "bg-emerald-50 text-emerald-600", editor: "ธนกฤต แอดมิน", editTime: "2 ชั่วโมงที่แล้ว", coverUrl: "https://images.unsplash.com/photo-1550985616-10810253b84d?q=80&w=200&auto=format&fit=crop" },
+                                                    { id: "TCK-2024-0410", title: "ไฟฟ้าทางดับ", status: "แก้ไขสำเร็จ", statusColor: "bg-emerald-50 text-emerald-600", editor: "ธนกฤต แอดมิน", editTime: "เมื่อวานนี้, 14:20", coverUrl: "https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?q=80&w=200&auto=format&fit=crop" },
+                                                ].map((item, idx) => (
+                                                    <div key={idx} className="flex flex-col sm:flex-row items-center justify-between p-5 rounded-[2rem] bg-white/60 border border-slate-100 shadow-sm opacity-90 hover:opacity-100 hover:bg-white transition-all duration-300 group animate-fade-in" >
+                                                        <div className="flex items-center gap-5 w-full sm:w-auto">
+                                                            <div className="w-16 h-16 rounded-2xl overflow-hidden flex items-center justify-center shrink-0 border-4 border-white shadow-sm grayscale-[0.4] group-hover:grayscale-0 transition-all">
+                                                                <img src={item.coverUrl} alt={item.id} className="w-full h-full object-cover" />
+                                                            </div>
+                                                            <div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <h4 className="font-black text-slate-700 text-lg leading-tight">{item.id}</h4>
+                                                                    <CheckCircle2 size={16} className="text-emerald-500" />
+                                                                </div>
+                                                                <div className="flex flex-col gap-0.5 mt-1">
+                                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">โดย: {item.editor}</p>
+                                                                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">{item.editTime}</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end mt-4 sm:mt-0">
+                                                            <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${item.statusColor} bg-opacity-50 backdrop-blur-sm shadow-sm`}>{item.status}</span>
+                                                            <button onClick={() => handleSearch(null, item.id)} className="px-6 py-2.5 bg-[#6366F1] text-white font-black text-xs rounded-xl hover:bg-[#4F46E5] hover:shadow-lg hover:shadow-indigo-100 active:scale-95 transition-all duration-200 flex items-center gap-2" >
+                                                                <Eye size={14} strokeWidth={3} /> ดูรายละเอียด
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+
+                        {currentCase && (
+                            <div className="w-full space-y-6">
+                                <div className="xl:hidden grid grid-cols-2 gap-3">
+                                    <button onClick={() => { setShowMobileEditPanel(!showMobileEditPanel); setShowMobileTimeline(false); }} className={`btn h-16 rounded-2xl border-none shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-xs font-black uppercase tracking-tight ${showMobileEditPanel ? 'bg-indigo-700 text-white' : 'bg-white text-slate-900 border-2 border-slate-100'}`}>
+                                        <Settings2 size={16} /> {showMobileEditPanel ? 'ปิดการจัดการ' : 'จัดการข้อมูล'}
+                                    </button>
+                                    <button onClick={() => { setShowMobileTimeline(!showMobileTimeline); setShowMobileEditPanel(false); }} className={`btn h-16 rounded-2xl border-none shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-xs font-black uppercase tracking-tight ${showMobileTimeline ? 'bg-black text-white' : 'bg-white text-slate-900 border-2 border-slate-100'}`}>
+                                        <History size={16} /> {showMobileTimeline ? 'ปิดไทม์ไลน์' : 'ดูไทม์ไลน์'}
+                                    </button>
+                                </div>
+
+                                {/* Mobile Timeline View */}
+                                {/* Mobile Timeline View */}
+                                {showMobileTimeline && (
+                                    <div className="xl:hidden animate-fade-in">
+                                        <TimelineContent data={auditLogs} isLoading={isLoadingLogs} />
+                                    </div>
+                                )}
+
+                                {/* Desktop & Mobile Edit View */}
+                                <div className={`${showMobileTimeline ? 'hidden xl:block' : 'block'}`}>
+                                    <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 p-5 lg:p-10 relative overflow-hidden mb-6 animate-fade-in">
+                                        {!isSuccess && (
+                                            <div className="mb-12">
+                                                <div className="flex items-center justify-between max-w-md mx-auto relative">
+                                                    <div className="absolute top-5 left-0 w-full h-[2px] bg-slate-100 -z-0"></div>
+                                                    {[1, 2, 3].map((step) => (
+                                                        <div key={step} className="relative flex flex-col items-center z-10">
+                                                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold transition-all ${wizardStep === step
+                                                                    ? 'bg-white border-[3px] border-indigo-600 text-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.3)] scale-110'
+                                                                    : wizardStep > step ? 'bg-indigo-600 text-white' : 'bg-white border-[3px] border-slate-100 text-slate-300'
+                                                                }`}>
+                                                                {wizardStep > step ? <CheckCircle2 size={18} /> : step}
+                                                            </div>
+                                                            <span className={`mt-2 text-[10px] font-black uppercase tracking-widest ${wizardStep >= step ? 'text-indigo-600' : 'text-slate-300'}`}>
+                                                                {step === 1 ? 'SELECT' : step === 2 ? 'UPLOAD' : 'REASON'}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="min-h-[300px] flex flex-col items-center">
+                                            {isSuccess ? (
+                                                <div className="text-center py-10 animate-fade-in">
+                                                    <div className="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle2 size={40} /></div>
+                                                    <h2 className="text-2xl font-black text-slate-800 mb-2">บันทึกข้อมูลสำเร็จ!</h2>
+                                                    <button onClick={handleBackToCase} className="mt-8 px-8 py-3 bg-slate-800 text-white font-bold rounded-2xl shadow-lg">กลับไปที่หน้าเคสเดิม</button>
+                                                </div>
+                                            ) : (
+                                                <div className="w-full">
+                                                    {wizardStep === 1 && (
+                                                        <div className="w-full animate-fade-in">
+                                                            <div className="text-center mb-10">
+                                                                <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Step 1: เลือกรายการที่ต้องการแก้ไข</h3>
+                                                                <p className="text-slate-400 font-bold text-sm">คลิกเลือกรูปภาพประกอบที่ต้องการจัดการ</p>
+                                                            </div>
+
+                                                            <div className="max-w-6xl mx-auto space-y-12">
+                                                                <div>
+                                                                    <h5 className="font-black text-slate-800 mb-6 flex items-center gap-3 px-2 text-lg uppercase">
+                                                                        <Layout size={24} className="text-indigo-600" /> หน้าปก (Cover Image)
+                                                                    </h5>
+                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                                                                        {currentCase.allImages.filter(img => img.isCover).map((img) => (
+                                                                            <ImageCard key={img.id} img={img} isSelected={selectedImageToReplace?.id === img.id} onSelect={() => handleSelectImage(img)} onToggleHide={() => handleToggleHideImage(img.id, img.status)} onSetCover={() => handleSetAsCover(img.id)} />
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+
+                                                                <div>
+                                                                    <h5 className="font-black text-slate-800 mb-6 flex items-center gap-3 px-2 text-lg uppercase">
+                                                                        <Images size={24} className="text-indigo-600" /> รูปประกอบอื่นๆ
+                                                                    </h5>
+                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                                                                        {currentCase.allImages.filter(img => !img.isCover).map((img) => (
+                                                                            <ImageCard key={img.id} img={img} isSelected={selectedImageToReplace?.id === img.id} onSelect={() => handleSelectImage(img)} onToggleHide={() => handleToggleHideImage(img.id, img.status)} onSetCover={() => handleSetAsCover(img.id)} />
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {wizardStep === 2 && (
+                                                        <div className="w-full max-w-3xl mx-auto animate-fade-in text-center">
+                                                            <h3 className="text-2xl font-black text-slate-800 mb-2 uppercase tracking-tight">อัปโหลดไฟล์ใหม่</h3>
+                                                            <p className="text-slate-400 font-bold text-sm mb-10">เปรียบเทียบและเลือกไฟล์ใหม่เพื่อแทนที่รายการเดิม</p>
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center justify-center">
+                                                                <div className="flex flex-col items-center">
+                                                                    <div className="mb-4 flex items-center gap-2 bg-slate-100 px-4 py-1.5 rounded-full border border-slate-200">
+                                                                        <span className="w-2 h-2 rounded-full bg-slate-400 animate-pulse"></span>
+                                                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">ไฟล์เดิม</p>
+                                                                    </div>
+                                                                    <div className="w-full max-w-[280px] aspect-square rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl bg-slate-50 relative group">
+                                                                        <FilePreviewRender file={selectedImageToReplace} />
+                                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80"></div>
+                                                                        <div className="absolute bottom-4 left-0 right-0">
+                                                                            <p className="text-white text-[10px] font-black uppercase tracking-tighter">{selectedImageToReplace?.isCover ? "Cover Image" : "Attachment"}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 z-20 w-12 h-12 bg-indigo-600 text-white rounded-2xl items-center justify-center shadow-xl border-4 border-[#F4F6F8]">
+                                                                    <ArrowRight size={24} strokeWidth={3} />
+                                                                </div>
+                                                                <div className="flex flex-col items-center">
+                                                                    <div className="mb-4 flex items-center gap-2 bg-indigo-50 px-4 py-1.5 rounded-full border border-indigo-100">
+                                                                        <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                                                        <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">ไฟล์ใหม่</p>
+                                                                    </div>
+                                                                    <label className={`relative flex flex-col items-center justify-center w-full max-w-[280px] aspect-square rounded-[2.5rem] border-4 border-dashed transition-all duration-500 cursor-pointer overflow-hidden ${newImageFile ? 'border-green-400 bg-white shadow-2xl scale-100' : 'border-slate-200 bg-slate-50 hover:bg-white hover:border-indigo-400 hover:scale-105 shadow-sm'}`}>
+                                                                        <input type="file" className="hidden" accept="image/*, video/*, audio/*, text/*, application/*, .jpg, .jpeg, .png, .gif, .mp4, .mov, .webm, .mp3, .wav, .m4a" onChange={(e) => { if (e.target.files[0]) setNewImageFile(e.target.files[0]); }} />
+                                                                        {newImageFile ? (
+                                                                            <div className="w-full h-full p-0 animate-fade-in"> <div className="w-full h-full shadow-inner"> <FilePreviewRender file={newImageFile} /> </div> </div>
+                                                                        ) : (
+                                                                            <div className="text-center p-8">
+                                                                                <div className="w-16 h-16 bg-white rounded-[1.5rem] flex items-center justify-center shadow-sm mx-auto mb-4 text-slate-300 group-hover:text-indigo-500 transition-colors"> <UploadCloud size={40} strokeWidth={1.5} /> </div>
+                                                                                <p className="font-black text-slate-700 uppercase tracking-widest text-xs">คลิกเลือกไฟล์</p>
+                                                                                <p className="text-[9px] font-bold text-slate-400 mt-2 leading-relaxed uppercase">Image / Video / Audio</p>
+                                                                            </div>
+                                                                        )}
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                            {newImageFile && (
+                                                                <div className="mt-10 animate-bounce">
+                                                                    <div className="inline-flex items-center gap-2 bg-green-500 text-white px-6 py-2 rounded-full shadow-lg">
+                                                                        <CheckCircle2 size={18} strokeWidth={3} />
+                                                                        <span className="text-xs font-black uppercase tracking-widest">พร้อมเปลี่ยนรูปภาพ</span>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {wizardStep === 3 && (
+                                                        <div className="w-full max-w-xl mx-auto animate-fade-in">
+                                                            <div className="text-center mb-8">
+                                                                <h3 className="text-2xl font-black text-slate-800 mb-1">Step 3: สรุปผลและระบุเหตุผล</h3>
+                                                                <p className="text-slate-400 font-bold text-sm">ระบุสาเหตุในการเปลี่ยนไฟล์ <span className="text-indigo-600">{selectedImageToReplace?.isCover ? "Cover Image" : "Attachment"}</span></p>
+                                                            </div>
+                                                            <textarea className="textarea w-full h-48 rounded-[2rem] bg-slate-50 border-2 border-slate-100 focus:border-indigo-600 p-6 font-bold text-slate-800 text-lg shadow-inner" placeholder="พิมพ์เหตุผล..." value={reason} onChange={(e) => setReason(e.target.value)} />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {!isSuccess && (
+                                            <div className="flex justify-between items-center mt-12 pt-8 border-t border-slate-50 gap-4">
+                                                {wizardStep === 1 ? (
+                                                    // 💡 เปลี่ยนสีปุ่ม ยกเลิก
+                                                    <button onClick={resetForm} className="px-6 sm:px-10 py-4 bg-red-500 text-white rounded-2xl text-xs sm:text-sm font-black uppercase hover:bg-red-600 flex items-center gap-3 transition-all shadow-md">
+                                                        <X size={20} /> <span>ยกเลิก</span>
+                                                    </button>
+                                                ) : (
+                                                    // 💡 เปลี่ยนสีปุ่ม ย้อนกลับ
+                                                    <button onClick={() => setWizardStep(p => p - 1)} className="px-6 sm:px-10 py-4 bg-red-500 text-white rounded-2xl text-xs sm:text-sm font-black uppercase hover:bg-red-600 flex items-center gap-3 transition-all shadow-md">
+                                                        <ArrowLeft size={20} /> <span>ย้อนกลับ</span>
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => wizardStep < 3 ? setWizardStep(p => p + 1) : handleUpdateImage()}
+                                                    disabled={(wizardStep === 1 && !selectedImageToReplace) || (wizardStep === 2 && !newImageFile) || (wizardStep === 3 && !reason.trim())}
+                                                    className={`px-8 sm:px-12 py-4 rounded-2xl text-xs sm:text-sm font-black uppercase transition-all flex items-center gap-3 ${wizardStep === 3 ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-100 disabled:opacity-50'}`}
+                                                >
+                                                    {wizardStep === 3 ? (isSubmitting ? "กำลังบันทึก..." : "ยืนยัน") : "ถัดไป"} <ArrowRight size={20} />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {currentCase && (
+                        <div className="hidden xl:block w-full xl:w-[320px] 2xl:w-[400px] shrink-0 xl:sticky xl:top-8 animate-fade-in">
+                            <TimelineContent data={auditLogs} isLoading={isLoadingLogs} />
+                        </div>
+                    )}
                 </div>
-                <div className="flex flex-col gap-0.5 mt-1">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">โดย: {item.editor}</p>
-                  <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">{item.editTime}</p>
-                </div>
-              </div>
             </div>
-            <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end mt-4 sm:mt-0">
-              <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${item.statusColor} bg-opacity-50 backdrop-blur-sm shadow-sm`}>{item.status}</span>
-                <button onClick={() => handleSearch(null, item.id)} className="px-6 py-2.5 bg-[#6366F1] text-white font-black text-xs rounded-xl hover:bg-[#4F46E5] hover:shadow-lg hover:shadow-indigo-100 active:scale-95 transition-all duration-200 flex items-center gap-2" >
-                    <Eye size={14} strokeWidth={3} /> ดูรายละเอียด
-                </button>
-            </div>
-          </div>
-        ))}
-      </>
-    )}
-  </div>
-</div>
-  </div>
-)}
 
-
- {currentCase && (
-    <div className="w-full space-y-6">
-        <div className="xl:hidden grid grid-cols-2 gap-3">
-             <button onClick={() => { setShowMobileEditPanel(!showMobileEditPanel); setShowMobileTimeline(false); }} className={`btn h-16 rounded-2xl border-none shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-xs font-black uppercase tracking-tight ${showMobileEditPanel ? 'bg-indigo-700 text-white' : 'bg-white text-slate-900 border-2 border-slate-100'}`}>
-               <Settings2 size={16} /> {showMobileEditPanel ? 'ปิดการจัดการ' : 'จัดการข้อมูล'}
-             </button>
-             <button onClick={() => { setShowMobileTimeline(!showMobileTimeline); setShowMobileEditPanel(false); }} className={`btn h-16 rounded-2xl border-none shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-xs font-black uppercase tracking-tight ${showMobileTimeline ? 'bg-black text-white' : 'bg-white text-slate-900 border-2 border-slate-100'}`}>
-               <History size={16} /> {showMobileTimeline ? 'ปิดไทม์ไลน์' : 'ดูไทม์ไลน์'}
-             </button>
-        </div>
-
-    {/* Mobile Timeline View */}
-    {/* Mobile Timeline View */}
-    {showMobileTimeline && (
-      <div className="xl:hidden animate-fade-in">
-          <TimelineContent data={auditLogs} isLoading={isLoadingLogs} />
-      </div>
-    )}
-
-    {/* Desktop & Mobile Edit View */}
-    <div className={`${showMobileTimeline ? 'hidden xl:block' : 'block'}`}>
-      <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 p-5 lg:p-10 relative overflow-hidden mb-6 animate-fade-in">
-          {!isSuccess && (
-              <div className="mb-12">
-                  <div className="flex items-center justify-between max-w-md mx-auto relative">
-                      <div className="absolute top-5 left-0 w-full h-[2px] bg-slate-100 -z-0"></div>
-                      {[1, 2, 3].map((step) => (
-                          <div key={step} className="relative flex flex-col items-center z-10">
-                              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold transition-all ${
-                                  wizardStep === step 
-                                  ? 'bg-white border-[3px] border-indigo-600 text-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.3)] scale-110' 
-                                  : wizardStep > step ? 'bg-indigo-600 text-white' : 'bg-white border-[3px] border-slate-100 text-slate-300'
-                              }`}>
-                                  {wizardStep > step ? <CheckCircle2 size={18} /> : step}
-                              </div>
-                              <span className={`mt-2 text-[10px] font-black uppercase tracking-widest ${wizardStep >= step ? 'text-indigo-600' : 'text-slate-300'}`}>
-                                  {step === 1 ? 'SELECT' : step === 2 ? 'UPLOAD' : 'REASON'}
-                              </span>
-                          </div>
-                      ))}
-                  </div>
-              </div>
-          )}
-
-          <div className="min-h-[300px] flex flex-col items-center">
-              {isSuccess ? (
-                  <div className="text-center py-10 animate-fade-in">
-                      <div className="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle2 size={40} /></div>
-                      <h2 className="text-2xl font-black text-slate-800 mb-2">บันทึกข้อมูลสำเร็จ!</h2>
-                      <button onClick={handleBackToCase} className="mt-8 px-8 py-3 bg-slate-800 text-white font-bold rounded-2xl shadow-lg">กลับไปที่หน้าเคสเดิม</button>
-                  </div>
-              ) : (
-                  <div className="w-full">
-                  {wizardStep === 1 && (
-                      <div className="w-full animate-fade-in">
-                          <div className="text-center mb-10">
-                              <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Step 1: เลือกรายการที่ต้องการแก้ไข</h3>
-                              <p className="text-slate-400 font-bold text-sm">คลิกเลือกรูปภาพประกอบที่ต้องการจัดการ</p>
-                          </div>
-
-                          <div className="max-w-6xl mx-auto space-y-12">
-                              <div>
-                                  <h5 className="font-black text-slate-800 mb-6 flex items-center gap-3 px-2 text-lg uppercase">
-                                      <Layout size={24} className="text-indigo-600" /> หน้าปก (Cover Image)
-                                  </h5>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                                      {currentCase.allImages.filter(img => img.isCover).map((img) => (
-                                          <ImageCard key={img.id} img={img} isSelected={selectedImageToReplace?.id === img.id} onSelect={() => handleSelectImage(img)} onToggleHide={() => handleToggleHideImage(img.id, img.status)} onSetCover={() => handleSetAsCover(img.id)} />
-                                      ))}
-                                  </div>
-                              </div>
-
-                              <div>
-                                  <h5 className="font-black text-slate-800 mb-6 flex items-center gap-3 px-2 text-lg uppercase">
-                                      <Images size={24} className="text-indigo-600" /> รูปประกอบอื่นๆ
-                                  </h5>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                                  {currentCase.allImages.filter(img => !img.isCover).map((img) => (
-                                      <ImageCard key={img.id} img={img} isSelected={selectedImageToReplace?.id === img.id} onSelect={() => handleSelectImage(img)} onToggleHide={() => handleToggleHideImage(img.id, img.status)} onSetCover={() => handleSetAsCover(img.id)} />
-                                  ))}
-                              </div>
-                              </div>
-                          </div>
-                      </div>
-                  )}
-
-                  {wizardStep === 2 && (
-                      <div className="w-full max-w-3xl mx-auto animate-fade-in text-center">
-                          <h3 className="text-2xl font-black text-slate-800 mb-2 uppercase tracking-tight">อัปโหลดไฟล์ใหม่</h3>
-                          <p className="text-slate-400 font-bold text-sm mb-10">เปรียบเทียบและเลือกไฟล์ใหม่เพื่อแทนที่รายการเดิม</p>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center justify-center">
-                              <div className="flex flex-col items-center">
-                                  <div className="mb-4 flex items-center gap-2 bg-slate-100 px-4 py-1.5 rounded-full border border-slate-200">
-                                      <span className="w-2 h-2 rounded-full bg-slate-400 animate-pulse"></span>
-                                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">ไฟล์เดิม</p>
-                                  </div>
-                                  <div className="w-full max-w-[280px] aspect-square rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl bg-slate-50 relative group">
-                                      <FilePreviewRender file={selectedImageToReplace} />
-                                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80"></div>
-                                      <div className="absolute bottom-4 left-0 right-0">
-                                          <p className="text-white text-[10px] font-black uppercase tracking-tighter">{selectedImageToReplace?.isCover ? "Cover Image" : "Attachment"}</p>
-                                      </div>
-                                  </div>
-                              </div>
-                              <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 z-20 w-12 h-12 bg-indigo-600 text-white rounded-2xl items-center justify-center shadow-xl border-4 border-[#F4F6F8]">
-                                  <ArrowRight size={24} strokeWidth={3} />
-                              </div>
-                              <div className="flex flex-col items-center">
-                                  <div className="mb-4 flex items-center gap-2 bg-indigo-50 px-4 py-1.5 rounded-full border border-indigo-100">
-                                      <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-                                      <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">ไฟล์ใหม่</p>
-                                  </div>
-                                  <label className={`relative flex flex-col items-center justify-center w-full max-w-[280px] aspect-square rounded-[2.5rem] border-4 border-dashed transition-all duration-500 cursor-pointer overflow-hidden ${ newImageFile ? 'border-green-400 bg-white shadow-2xl scale-100' : 'border-slate-200 bg-slate-50 hover:bg-white hover:border-indigo-400 hover:scale-105 shadow-sm' }`}>
-                                      <input type="file" className="hidden" accept="image/*, video/*, audio/*, text/*, application/*, .jpg, .jpeg, .png, .gif, .mp4, .mov, .webm, .mp3, .wav, .m4a" onChange={(e) => { if(e.target.files[0]) setNewImageFile(e.target.files[0]); }} />
-                                      {newImageFile ? (
-                                          <div className="w-full h-full p-0 animate-fade-in"> <div className="w-full h-full shadow-inner"> <FilePreviewRender file={newImageFile} /> </div> </div>
-                                      ) : (
-                                          <div className="text-center p-8">
-                                              <div className="w-16 h-16 bg-white rounded-[1.5rem] flex items-center justify-center shadow-sm mx-auto mb-4 text-slate-300 group-hover:text-indigo-500 transition-colors"> <UploadCloud size={40} strokeWidth={1.5} /> </div>
-                                              <p className="font-black text-slate-700 uppercase tracking-widest text-xs">คลิกเลือกไฟล์</p>
-                                              <p className="text-[9px] font-bold text-slate-400 mt-2 leading-relaxed uppercase">Image / Video / Audio</p>
-                                          </div>
-                                      )}
-                                  </label>
-                              </div>
-                          </div>
-                          {newImageFile && (
-                              <div className="mt-10 animate-bounce">
-                                  <div className="inline-flex items-center gap-2 bg-green-500 text-white px-6 py-2 rounded-full shadow-lg">
-                                      <CheckCircle2 size={18} strokeWidth={3} />
-                                      <span className="text-xs font-black uppercase tracking-widest">พร้อมเปลี่ยนรูปภาพ</span>
-                                  </div>
-                              </div>
-                          )}
-                      </div>
-                  )}
-
-                  {wizardStep === 3 && (
-                      <div className="w-full max-w-xl mx-auto animate-fade-in">
-                          <div className="text-center mb-8">
-                              <h3 className="text-2xl font-black text-slate-800 mb-1">Step 3: สรุปผลและระบุเหตุผล</h3>
-                              <p className="text-slate-400 font-bold text-sm">ระบุสาเหตุในการเปลี่ยนไฟล์ <span className="text-indigo-600">{selectedImageToReplace?.isCover ? "Cover Image" : "Attachment"}</span></p>
-                          </div>
-                          <textarea className="textarea w-full h-48 rounded-[2rem] bg-slate-50 border-2 border-slate-100 focus:border-indigo-600 p-6 font-bold text-slate-800 text-lg shadow-inner" placeholder="พิมพ์เหตุผล..." value={reason} onChange={(e) => setReason(e.target.value)} />
-                      </div>
-                  )}
-                  </div>
-              )}
-          </div>
-
-          {!isSuccess && (
-              <div className="flex justify-between items-center mt-12 pt-8 border-t border-slate-50 gap-4">
-                  {wizardStep === 1 ? (
-                      // 💡 เปลี่ยนสีปุ่ม ยกเลิก
-                      <button onClick={resetForm} className="px-6 sm:px-10 py-4 bg-red-500 text-white rounded-2xl text-xs sm:text-sm font-black uppercase hover:bg-red-600 flex items-center gap-3 transition-all shadow-md">
-                          <X size={20} /> <span>ยกเลิก</span>
-                      </button>
-                  ) : (
-                      // 💡 เปลี่ยนสีปุ่ม ย้อนกลับ
-                      <button onClick={() => setWizardStep(p => p - 1)} className="px-6 sm:px-10 py-4 bg-red-500 text-white rounded-2xl text-xs sm:text-sm font-black uppercase hover:bg-red-600 flex items-center gap-3 transition-all shadow-md">
-                          <ArrowLeft size={20} /> <span>ย้อนกลับ</span>
-                      </button>
-                  )}
-                  <button 
-                      onClick={() => wizardStep < 3 ? setWizardStep(p => p + 1) : handleUpdateImage()} 
-                      disabled={(wizardStep === 1 && !selectedImageToReplace) || (wizardStep === 2 && !newImageFile) || (wizardStep === 3 && !reason.trim())}
-                      className={`px-8 sm:px-12 py-4 rounded-2xl text-xs sm:text-sm font-black uppercase transition-all flex items-center gap-3 ${wizardStep === 3 ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-100 disabled:opacity-50'}`}
-                  >
-                      {wizardStep === 3 ? (isSubmitting ? "กำลังบันทึก..." : "ยืนยัน") : "ถัดไป"} <ArrowRight size={20} />
-                  </button>
-              </div>
-          )}
-      </div>
-    </div>
-    </div>
- )}
-</div>
-
-      {currentCase && (
-        <div className="hidden xl:block w-full xl:w-[320px] 2xl:w-[400px] shrink-0 xl:sticky xl:top-8 animate-fade-in">
-            <TimelineContent data={auditLogs} isLoading={isLoadingLogs} />
-        </div>
-      )}
-    </div>
-  </div>
-
-  <style jsx global>{`
+            <style jsx global>{`
     .animate-fade-in { animation: fadeIn 0.4s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -885,8 +886,8 @@ const handleSetAsCover = async (imgId) => {
         background: #94a3b8; /* สี slate-400 (เข้มขึ้นตอนเอาเมาส์ชี้) */
     }
   `}</style>
-</div>
- );
+        </div>
+    );
 }
 
 function TimelineContent({ data, isLoading }) {
@@ -924,13 +925,13 @@ function TimelineContent({ data, isLoading }) {
                     </div>
                     <button className="w-10 h-10 shrink-0 bg-white border border-slate-200 hover:border-black hover:bg-black hover:text-white rounded-full flex items-center justify-center text-slate-400 transition-all active:scale-95"><Filter size={16} strokeWidth={2.5} /></button>
                 </div>
-                
+
                 {/* 🟢 ปุ่ม Filter Tabs */}
                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
                     {['ทั้งหมด', 'การแก้ไข', 'ความปลอดภัย', 'ระบบ'].map((tag, i) => (
-                        <button 
-                            key={i} 
-                            onClick={() => setActiveLogFilter(tag)} 
+                        <button
+                            key={i}
+                            onClick={() => setActiveLogFilter(tag)}
                             className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all border shrink-0 ${activeLogFilter === tag ? 'bg-slate-900 text-white border-slate-900 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400 hover:text-slate-800'}`}
                         >
                             {tag}
@@ -941,7 +942,7 @@ function TimelineContent({ data, isLoading }) {
 
             <div className="px-6 pb-6 pr-4 relative z-10 max-h-[500px] overflow-y-auto custom-scrollbar">                <div className="absolute left-[39px] top-4 bottom-12 w-[2px] bg-slate-100 z-0 rounded-full"></div>
                 <div className="space-y-4 pt-2">
-                    
+
                     {/* 🟢 แสดงสถานะ Loading ภายในกล่องเลย เพื่อให้ UI ไม่กระตุก */}
                     {isLoading ? (
                         <div className="py-10 text-center text-sm font-bold text-slate-400 flex flex-col items-center gap-3">
@@ -976,9 +977,9 @@ function TimelineContent({ data, isLoading }) {
                             ไม่พบข้อมูลในหมวดหมู่นี้
                         </div>
                     )}
-                    
+
                 </div>
-                
+
             </div>
             <div className="p-4 pt-2 bg-white border-t border-slate-50 relative z-20">
             </div>
@@ -988,7 +989,7 @@ function TimelineContent({ data, isLoading }) {
 
 function ImageCard({ img, isSelected, onSelect, onToggleHide, onSetCover }) {
     return (
-        <div className={`group relative rounded-[2.5rem] overflow-hidden transition-all border-4 aspect-[4/3] shadow-md hover:shadow-xl ${ isSelected ? 'border-indigo-600 scale-[1.03] z-10' : 'border-white hover:border-slate-200' }`} >
+        <div className={`group relative rounded-[2.5rem] overflow-hidden transition-all border-4 aspect-[4/3] shadow-md hover:shadow-xl ${isSelected ? 'border-indigo-600 scale-[1.03] z-10' : 'border-white hover:border-slate-200'}`} >
             <div className="w-full h-full cursor-pointer relative" onClick={onSelect}>
                 <FilePreviewRender file={img} />
                 {img.status === 'hidden' && (
@@ -1007,7 +1008,7 @@ function ImageCard({ img, isSelected, onSelect, onToggleHide, onSetCover }) {
                     <button onClick={(e) => { e.stopPropagation(); onSetCover(); }} className="w-10 h-10 rounded-xl bg-white/90 backdrop-blur text-indigo-600 shadow-xl opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center border border-indigo-100 hover:bg-indigo-600 hover:text-white" title="ตั้งเป็นรูปหน้าปก" > <Layout size={18} /> </button>
                 )}
 
-                <button onClick={(e) => { e.stopPropagation(); onToggleHide(); }} className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-2xl transition-all active:scale-95 border ${ img.status === 'hidden' ? 'bg-rose-600 text-white border-rose-400' : 'bg-white/90 backdrop-blur text-slate-800 border-slate-100 hover:bg-white' }`} >
+                <button onClick={(e) => { e.stopPropagation(); onToggleHide(); }} className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-2xl transition-all active:scale-95 border ${img.status === 'hidden' ? 'bg-rose-600 text-white border-rose-400' : 'bg-white/90 backdrop-blur text-slate-800 border-slate-100 hover:bg-white'}`} >
                     {img.status === 'hidden' ? <Eye size={18} /> : <EyeOff size={18} />}
                 </button>
             </div>
@@ -1015,7 +1016,7 @@ function ImageCard({ img, isSelected, onSelect, onToggleHide, onSetCover }) {
                 <div className="flex-1 min-w-0">
                     {!isSelected && (
                         <span className="text-[10px] text-white/90 font-black drop-shadow-lg uppercase tracking-widest bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xl w-fit flex items-center gap-2 whitespace-nowrap overflow-hidden">
-                            <Edit3 size={12} className="shrink-0" /> 
+                            <Edit3 size={12} className="shrink-0" />
                             <span className="truncate">แตะเพื่อเลือก</span>
                         </span>
                     )}
