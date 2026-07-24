@@ -598,9 +598,9 @@ export default function ManageCase() {
                                     </div>
                                     <div>
                                         <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-none mb-1.5 tracking-tight">
-                                            จัดการ <span className="text-indigo-600">Case</span>
+                                            จัดการ <span className="text-indigo-600">เรื่องเเจ้ง</span>
                                         </h1>
-                                        <p className="text-slate-500 font-bold text-xs sm:text-sm">ค้นหา Ticket ID หรือ Message ID เพื่อจัดการรูปภาพใน case</p>
+                                        <p className="text-slate-500 font-bold text-xs sm:text-sm">ค้นหา Ticket ID หรือ Message ID เพื่อจัดการรูปภาพในเรื่องเเจ้ง</p>
                                     </div>
 
                                 </header><br></br>
@@ -704,8 +704,8 @@ export default function ManageCase() {
                                                     {[1, 2, 3].map((step) => (
                                                         <div key={step} className="relative flex flex-col items-center z-10">
                                                             <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold transition-all ${wizardStep === step
-                                                                    ? 'bg-white border-[3px] border-indigo-600 text-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.3)] scale-110'
-                                                                    : wizardStep > step ? 'bg-indigo-600 text-white' : 'bg-white border-[3px] border-slate-100 text-slate-300'
+                                                                ? 'bg-white border-[3px] border-indigo-600 text-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.3)] scale-110'
+                                                                : wizardStep > step ? 'bg-indigo-600 text-white' : 'bg-white border-[3px] border-slate-100 text-slate-300'
                                                                 }`}>
                                                                 {wizardStep > step ? <CheckCircle2 size={18} /> : step}
                                                             </div>

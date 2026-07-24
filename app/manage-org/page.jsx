@@ -857,46 +857,6 @@ export default function ManageOrgPage() {
                               </div>
 
                               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 z-20 bg-white/80 backdrop-blur-sm pl-2 rounded-r-2xl">
-                                <div className="relative flex items-center">
-                                  <button
-                                    type="button"
-                                    onClick={() => setShowNameHistory(!showNameHistory)}
-                                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer active:scale-95 ${showNameHistory ? "bg-slate-900 text-white shadow-md" : "bg-transparent text-slate-400 hover:bg-slate-100 hover:text-black"
-                                      }`}
-                                  >
-                                    <History size={20} strokeWidth={2.5} />
-                                  </button>
-
-                                  {showNameHistory && (
-                                    <>
-                                      <div className="fixed inset-0 z-[100]" onClick={() => setShowNameHistory(false)} />
-                                      <div className="absolute top-[120%] right-0 z-[110] w-[320px] max-w-[calc(100vw-32px)] bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] p-6 animate-in fade-in slide-in-from-top-2 duration-200 text-left border-2 border-black">
-                                        <div className="flex items-center gap-2.5 mb-5 pb-3 border-b border-slate-100">
-                                          <div className="w-2.5 h-2.5 bg-black rounded-full shrink-0"></div>
-                                          <span className="text-xs font-black uppercase tracking-[0.15em] text-black">Name Revision History</span>
-                                        </div>
-                                        <div className="space-y-4 ml-1">
-                                          {[
-                                            { old: "อบต. เดิม", new: "เทศบาลนครนนทบุรี", user: "ธนกฤต แอดมิน", date: "24 ก.พ. 2026" },
-                                            { old: "หน่วยงานทดสอบ", new: "อบต. เดิม", user: "Super Admin", date: "10 ม.ค. 2026" }
-                                          ].map((h, i, arr) => (
-                                            <div key={i} className="flex gap-3 relative">
-                                              {i !== arr.length - 1 && <div className="absolute left-[2.5px] top-3 bottom-[-1.5rem] w-[1.5px] bg-slate-300"></div>}
-                                              <div className="flex flex-col items-center mt-1.5 z-10"><div className="w-1.5 h-1.5 bg-black rounded-full"></div></div>
-                                              <div className="flex-1 min-w-0">
-                                                <p className="text-[13px] font-bold text-slate-900 leading-tight mb-1 truncate">
-                                                  <span className="text-slate-400 mr-1.5 font-medium line-through">{h.old}</span>
-                                                  <span className="text-black font-black">{h.new}</span>
-                                                </p>
-                                                <p className="text-[10px] font-bold text-slate-500 uppercase">By {h.user} • {h.date}</p>
-                                              </div>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    </>
-                                  )}
-                                </div>
                                 <button type="button" onClick={() => copyToClipboard(orgName)} className="w-10 h-10 text-slate-400 hover:bg-slate-100 hover:text-indigo-600 rounded-xl flex items-center justify-center transition-all active:scale-95"><Copy size={20} /></button>
                               </div>
                             </div>

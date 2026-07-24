@@ -99,7 +99,7 @@ export const SIDEBAR_MENUS = [
     roles: ["all"],
   },
   {
-    title: "จัดการ Case",
+    title: "จัดการเรื่องเเจ้ง",
     href: "/manage-case",
     icon: <Briefcase size={20} />,
     roles: ["admin", "editor", "editor_manage_case"],
@@ -265,7 +265,7 @@ export default function Sidebar({
         setAdminData(myProfile);
         setCurrentRoles(roles);
       }
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const handleLogout = async () => {
@@ -289,11 +289,10 @@ export default function Sidebar({
 
   const getMenuClass = (path) => {
     const isActive = pathname === path;
-    return `flex items-center ${isDesktopSidebarOpen ? "gap-4 px-6" : "justify-center px-0"} py-3 rounded-xl transition-all duration-200 ${
-      isActive
+    return `flex items-center ${isDesktopSidebarOpen ? "gap-4 px-6" : "justify-center px-0"} py-3 rounded-xl transition-all duration-200 ${isActive
         ? "bg-[#111827] !text-white shadow-lg scale-[1.02]"
         : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-    }`;
+      }`;
   };
 
   const SidebarRoleDisplay = () => (
@@ -505,7 +504,7 @@ export default function Sidebar({
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <Briefcase size={20} />{" "}
-                      <span className="text-[15px] font-bold">จัดการ Case</span>
+                      <span className="text-[15px] font-bold">จัดการเรื่องเเจ้ง</span>
                     </Link>
                   )}
                   {hasAccess(["admin", "editor", "editor_manage_menu"]) && (
@@ -524,17 +523,17 @@ export default function Sidebar({
                     "editor_manage_org_info",
                     "editor_manage_org",
                   ]) && (
-                    <Link
-                      href="/manage-org"
-                      className={getMenuClass("/manage-org")}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <Users size={20} />{" "}
-                      <span className="text-[15px] font-bold">
-                        จัดการหน่วยงาน
-                      </span>
-                    </Link>
-                  )}
+                      <Link
+                        href="/manage-org"
+                        className={getMenuClass("/manage-org")}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <Users size={20} />{" "}
+                        <span className="text-[15px] font-bold">
+                          จัดการหน่วยงาน
+                        </span>
+                      </Link>
+                    )}
                   {hasAccess(["admin", "editor", "editor_manage_flex"]) && (
                     <Link
                       href="/manage-flex-message"
@@ -552,17 +551,17 @@ export default function Sidebar({
                     "editor",
                     "editor_search_duplicate_org",
                   ]) && (
-                    <Link
-                      href="/search-org"
-                      className={getMenuClass("/search-org")}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <Search size={20} />{" "}
-                      <span className="text-[15px] font-bold">
-                        ค้นหาหน่วยงานซ้ำ
-                      </span>
-                    </Link>
-                  )}
+                      <Link
+                        href="/search-org"
+                        className={getMenuClass("/search-org")}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <Search size={20} />{" "}
+                        <span className="text-[15px] font-bold">
+                          ค้นหาหน่วยงานซ้ำ
+                        </span>
+                      </Link>
+                    )}
                   {hasAccess(["admin", "editor", "editor_file_search"]) && (
                     <Link
                       href="/manage-file-search"
@@ -679,7 +678,7 @@ export default function Sidebar({
                   <Briefcase size={20} className="shrink-0" />
                   {isDesktopSidebarOpen && (
                     <span className="font-bold text-[15px] whitespace-nowrap">
-                      จัดการ Case
+                      จัดการเรื่องเเจ้ง
                     </span>
                   )}
                 </Link>
@@ -705,18 +704,18 @@ export default function Sidebar({
                 "editor_manage_org",
                 "editor_manage_org_info",
               ]) && (
-                <Link
-                  href="/manage-org"
-                  className={getMenuClass("/manage-org")}
-                >
-                  <Users size={20} className="shrink-0" />
-                  {isDesktopSidebarOpen && (
-                    <span className="font-bold text-[15px] whitespace-nowrap">
-                      จัดการหน่วยงาน
-                    </span>
-                  )}
-                </Link>
-              )}
+                  <Link
+                    href="/manage-org"
+                    className={getMenuClass("/manage-org")}
+                  >
+                    <Users size={20} className="shrink-0" />
+                    {isDesktopSidebarOpen && (
+                      <span className="font-bold text-[15px] whitespace-nowrap">
+                        จัดการหน่วยงาน
+                      </span>
+                    )}
+                  </Link>
+                )}
 
               {hasAccess(["admin", "editor", "editor_manage_flex"]) && (
                 <Link
@@ -737,18 +736,18 @@ export default function Sidebar({
                 "editor",
                 "editor_search_duplicate_org",
               ]) && (
-                <Link
-                  href="/search-org"
-                  className={getMenuClass("/search-org")}
-                >
-                  <Search size={20} className="shrink-0" />
-                  {isDesktopSidebarOpen && (
-                    <span className="font-bold text-[15px] whitespace-nowrap">
-                      ค้นหาหน่วยงานซ้ำ
-                    </span>
-                  )}
-                </Link>
-              )}
+                  <Link
+                    href="/search-org"
+                    className={getMenuClass("/search-org")}
+                  >
+                    <Search size={20} className="shrink-0" />
+                    {isDesktopSidebarOpen && (
+                      <span className="font-bold text-[15px] whitespace-nowrap">
+                        ค้นหาหน่วยงานซ้ำ
+                      </span>
+                    )}
+                  </Link>
+                )}
 
               {hasAccess(["admin", "editor", "editor_file_search"]) && (
                 <Link
