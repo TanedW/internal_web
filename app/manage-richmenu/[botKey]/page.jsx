@@ -1,5 +1,6 @@
 "use client";
 
+<<<<<<< Updated upstream
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -167,6 +168,14 @@ const AvatarStack = ({ count = 0, accent = "#3B82F6" }) => {
     </div>
   );
 };
+=======
+import { useEffect, useState, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from '@/firebaseConfig';
+import '@fortawesome/fontawesome-free/css/all.css';
+>>>>>>> Stashed changes
 
 export default function RichMenuDashboard() {
   const params = useParams();
@@ -287,6 +296,7 @@ export default function RichMenuDashboard() {
   const dropZoneRef = useRef(null);
   const actionPanelRef = useRef(null);
 
+<<<<<<< Updated upstream
   // ==========================================
   // DASHBOARD HELPERS
   // ==========================================
@@ -532,6 +542,8 @@ export default function RichMenuDashboard() {
   // MAIN LOGIC
   // ==========================================
 
+=======
+>>>>>>> Stashed changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
@@ -1305,6 +1317,7 @@ export default function RichMenuDashboard() {
   const activeMenu = menus.find((m) => m.richMenuId === currentMenuId);
 
   return (
+<<<<<<< Updated upstream
     <div className="min-h-screen bg-[#F4F6F8] font-sans">
       {/* <link
         href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.css"
@@ -1356,6 +1369,135 @@ export default function RichMenuDashboard() {
                 <div className="php-qa-icon green">
                   <PlusCircle size={20} />
                 </div>
+=======
+    <div className="min-h-screen bg-slate-100 font-sans" style={{ fontFamily: "'Sarabun', sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600&display=swap');
+        
+        body { font-family: 'Sarabun', sans-serif; }
+        
+        .alert {
+          padding: 12px 16px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-size: 14px;
+          animation: slideDown 0.3s ease-out;
+        }
+        .alert-success {
+          background: #E8F5E9;
+          color: #1B5E20;
+          border: 1px solid #C8E6C9;
+        }
+        .alert-error {
+          background: #FFEBEE;
+          color: #B71C1C;
+          border: 1px solid #FFCDD2;
+        }
+        @keyframes slideDown {
+          from { transform: translateY(-10px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .dragover {
+          background: #f0fdf4;
+          border-color: #22c55e !important;
+        }
+
+        .menu-item.active {
+          border: 1px solid #06C755;
+          box-shadow: 0 0 0 1px #06C755;
+        }
+      `}</style>
+
+      {/* CONTENT */}
+      <div className="mt-16 lg:mt-0 pt-6 pb-24 lg:pb-10">
+        <div className="max-w-3xl w-full mx-auto px-4">
+          
+          {/* Navigation Bar */}
+          <div className="flex justify-between items-center mb-6 bg-white p-3 rounded-lg shadow-sm">
+            <Link href="/manage-richmenu" className="text-slate-600 hover:text-slate-800 font-medium text-sm flex items-center gap-2">
+              <i className="fa-solid fa-arrow-left"></i> กลับหน้าเลือกบอท
+            </Link>
+            {bot && <div className="text-xs font-bold bg-green-50 text-green-600 px-3 py-1 rounded-full">
+              กำลังจัดการ: {bot.name}
+            </div>}
+          </div>
+
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-slate-800 mb-2">Traffy Rich Menu Manager</h1>
+            <p className="text-slate-500 text-sm">ระบบจัดการเมนู LINE Official Account</p>
+          </div>
+
+          {/* Alert */}
+          {alert && (
+            <div className={`alert mb-6 ${alert.type === 'success' ? 'alert-success' : 'alert-error'}`}>
+              <i className={`fa-solid ${alert.type === 'success' ? 'fa-check' : 'fa-exclamation-circle'}`}></i>
+              <span>{alert.message}</span>
+            </div>
+          )}
+
+          {/* Upload Card */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 mb-6">
+            <h2 className="text-lg font-semibold text-slate-800 mb-6 pb-4 border-b border-slate-200">
+              สร้างเมนูใหม่ (Upload New)
+            </h2>
+
+            <form onSubmit={handleUpload} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  ชื่อเมนู (Menu Name)
+                </label>
+                <input
+                  type="text"
+                  value={menuName}
+                  onChange={(e) => setMenuName(e.target.value)}
+                  placeholder="ตั้งชื่อเมนู เช่น: เมนูหลัก 2024"
+                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                  disabled={uploading}
+                />
+              </div>
+
+              <div
+                ref={dropZoneRef}
+                className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center cursor-pointer hover:border-green-400 transition-colors"
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={handleFileChange}
+                  accept=".jpg,.jpeg"
+                  className="hidden"
+                  disabled={uploading}
+                />
+                <label htmlFor="fileInput" className="cursor-pointer block">
+                  <div className="text-4xl mb-3">
+                    <i className="fa-regular fa-image text-slate-300"></i>
+                  </div>
+                  <span className="block text-slate-700 font-medium text-sm">
+                    แตะเพื่อเลือกรูปภาพ หรือลากไฟล์มาวาง
+                  </span>
+                  <div className="text-xs text-slate-500 mt-2">
+                    รองรับไฟล์ .jpg ขนาด 2500×843 px (Max 1MB)
+                  </div>
+                  {fileDisplay && (
+                    <div className="text-xs text-green-600 font-medium mt-3">
+                      ✓ {fileDisplay}
+                    </div>
+                  )}
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                disabled={uploading}
+                className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium py-3 rounded-lg transition-all text-sm flex items-center justify-center gap-2"
+              >
+                <i className="fa-solid fa-upload"></i>
+                {uploading ? '⏳ กำลังอัปโหลด...' : '📤 อัปโหลด'}
+>>>>>>> Stashed changes
               </button>
 
               {/* ปุ่ม 2: เปลี่ยน Rich Menu */}
